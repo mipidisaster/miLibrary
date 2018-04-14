@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @fileh       GPIO.h
  * @author      Thomas
- * @version     V0.1
- * @date        10 Apr 2018
+ * @version     V0.2
+ * @date        14 Apr 2018
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -61,19 +61,15 @@ class GPIO {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    private:
-        int pinnumber;
 
     public:
-    GPIO(int pinnumber);
+    GPIO(uint32_t pinnumber, _GPIODirec pindirection);
 
 #else
 //==================================================================================================
-    private:
-        int pinnumber;
 
     public:
-    GPIO(int pinnumber);
+    GPIO(uint32_t pinnumber, _GPIODirec pindirection);
 
 #endif
 

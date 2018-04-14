@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @fileh       GPIO.cpp
  * @author      Thomas
- * @version     V0.1
- * @date        10 Apr 2018
+ * @version     V0.2
+ * @date        14 Apr 2018
  * @brief       Source file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -26,16 +26,17 @@ GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, _GPIODirec direction) 
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-GPIO::GPIO(int pinnumber)
+GPIO::GPIO(uint32_t pinnumber, _GPIODirec pindirection)
 {
-    this->pinnumber = pinnumber;
+    this->pinnumber     = pinnumber;    // copy data into class
+    this->pindirection  = pindirection; //
 
 }
 #else
 //==================================================================================================
-GPIO::GPIO(int pinnumber)
+GPIO::GPIO(uint32_t pinnumber, _GPIODirec pindirection)
 {
-    this->pinnumber = pinnumber;
+    this->pinnumber     = pinnumber;
 
 }
 #endif
@@ -110,10 +111,10 @@ _GPIOValue GPIO::getValue() {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-
+    return LOW;
 #else
 //==================================================================================================
-
+    return LOW;
 #endif
 }
 
