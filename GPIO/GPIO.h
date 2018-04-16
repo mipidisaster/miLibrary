@@ -1,7 +1,7 @@
 /**************************************************************************************************
- * @fileh       GPIO.h
+ * @file        GPIO.h
  * @author      Thomas
- * @version     V0.2
+ * @version     V0.3
  * @date        14 Apr 2018
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
@@ -35,14 +35,17 @@
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+#include <wiringPi.h>                   // Include the wiringPi library
+
 #else
 //==================================================================================================
 #error "Unrecognised target device"
 
 #endif
 
-typedef enum GPIO_VALUE { LOW = 0, HIGH = ~LOW } _GPIOValue;
-typedef enum GPIO_DIREC { OUTPUT = 0, INPUT = ~OUTPUT} _GPIODirec;
+// Types used within this class
+typedef enum GPIO_VALUE { GPIO_LOW = 0, GPIO_HIGH = ~GPIO_LOW } _GPIOValue;
+typedef enum GPIO_DIREC { GPIO_OUT = 0, GPIO_IN = ~GPIO_OUT} _GPIODirec;
 
 class GPIO {
     // Declarations which are generic, and will be used in ALL devices
@@ -61,9 +64,11 @@ class GPIO {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    private:
+        _GPIOValue      pinvalue;               // Current value of pin
 
     public:
-    GPIO(uint32_t pinnumber, _GPIODirec pindirection);
+    GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection);
 
 #else
 //==================================================================================================
