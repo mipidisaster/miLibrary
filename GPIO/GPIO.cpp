@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.cpp
  * @author      Thomas
- * @version     V0.3
- * @date        14 Apr 2018
+ * @version     V0.4
+ * @date        16 Apr 2018
  * @brief       Source file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -45,9 +45,9 @@ GPIO::GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection) {
 }
 #else
 //==================================================================================================
-GPIO::GPIO(uint32_t pinnumber, _GPIODirec pindirection)
-{
-    this->pinnumber     = pinnumber;
+GPIO::GPIO(uint32_t pinnumber, _GPIODirec pindirection) {
+    this->pinnumber     = pinnumber;    //
+    this->pindirection  = direction;    //
 
 }
 #endif

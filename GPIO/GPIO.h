@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.h
  * @author      Thomas
- * @version     V0.3
- * @date        14 Apr 2018
+ * @version     V0.4
+ * @date        16 Apr 2018
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -31,7 +31,7 @@
 #include <stdint.h>
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL GPIO library
+#include "stm32f1xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -57,7 +57,7 @@ class GPIO {
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     private:
-        GPIO_TypeDef    *PortAddress;          // Store the Port Address of pin
+        GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
 
     public:
     GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, _GPIODirec direction);
@@ -72,9 +72,8 @@ class GPIO {
 
 #else
 //==================================================================================================
-
     public:
-    GPIO(uint32_t pinnumber, _GPIODirec pindirection);
+        GPIO(uint32_t pinnumber, _GPIODirec pindirection);
 
 #endif
 
