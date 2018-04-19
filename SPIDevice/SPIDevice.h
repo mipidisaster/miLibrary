@@ -1,9 +1,9 @@
 /**************************************************************************************************
- * @file        GPIO.h
+ * @file        SPIDevice.h
  * @author      Thomas
- * @version     V0.5
+ * @version     V0.1
  * @date        19 Apr 2018
- * @brief       Header file for the Generic GPIO Class handle
+ * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
 
@@ -14,19 +14,18 @@
  * How to use
  * ----------
  * Class supports multiple target devices, depending upon which one is defined will modify how the
- * GPIO class can be initialised.
- * The basic use of the class is the same for all target devices
- *      Call Class GPIO to initialise the class, and link the pinnumber and direction
- *          STM devices will require the PORT address as well
+ * SPIDevice class can be initialised.
+ * The basic used of the class is the same for all target devices
+ *      Call Class SPIDevice to initialise the class
+ *          For STM32F devices, provide the address of the SPI handler - from cubeMX
  *
- *      To change the state of the pin either use .toggleOutput or .setValue(HIGH/LOW) for outputs
- *      To read the state of the pin use getValue() for inputs
+ *      To transfer data to the selected slave device (selection to be done outside of class)
+ *      provide pointer to array, and indicate number of bytes to be transfered
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
-
-#ifndef GPIO_H_
-#define GPIO_H_
+#ifndef SPIDEVICE_H_
+#define SPIDEVICE_H_
 
 #include <stdint.h>
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
@@ -44,49 +43,43 @@
 #endif
 
 // Types used within this class
-typedef enum GPIO_VALUE { GPIO_LOW = 0, GPIO_HIGH = ~GPIO_LOW } _GPIOValue;
-typedef enum GPIO_DIREC { GPIO_OUT = 0, GPIO_IN = ~GPIO_OUT} _GPIODirec;
+typedef enum SPI_MODE { MODE0 = 0,      // Clock Idles at 0, and capture on the rising edge
+                        MODE1 = 1,      // Clock Idles at 0, and capture on the falling edge
+                        MODE2 = 2,      // Clock Idles at 1, and captures on the falling edge
+                        MODE3 = 3       // Clock Idles at 1, and captures on the rising edge
+                      } _SPIMode;
 
-class GPIO {
+class SPIDevice {
     // Declarations which are generic, and will be used in ALL devices
     private:
-        uint32_t        pinnumber;
-        _GPIODirec      pindirection;
+        _SPIMode         Mode;
 
 // Device specific entries
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     private:
-        GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
+        SPI_HandleTypeDef   *SPIHandle;         // Store the Handle for the SPI Device, from cubeMX
 
     public:
-    GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, _GPIODirec direction);
+        SPIDevice(SPI_HandleTypeDef *SPIHandle);
+
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    private:
-        _GPIOValue      pinvalue;               // Current value of pin
-
     public:
-    GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection);
+        SPIDevice();
 
 #else
 //==================================================================================================
-    public:
-        GPIO(uint32_t pinnumber, _GPIODirec pindirection);
+    public
+        SPIDevice();
 
 #endif
 
     public:
     // Functions which are generic for any device being controlled
-        // Output controls
-        virtual uint8_t toggleOutput();
-        virtual uint8_t setValue(_GPIOValue value);
-
-
-        // Input controls
-        virtual _GPIOValue getValue();
-        virtual ~GPIO();
+        uint8_t SPITransfer(uint8_t *pData, uint16_t size);
+        virtual ~SPIDevice();
 };
 
-#endif /* GPIO_H_ */
+#endif /* SPIDEVICE_H_ */
