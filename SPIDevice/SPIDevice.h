@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIDevice.h
  * @author      Thomas
- * @version     V0.2
+ * @version     V0.3
  * @date        21 Apr 2018
  * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
@@ -20,8 +20,12 @@
  *          For STM32F devices, provide the address of the SPI handler - from cubeMX
  *          For RaspberryPi, provide the channel, speed and mode
  *
- *      To transfer data to the selected slave device (selection to be done outside of class)
- *      provide pointer to array, and indicate number of bytes to be transfered
+ *      To transfer data to the selected slave device, a pointer to the array of data is required
+ *      along with the intended number of bytes to be transmitted - function call "SPITransfer"
+ *      This function is overloaded, so depending upon which addition arguments are provided will
+ *      do more:
+ *          If the GPIO Class is added at the start, it will be used as a software chip select,
+ *          being pulled low prior to transfer of data, and then high after transfer is complete
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
@@ -29,6 +33,8 @@
 #define SPIDEVICE_H_
 
 #include <stdint.h>
+#include "GPIO.h"                       // Allow use of GPIO class, for Chip Select
+
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
@@ -79,10 +85,22 @@ class SPIDevice {
         SPIDevice();
 
 #endif
+    private:
+        uint8_t SPIRWTransfer(uint8_t *pData, uint16_t size);   // Private function to transmit
+                // data via SPI
 
     public:
     // Functions which are generic for any device being controlled
+/**************************************************************************************************
+ * SPITransfer is an overloaded function, so therefore has multiple uses
+ *  The first   is the "default", where only the data and size is provided
+ *  The second  is provided the GPIO for Chip Select, which will be pulled low prior to transfer
+ *              and then pushed back high after
+ *************************************************************************************************/
         uint8_t SPITransfer(uint8_t *pData, uint16_t size);
+        uint8_t SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size);
+
+
         virtual ~SPIDevice();
 };
 

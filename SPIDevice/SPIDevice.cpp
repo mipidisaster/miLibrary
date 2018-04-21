@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIDevice.cpp
  * @author      Thomas
- * @version     V0.2
+ * @version     V0.3
  * @date        21 Apr 2018
  * @brief       Source file for the Generic SPIDevice Class handle
  **************************************************************************************************
@@ -66,7 +66,7 @@ SPIDevice::SPIDevice() {
 }
 #endif
 
-uint8_t SPIDevice::SPITransfer(uint8_t *pData, uint16_t size) {
+uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
 /**************************************************************************************************
  * Transfers 8bit data from Master device (this device) and transfers to selected device
  * Function assumes that the Slave Select pin has already been pulled low, so upper class (which
@@ -113,6 +113,35 @@ uint8_t SPIDevice::SPITransfer(uint8_t *pData, uint16_t size) {
 #endif
 
     return 0;
+}
+
+/**************************************************************************************************
+ * SPITransfer is an overloaded function, so therefore has multiple uses
+ *  The first   is the "default", where only the data and size is provided
+ *  The second  is provided the GPIO for Chip Select, which will be pulled low prior to transfer
+ *              and then pushed back high after
+ *************************************************************************************************/
+uint8_t SPIDevice::SPITransfer(uint8_t *pData, uint16_t size) {
+/**************************************************************************************************
+ * Default use of SPITransfer, no slave selection is done within this function
+ *************************************************************************************************/
+    return(this->SPIRWTransfer(pData, size));       // Use private function to transfer data
+}
+
+uint8_t SPIDevice::SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size) {
+/**************************************************************************************************
+ * Slave selection is done within this function, where GPIO class (ChipSelect) is pulled LOW
+ * prior to transmission, and then pushed HIGH after transmission
+ *************************************************************************************************/
+    uint8_t returnvalue = 0;                        // Variable to store output of SPIRWTransfer
+
+    ChipSelect->setValue(GPIO_LOW);                 // Select the SLAVE (pull Chip Select LOW)
+
+    returnvalue = this->SPIRWTransfer(pData, size); // Use private function to transfer data
+
+    ChipSelect->setValue(GPIO_HIGH);                // De-select the SLAVE (psuh Chip Select HIGH)
+
+    return(returnvalue);                            // Return providing the output of transfer
 }
 
 SPIDevice::~SPIDevice()
