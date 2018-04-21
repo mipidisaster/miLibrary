@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIDevice.h
  * @author      Thomas
- * @version     V0.3
+ * @version     V0.4
  * @date        21 Apr 2018
  * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
@@ -33,7 +33,7 @@
 #define SPIDEVICE_H_
 
 #include <stdint.h>
-#include "GPIO.h"                       // Allow use of GPIO class, for Chip Select
+#include "GPIO/GPIO.h"                  // Allow use of GPIO class, for Chip Select
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
