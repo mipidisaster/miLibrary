@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.cpp
  * @author      Thomas
- * @version     V0.4
- * @date        16 Apr 2018
+ * @version     V0.5
+ * @date        21 Apr 2018
  * @brief       Source file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -36,11 +36,11 @@ GPIO::GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection) {
     this->pindirection  = pindirection; //
     this->pinvalue      = pinvalue;     //
 
-    if (this->pindirection == GPIO_IN)      // If GPIO Mode is set for INPUT - GPIO_IN
-        pinMode(this->pinnumber, INPUT);    // Configure for INPUT
-    else {                                  // If GPIO Mode is set for OUTPUT - GPIO_OUT
-        pinMode(this->pinnumber, OUTPUT);   // Configure for OUTPUT
-        this->setValue(this->pinvalue);     // Set the pin for initial state
+    if (this->pindirection == GPIO_IN)          // If GPIO Mode is set for INPUT - GPIO_IN
+        pinMode((int)this->pinnumber, INPUT);   // Configure for INPUT
+    else {                                      // If GPIO Mode is set for OUTPUT - GPIO_OUT
+        pinMode((int)this->pinnumber, OUTPUT);  // Configure for OUTPUT
+        this->setValue(this->pinvalue);         // Set the pin for initial state
     }
 }
 #else
@@ -99,12 +99,12 @@ uint8_t GPIO::setValue(_GPIOValue value) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    if (value == GPIO_LOW)                      // If demand for Pin is set for LOW - GPIO_LOW
-        digitalWrite(this->pinnumber, LOW);     // Drive the pin LOW
+    if (value == GPIO_LOW)                          // If demand for Pin is set for LOW - GPIO_LOW
+        digitalWrite((int)this->pinnumber, LOW);    // Drive the pin LOW
     else
-        digitalWrite(this->pinnumber, HIGH);    // Drive the pin HIGH
+        digitalWrite((int)this->pinnumber, HIGH);   // Drive the pin HIGH
 
-    this->pinvalue      = value;                // Update pin value
+    this->pinvalue      = value;                    // Update pin value
 
 #else
 //==================================================================================================
