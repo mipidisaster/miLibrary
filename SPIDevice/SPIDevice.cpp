@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIDevice.cpp
  * @author      Thomas
- * @version     V0.3
+ * @version     V0.4
  * @date        21 Apr 2018
  * @brief       Source file for the Generic SPIDevice Class handle
  **************************************************************************************************
@@ -10,7 +10,7 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include "SPIDevice.h"
+#include "SPIDevice/SPIDevice.h"
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
