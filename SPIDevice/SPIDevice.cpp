@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.cpp
  * @author      Thomas
- * @version     V0.1
- * @date        19 Apr 2018
+ * @version     V0.2
+ * @date        21 Apr 2018
  * @brief       Source file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -10,7 +10,7 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include <SPIDevice.h>
+#include "SPIDevice.h"
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -39,7 +39,26 @@ SPIDevice::SPIDevice(SPI_HandleTypeDef *SPIHandle) {
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-SPIDevice::SPIDevice() {
+SPIDevice::SPIDevice(int channel, int speed, _SPIMode Mode) {
+/**************************************************************************************************
+ * Create a SPIDevice class specific for RaspberryPi
+ * Receives the desired channel, speed and Mode
+ *************************************************************************************************/
+    this->Mode          = Mode;         // Copy across the selected Mode
+    this->SPIChannel    = channel;      //
+    int tempMode = 0;
+
+    if (this->Mode == MODE1)            // If Mode 1 is selected then
+        tempMode = 1;                   // Store "1"
+    else if (this->Mode == MODE2)       // If Mode 2 is selected then
+        tempMode = 2;                   // Store "2"
+    else if (this->Mode == MODE3)       // If Mode 3 is selected then
+        tempMode = 3;                   // Store "3"
+    else                                // If any other Mode is selected then
+       tempMode = 0;                    // Default to "0"
+
+    wiringPiSPISetupMode(this->SPIChannel, speed, tempMode);
+        // Enable SPI interface for selected SPI channel, speed and mode
 }
 #else
 //==================================================================================================
@@ -85,6 +104,8 @@ uint8_t SPIDevice::SPITransfer(uint8_t *pData, uint16_t size) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    wiringPiSPIDataRW(this->SPIChannel, pData, (int)size);
+        // Using wiringPiSPI function, transfer data from RaspberryPi to selected device
 
 #else
 //==================================================================================================

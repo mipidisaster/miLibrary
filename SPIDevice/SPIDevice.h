@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.h
  * @author      Thomas
- * @version     V0.1
- * @date        19 Apr 2018
+ * @version     V0.2
+ * @date        21 Apr 2018
  * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -18,6 +18,7 @@
  * The basic used of the class is the same for all target devices
  *      Call Class SPIDevice to initialise the class
  *          For STM32F devices, provide the address of the SPI handler - from cubeMX
+ *          For RaspberryPi, provide the channel, speed and mode
  *
  *      To transfer data to the selected slave device (selection to be done outside of class)
  *      provide pointer to array, and indicate number of bytes to be transfered
@@ -34,7 +35,7 @@
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-#include <wiringPi.h>                   // Include the wiringPi library
+#include <wiringPiSPI.h>                // Include the wiringPi SPI library
 
 #else
 //==================================================================================================
@@ -66,8 +67,11 @@ class SPIDevice {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    private:
+        int SPIChannel;                         // Store the channel used for SPI
+
     public:
-        SPIDevice();
+        SPIDevice(int channel, int speed, _SPIMode Mode);
 
 #else
 //==================================================================================================
