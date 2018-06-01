@@ -56,17 +56,17 @@
 
 // Defines specific within this class
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-typedef enum Lnx_Fault {
-    NoFault = 0,            // No fault with Linux update
-    TemperatureOpen = 1,    // Fault with CPU Temperature file open
-    TemperatureRead = 2,    // Fault with CPU Temperature file read
+typedef enum {
+    LnxCond_NoFault = 0,            // No fault with Linux update
+    LnxCond_TemperatureOpen = 1,    // Fault with CPU Temperature file open
+    LnxCond_TemperatureRead = 2,    // Fault with CPU Temperature file read
 
-    CPULoadOpen     = 3,    // Fault with CPU Load file open
-    CPULoadRead     = 4,    // Fault with CPU Load file read
-    CPULoadConvert  = 5,    // Fault with CPU Load file conversion
+    LnxCond_CPULoadOpen     = 3,    // Fault with CPU Load file open
+    LnxCond_CPULoadRead     = 4,    // Fault with CPU Load file read
+    LnxCond_CPULoadConvert  = 5,    // Fault with CPU Load file conversion
 
 
-    Initialised = -1        // If initailised, this flag is set
+    LnxCond_Initialised = -1        // If initailised, this flag is set
 } _LnxFlt;
 
 // Types used within this class

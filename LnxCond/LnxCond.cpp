@@ -25,11 +25,11 @@ void LnxCond::InitialSetup() {
     this->CheckFreq       = 1;          // Default for read rate
 
     this->Temp            = -999;       // Setup temperature to initially be very low
-    this->classmode       = LNX_FIRST_PASS;     // Default mode set to "FIRST_PASS"
-    this->FaultCode       = Initialised;// Default FaultCode to initialised
+    this->classmode       = LNX_FIRST_PASS;         // Default mode set to "FIRST_PASS"
+    this->FaultCode       = LnxCond_Initialised;    // Default FaultCode to initialised
 
-    for (j = 0; j != (LNX_NUM_CORES + 1); j++) {// Loop through the top level array entries
-        this->CurLoad[j]  = 0.00;               // Setup load to 0.00%
+    for (j = 0; j != (LNX_NUM_CORES + 1); j++) {    // Loop through the top level array entries
+        this->CurLoad[j]  = 0.00;                   // Setup load to 0.00%
 
         for (i = 0; i != LNX_NUM_CPU_STATES; i++) { // Loop through lower level array entries
             this->PrevCPU[j][i]     = 0;            // and clear them all
@@ -78,16 +78,17 @@ _LnxFlt LnxCond::ConvertCPUText(uint32_t CPUData[], std::string CPUString) {
         while(std::getline(stream, subline, ' ')) { // Cycle through line, and capture character's
                                                     // between " " (spaces)
             if (i >= LNX_NUM_CPU_STATES)            // If the number of loops exceeds defined size
-                return (CPULoadConvert);            // return fault
+                return (LnxCond_CPULoadConvert);    // return fault
 
             CPUData[i++] = std::stoi(subline, nullptr);
         }
 
     } else
-        return (CPULoadConvert);                // If the start of the string isn't "cpu" then
+        return (LnxCond_CPULoadConvert);        // If the start of the string isn't "cpu" then
                                                 // layout is unexpected, and fault is to be set
 
-    return (NoFault);       // If have made it this far then, data has been converted without error
+    return (LnxCond_NoFault);   // If have made it this far then, data has been converted without
+                                // error
 }
 
 void LnxCond::UpdateCPUHistory(void) {
@@ -157,8 +158,8 @@ _LnxFlt LnxCond::UpdateStatus(void) {
     // First check is to retrieve the CPU temperature of Linux Embedded Device
     EmbDevfile.open(this->TemperatureFile);     // Open file
     if (!EmbDevfile.is_open()) {                // If unable to open file
-        this->FaultCode = TemperatureOpen;      // Update Fault Code
-        return (this->FaultCode);               // Return fault
+        this->FaultCode = LnxCond_TemperatureOpen;  // Update Fault Code
+        return (this->FaultCode);                   // Return fault
     }
     else {  // If read is successful then
         if (std::getline(EmbDevfile, line)) {   // Read the first (and only) line in Temperature
@@ -167,8 +168,8 @@ _LnxFlt LnxCond::UpdateStatus(void) {
             this->Temp = ((float)TempInt) / 1000;   // Transform scaled number into floating point
         }
         else {                                  // If read is unsuccessful then:
-            this->FaultCode = TemperatureRead;  // Update Fault Code
-            return (this->FaultCode);           // Return fault
+            this->FaultCode = LnxCond_TemperatureRead;  // Update Fault Code
+            return (this->FaultCode);                   // Return fault
         }
     }
 
@@ -182,8 +183,8 @@ _LnxFlt LnxCond::UpdateStatus(void) {
 
     EmbDevfile.open(this->CPUFile);         // Open file
     if (!EmbDevfile.is_open()) {            // If unable to open file
-        this->FaultCode = CPULoadOpen;      // Update Fault Code
-        return (this->FaultCode);           // Return fault
+        this->FaultCode = LnxCond_CPULoadOpen;  // Update Fault Code
+        return (this->FaultCode);               // Return fault
     }
     else {  // If read is successful then
             // Update the current CPU array to the latest data
@@ -191,12 +192,12 @@ _LnxFlt LnxCond::UpdateStatus(void) {
             if (std::getline(EmbDevfile, line)) {   // Read the line, and then convert
                 this->FaultCode = this->ConvertCPUText(this->CurCPU[j], line);
                     // Convert line into array entries
-                if (this->FaultCode != NoFault)
+                if (this->FaultCode != LnxCond_NoFault)
                     return(this->FaultCode);        // Return fault
             }
             else {                                  // If read is unsuccessful then:
-                this->FaultCode = CPULoadRead;      // Update Fault Code
-                return (this->FaultCode);           // Return fault
+                this->FaultCode = LnxCond_CPULoadRead;  // Update Fault Code
+                return (this->FaultCode);               // Return fault
             }
         }
 
@@ -213,9 +214,9 @@ _LnxFlt LnxCond::UpdateStatus(void) {
 
     EmbDevfile.close();         // Close file
 
-    this->FaultCode = NoFault;  // Update Fault Code
-    return (this->FaultCode);   // If have made it this far, then function has completed successfully
-                                // return safe code
+    this->FaultCode = LnxCond_NoFault;  // Update Fault Code
+    return (this->FaultCode);           // If have made it this far, then function has completed
+                                        // successfully return safe code
 }
 
 LnxCond::~LnxCond()
