@@ -2,7 +2,7 @@
  * @file        LnxCond.cpp
  * @author      thomas
  * @version     V0.2
- * @date        30 May 2018
+ * @date        1st June 2018
  * @brief       Source file for the Linux Embedded Device Operating Conditions
  **************************************************************************************************
  @ attention
