@@ -27,6 +27,14 @@
  *          If the GPIO Class is added at the start, it will be used as a software chip select,
  *          being pulled low prior to transfer of data, and then high after transfer is complete
  *
+ *          If the DeMux class is added at the start (along with the desired selection number),
+ *          it will configure this such that specific DeMux output is selected for SPI slave.
+ *          ***NOTE***
+ *          That the SPI peripheral's hardwared Chip Select will need to be connected to at least
+ *          one of the Low Enable pins of the Demultiplexor. Such that when it is pulled low, it
+ *          will enable the selected DeMux output to be pulled low as well (selecting the SPI
+ *          device)
+ *
  *      There is no other functionality within this class
  *************************************************************************************************/
 #ifndef SPIDEVICE_H_
@@ -34,6 +42,7 @@
 
 #include <stdint.h>
 #include "GPIO/GPIO.h"                  // Allow use of GPIO class, for Chip Select
+#include "DeMux/DeMux.h"
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -96,9 +105,15 @@ class SPIDevice {
  *  The first   is the "default", where only the data and size is provided
  *  The second  is provided the GPIO for Chip Select, which will be pulled low prior to transfer
  *              and then pushed back high after
+ *  The third   is provided the DeMux and selection number for the desired SPI slave Chip Select,
+ *              will then configure this up such that communicate to single device is done.
+ *              ***NOTE***
+ *              At least one of the Low Enable pins will need to be connected to the SPI
+ *              peripherals hardware CS.
  *************************************************************************************************/
         uint8_t SPITransfer(uint8_t *pData, uint16_t size);
         uint8_t SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size);
+        uint8_t SPITransfer(DeMux *DeMuxCS, uint8_t CSNum, uint8_t *pData, uint16_t size);
 
 
         virtual ~SPIDevice();

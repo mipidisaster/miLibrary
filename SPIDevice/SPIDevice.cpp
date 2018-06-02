@@ -139,7 +139,34 @@ uint8_t SPIDevice::SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size) 
 
     returnvalue = this->SPIRWTransfer(pData, size); // Use private function to transfer data
 
-    ChipSelect->setValue(GPIO_HIGH);                // De-select the SLAVE (psuh Chip Select HIGH)
+    ChipSelect->setValue(GPIO_HIGH);                // De-select the SLAVE (push Chip Select HIGH)
+
+    return(returnvalue);                            // Return providing the output of transfer
+}
+
+uint8_t SPIDevice::SPITransfer(DeMux *DeMuxCS, uint8_t CSNum, uint8_t *pData, uint16_t size) {
+/**************************************************************************************************
+ * Slave selection is done within this function, where the DeMux class (DeMuxCS) has been provided
+ * along with the selection number (CSNum) for the SPI Slave device that transmission is required
+ * for.
+ * This will update the Demultiplexor to the desired selection number, then enable the DeMux.
+ * However in the hardware the SPI Chip Select hardware pin will need to have been connected to
+ * at least one of the Low Enable pins (otherwise it will not work).
+ * This specific pin will not have been provided to the DeMux class, as is managed by the SPI
+ * peripheral.
+ * Once transmission has finished, the Demultiplexor will be disabled
+ *************************************************************************************************/
+    uint8_t returnvalue = 0;                        // Variable to store output of SPIRWTransfer
+
+    DeMuxCS->updateselection(CSNum);                // Setup Demultiplexor for SPI Slave
+                                                    // Chip Select
+    DeMuxCS->enable();                              // Enable the Demultiplexor
+            // This expects that at least 1 of the EnableLow pins has been linked to the
+            // SPI hardware CS signal (will not has been allocated to the DeMuxCS entry)
+
+    returnvalue = this->SPIRWTransfer(pData, size); // Use private function to transfer data
+
+    DeMuxCS->disable();                             // Disable the Demultiplexor
 
     return(returnvalue);                            // Return providing the output of transfer
 }
