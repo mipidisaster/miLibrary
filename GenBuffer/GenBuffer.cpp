@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        10 Jun 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -67,8 +67,6 @@ template <typename Typ>
 void GenBuffer<Typ>::SizeUpdate(uint32_t size) {
 /**************************************************************************************************
  * Function to increase the size of the buffer.
- *
- *
  *************************************************************************************************/
     Typ *newpa;                     // Pointer to the new sized buffer
     newpa = new Typ[size];          // Generate new array
