@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V0.2
- * @date        10 Jun 2018
+ * @version     V0.3
+ * @date        12 Jun 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
  @ attention
@@ -81,7 +81,10 @@ void GenBuffer<Typ>::SizeUpdate(uint32_t size) {
     }
 
     length = size;                  // Copy across the new size of the buffer
+
+    delete [] pa;                   // Delete the old array
     pa = newpa;                     // Update class array pointer
+
 
     input_pointer   = (input_pointer % length);     // Limit the pointers to the new size
     output_pointer  = (output_pointer % length);    // Limit the pointers to the new size
