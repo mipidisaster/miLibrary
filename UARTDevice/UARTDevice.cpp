@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V0.1
- * @date        10 Jun 2018
+ * @version     V0.2
+ * @date        15 Jun 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
  @ attention
@@ -49,8 +49,53 @@ UARTDevice::UARTDevice(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-UARTDevice::UARTDevice() {
+UARTDevice::UARTDevice(const char *deviceloc, int baud) {
+/**************************************************************************************************
+ * Create a UART class specific for the Raspberry Pi
+ *  The provided information is the folder location of the serial interface in text, along with the
+ *  desired baudrate of the serial interface.
+ *
+ *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
+ *  as to provide the Raspberry Pi the same function use as other embedded devices.
+ *  The Receive and Transmit buffers will be set to there default size of 128 entries deep
+ *************************************************************************************************/
+    this->deviceloc         = deviceloc;    // Capture the folder location of UART device
+    this->baudrate          = baud;         // Capture the desired baud rate
+    this->pseudo_interrupt  = 0x00;         // pseudo interrupt register used to control the UART
+                                            // interrupt for Raspberry Pi
 
+    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
+
+    this->Receive       = new GenBuffer<uint8_t>(128);  // Configure Receive Buffer to 128 deep
+    this->Transmit      = new GenBuffer<uint8_t>(128);  // Configure Transmit Buffer to 128 deep
+
+    this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
+            // Open the serial interface
+}
+
+UARTDevice::UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize) {
+/**************************************************************************************************
+ * Create a UART class specific for the Raspberry Pi
+ *  The provided information is the folder location of the serial interface in text, along with the
+ *  desired baudrate of the serial interface.
+ *
+ *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
+ *  as to provide the Raspberry Pi the same function use as other embedded devices.
+ *  The Receive and Transmit buffers size will be as per input "BufferSize"
+ *************************************************************************************************/
+    this->deviceloc         = deviceloc;    // Capture the folder location of UART device
+    this->baudrate          = baud;         // Capture the desired baud rate
+    this->pseudo_interrupt  = 0x00;         // pseudo interrupt register used to control the UART
+                                            // interrupt for Raspberry Pi
+
+    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
+
+    // Configure both the Input and Output Buffers to be the size as per input
+    this->Receive       = new GenBuffer<uint8_t>(Buffersize);
+    this->Transmit      = new GenBuffer<uint8_t>(Buffersize);
+
+    this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
+            // Open the serial interface
 }
 #else
 //==================================================================================================
@@ -80,7 +125,18 @@ uint8_t UARTDevice::PoleSingleRead(void) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    int readbackdata = -1;      // Create a variable which will contain the read contents of the
+                                // UART device
+                                // Set this to -1, as this indicates that there is no data to be
+                                // read, and need to loop until data is read
+    while(readbackdata == -1) { // Loop until get data from UART
+        readbackdata = serialGetchar(this->UART_Handle);    // Read data from UART
+            // Function will time out after 10s returning -1. As want to pole until new data is
+            // available, keep looping until get anything but -1
+    }
 
+    return ((uint8_t) readbackdata);    // If get to this point data has been read from UART,
+                                        // therefore return read value
 #else
 //==================================================================================================
     return(0);
@@ -109,6 +165,7 @@ void UARTDevice::PoleSingleTransmit(uint8_t data) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    serialPutchar(this->UART_Handle, (unsigned char) data); // Send data via UART
 
 #else
 //==================================================================================================
@@ -138,6 +195,18 @@ _UARTDevFlt UARTDevice::PoleTransmit(uint8_t *pData, uint16_t size) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    char *newpa;                        // Create a character pointer
+    uint32_t i;                         // Loop variable to go through contents of array
+
+    newpa = new char[size];             // Define an array to contain the data in a char type
+
+    for (i = 0; i != size; i++) {       // Cycle through the size of the input array
+        newpa[i] = *pData;              // Copy data into new array
+        pData += sizeof(uint8_t);       // Increment the input array pointer
+    }
+
+    serialPuts(this->UART_Handle, newpa);   // Then send new data via UART
+    delete [] newpa;                        // Delete the new array, such as to clear up resources
 
 #else
 //==================================================================================================
@@ -170,11 +239,12 @@ void UARTDevice::SingleTransmit_IT(uint8_t data) {
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     this->Transmit->InputWrite(data);                       // Add data to the Transmit buffer
-    __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Enable the Transmit Data interrupt
+    this->TransmitITEnable();                               // Enable the transmit interrupt
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-
+    this->Transmit->InputWrite(data);                       // Add data to the Transmit buffer
+    this->TransmitITEnable();                               // Enable the transmit interrupt
 #else
 //==================================================================================================
 
@@ -196,7 +266,8 @@ _GenBufState UARTDevice::SingleRead_IT(uint8_t *pData) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-
+    return (this->Receive->OutputRead(pData));  // Call the "OutputRead" function from the
+        // GenBuffer class
 #else
 //==================================================================================================
 
@@ -214,7 +285,46 @@ void UARTDevice::ReceiveITEnable(void) {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+    UARTD_EnabInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
+    // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
+#else
+//==================================================================================================
 
+#endif
+}
+
+void UARTDevice::TransmitITEnable(void) {
+/**************************************************************************************************
+ * INTERRUPTS:
+ * This will enable the Transmit interrupt event.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Enable the Transmit Data interrupt
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    UARTD_EnabInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+    // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
+#else
+//==================================================================================================
+
+#endif
+}
+
+void UARTDevice::TransmitITDisable(void) {
+/**************************************************************************************************
+ * INTERRUPTS:
+ * This will disable the Transmit interrupt event.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);  // Disable the Transmit Data interrupt
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+    // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
 #else
 //==================================================================================================
 
@@ -224,8 +334,9 @@ void UARTDevice::ReceiveITEnable(void) {
 void UARTDevice::IRQHandle(void) {
 /**************************************************************************************************
  * INTERRUPTS:
- * Interrupt Service Routine for the UART class. This needs to be called within the desired
- * peripheral interrupt function all - an example is shown below.
+ * Interrupt Service Routine for the UART class. Each of the supported devices needs to call this
+ * function in different ways - therefore each implementation is mentioned within the coded section.
+ *
  * Function will then read the hardware status flags, and determine which interrupt has been
  * triggered:
  *      If receive interrupt enabled, then data from Data Register is stored onto the "Receive"
@@ -235,7 +346,11 @@ void UARTDevice::IRQHandle(void) {
  *      Register for transmission.
  *
  *      No other interrupts are currently supported.
- *
+ *************************************************************************************************/
+
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+/**************************************************************************************************
  * Example of call.
  *  As the main.h/main.c are included within the interrupt header and source file, the function
  *  call needs to be setup there.
@@ -261,9 +376,6 @@ void UARTDevice::IRQHandle(void) {
  *      void UARTDevice_IRQHandler(void);
  *      }
  *************************************************************************************************/
-
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
     uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
         // Get the Interrupt flags
 
@@ -285,13 +397,72 @@ void UARTDevice::IRQHandle(void) {
             this->UART_Handle->Instance->DR = (uint8_t)tempdata;
         }
         else {      // Otherwise, disable the TXE interrupt
-            __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);
+            this->TransmitITDisable();
         }
     }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
+/**************************************************************************************************
+ * Example of call.
+ *  As setting up a real interrupt for Raspberry Pi involves hacking the kernel, which I am not
+ *  doing, the route I have taken is to use threads - pthreads.
+ *  What this involves is creating a separate stream (thread) which will just check the size of the
+ *  UART peripheral buffer or if data has been requested to be sent (via pseudo interrupt
+ *  register). Then the main thread can use the Read/Transmit functions as normal.
+ *
+ *  So setting up the pthread:
+ *  The -pthread needs to be added to the G++ linker library, won't require the "-" within eclipse,
+ *  however for "CMakeList", will need to be written as "-lpthread".
+ *  Then within the main code add "include <pthread.h>
+ *
+ *  This will then allow you to create a new stream:
+ *  main.c {
+ *  pthread_t thread;   // Create thread handle
+ *  if (pthread_create(&thread, NULL, &threadfunction, NULL) != 0) {
+ *      std::cout << "Failed to create thread" << std::endl;
+ *  }
+ *
+ * pthread_create will return 0 if it has created a new thread. In the example above "&thread" is
+ * the thread handle created above, next entry ...no idea... 3rd entry is a pointer to the desired
+ * function call, 4th can be used to provide values to the function - however I haven't tried this.
+ *
+ * void *threadfunction(void *value) {
+ *  uint8_t UARTReturn;
+ *  while (1) {
+ *      delay(100);
+ *      MyUART->IRQHandle();
+ *  }
+ *
+ *  return 0;
+ * }
+ *
+ * Similar to the STM32 a pointer to the UARTDevice will need to be made global to allow this
+ * new thread to all the "IRQHandler"
+ *************************************************************************************************/
+    int BufferContents = 0;             // Variable to store the amount of data in UART peripheral
 
+    // Check to see if Receive Interrupt bit has been set.
+    if (((this->pseudo_interrupt & (0x01<<UARTD_ReceiveIntBit)) == (0x01<<UARTD_ReceiveIntBit))) {
+        // If it has check to see if there is any data to be read
+        BufferContents = serialDataAvail(this->UART_Handle);    // Get the amount of data in UART
+
+        while (BufferContents > 0) {
+            this->Receive->InputWrite((uint8_t) serialGetchar(this->UART_Handle));
+            BufferContents--;
+        }
+    }
+
+    uint8_t tempdata;
+
+    if (((this->pseudo_interrupt & (0x01<<UARTD_TransmtIntBit)) == (0x01<<UARTD_TransmtIntBit))) {
+
+        while (this->Transmit->OutputRead(&tempdata) != GenBuffer_Empty) {
+            this->PoleSingleTransmit(tempdata);
+        }
+
+        this->TransmitITDisable();
+    }
 #else
 //==================================================================================================
 
@@ -303,6 +474,18 @@ UARTDevice::~UARTDevice() {
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
  * to avoid "memory leakage"
  *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    serialClose(this->UART_Handle);     // Close the UART interface
+
+#else
+//==================================================================================================
+
+#endif
+
     delete [] Receive;              // Delete the array "In"
     delete [] Transmit;             // Delete the array "Out"
 }

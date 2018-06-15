@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V0.1
- * @date        10 Jun 2018
+ * @version     V0.2
+ * @date        15 Jun 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
  @ attention
@@ -18,7 +18,11 @@
  * The basic use of the class is the same for all target devices
  *      Call Class UARTDevice to initialise the class
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
- *          For RaspberryPi - TBD
+ *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
+ *
+ *          All constructors are overloaded, as if a number is provided at the end of the call this
+ *          is taken as a demand for the size of the UART buffer array. If this is not provided,
+ *          the size of the buffer will be set to a default of 128 entries.
  *
  *      Depending upon how the programmer wants to use the UART device, will change which functions
  *      are utilised.
@@ -53,7 +57,7 @@
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-// Add includes specific to the Raspberry Pi
+#include <wiringSerial.h>               // Include the wiringPi UART/Serial library
 
 #else
 //==================================================================================================
@@ -62,7 +66,23 @@
 #endif
 
 // Defines specific within this class
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
 // None
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+#define UARTD_ReceiveIntBit     0       // Define the bit position for enabling Receive interrupt
+#define UARTD_TransmtIntBit     1       // Define the bit position for enabling Transmit interrupt
+
+#define UARTD_EnabInter(reg, bit)  ((reg) |=  (0x01 << bit))    // Enable specified bit
+#define UARTD_DisaInter(reg, bit)  ((reg) &= ~(0x01 << bit))    // Disable specified bit
+
+#else
+//==================================================================================================
+// None
+
+#endif
 
 // Types used within this class
 typedef enum {
@@ -97,15 +117,23 @@ class UARTDevice {
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
     private:
-
+        int                 UART_Handle;        // Stores the device to communicate too
+        const char          *deviceloc;         // Store location file for UART device
+        int                 baudrate;           // Store entered baudrate
+        uint8_t             pseudo_interrupt;   // Pseudo interrupt register
 
     public:
-        UART();;
+        UARTDevice(const char *deviceloc, int baud);    // Setup the UART class, by providing
+                                                        // folder location of serial interface, and
+                                                        // baudrate
+        UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize);
+        // Setup the UART class, similar to the first version, however with the "Buffersize"
+        // defined for the UART buffers.
 
 #else
 //==================================================================================================
     public:
-        UART();;
+        UARTDevice();
 
 #endif
 
@@ -125,6 +153,8 @@ public:
     _GenBufState SingleRead_IT(uint8_t *pData); // Take data from received buffer if data is
                                                 // available
     void ReceiveITEnable(void);                 // Enable the Receive Interrupt
+    void TransmitITEnable(void);                // Enable the Transmit Interrupt
+    void TransmitITDisable(void);               // Disable the Transmit Interrupt
     void IRQHandle(void);                       // Interrupt handler
 
     virtual ~UARTDevice();
