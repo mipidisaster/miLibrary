@@ -1,9 +1,9 @@
 /**************************************************************************************************
  * @file        GenBuffer.h
  * @author      Thomas
- * @version     V0.1
- * @date        10 Jun 2018
- * @brief       << Manually Entered >>
+ * @version     V0.2
+ * @date        24 Jun 2018
+ * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
 
@@ -35,6 +35,8 @@
  *
  *      ".State" can be used to determine what the current state of the buffer is, returning a
  *      enumerate type of "_GenBufState" defined below.
+ *
+ *      ".ReadBuffer(<position>)" Return specified position within buffer.
  *
  *  This class has been defined within a template format (which is why the include at the end for
  *  the source file has been added - template call needs to include declaration and definition)
@@ -75,7 +77,7 @@ typedef enum {
 template <typename Typ>
 class GenBuffer {
     // Declarations which are generic, and will be used in ALL devices
-    private:
+    public:
         uint32_t        input_pointer;      // Pointer to where the current input point is
         uint32_t        output_pointer;     // Pointer to where the current output point is
 
@@ -97,6 +99,7 @@ class GenBuffer {
                                             // override oldest points (maintaining defined size)
         _GenBufState OutputRead(Typ *readdata); // Read next data entry in buffer (if data is
                                                 // present)
+        Typ ReadBuffer(uint32_t position);      // Read specific entry from buffer
 
         virtual ~GenBuffer();               // Destructor of class
 

@@ -2,8 +2,8 @@
  * @file        GenBuffer.cpp
  * @author      Thomas
  * @version     V0.3
- * @date        12 Jun 2018
- * @brief       << Manually Entered >>
+ * @date        24 Jun 2018
+ * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
 
@@ -182,6 +182,17 @@ _GenBufState GenBuffer<Typ>::OutputRead(Typ *readdata)
     }
     else                                    // If state is equal to "Empty"
         return (returnentry);               // Return state of buffer (which will be "Empty")
+}
+
+template <typename Typ>
+Typ GenBuffer<Typ>::ReadBuffer(uint32_t position) {
+/**************************************************************************************************
+ * Simple function to just read a specific entry within the buffer, whilst limiting it to the size
+ * of the buffer.
+ *************************************************************************************************/
+    position %= length;         // Limit and loop the position to ensure it is within the buffer
+
+    return (pa[position]);      // Return buffer entry
 }
 
 template <typename Typ>
