@@ -1,9 +1,9 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V0.2
- * @date        15 Jun 2018
- * @brief       << Manually Entered >>
+ * @version     V0.3
+ * @date        24 Jun 2018
+ * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
 
@@ -33,11 +33,20 @@
  *
  *      If interrupts are to be used, then will first need to be configured within the NVIC (which
  *      is not part of this class), then the following can be used
- *          ".ReceiveITEnable"      - To enable the receive interrupt trigger (without this
- *                                    interrupt will not trigger function calls).
+ *          ".ReceiveIT(<intr>)"    - To enable/disable Read data register is empty
+ *          ".TransmtIT(<intr>)"    - To enable/disable Transmit data register is empty
+ *
  *          ".SingleTransmit_IT"    - Put data onto "Transmit" buffer to be set via UART (will
  *                                    enable the transmit buffer empty flag)
  *          ".SingleRead_IT"        - Pulls any new data from the "Receive" buffer
+ *
+ *          ".TransmitEmptyITCheck" - Check state of the Transmit hardware interrupt, if data can
+ *                                    be added to hardware queue output will be 0x01, otherwise
+ *                                    0x00.
+ *          ".ReceiveDataToReadChk" - Check state of the Receive hardware interrupt, if data is
+ *                                    ready to be read from hardware output will be 0x01, otherwise
+ *                                    0x00.
+ *
  *          ".IRQHandle"            - Interrupt handler, to be called in Interrupt Routine
  *                                      -> How to do this is detailed in the source file for this
  *                                         function
@@ -91,6 +100,11 @@ typedef enum {
 
     UART_Initialised = -1
 } _UARTDevFlt;
+
+typedef enum {
+    UART_Enable = 0,
+    UART_Disable = 1
+} _UARTITState;
 
 class UARTDevice {
     // Declarations which are generic, and will be used in ALL devices
@@ -149,12 +163,16 @@ public:
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     void UpdateBufferSize(uint32_t newsize);                // Update the size of buffer
 
+    uint8_t TransmitEmptyITCheck(void);         // Check state of transmission hardware buffer
+    uint8_t ReceiveDataToReadChk(void);         // Check state of receive data from hardware
+
     void SingleTransmit_IT(uint8_t data);       // Add data to be transmitted via UART
     _GenBufState SingleRead_IT(uint8_t *pData); // Take data from received buffer if data is
                                                 // available
-    void ReceiveITEnable(void);                 // Enable the Receive Interrupt
-    void TransmitITEnable(void);                // Enable the Transmit Interrupt
-    void TransmitITDisable(void);               // Disable the Transmit Interrupt
+
+    void ReceiveIT(_UARTITState intr);          // Controller for enabling/disabling Receive IT
+    void TransmtIT(_UARTITState intr);          // Controller for enabling/disabling Transmit IT
+
     void IRQHandle(void);                       // Interrupt handler
 
     virtual ~UARTDevice();

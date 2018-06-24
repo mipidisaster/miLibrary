@@ -1,9 +1,9 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V0.2
- * @date        15 Jun 2018
- * @brief       << Manually Entered >>
+ * @version     V0.3
+ * @date        24 Jun 2018
+ * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
 
@@ -239,12 +239,12 @@ void UARTDevice::SingleTransmit_IT(uint8_t data) {
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     this->Transmit->InputWrite(data);                       // Add data to the Transmit buffer
-    this->TransmitITEnable();                               // Enable the transmit interrupt
+    this->TransmtIT(UART_Enable);                           // Enable the transmit interrupt
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
     this->Transmit->InputWrite(data);                       // Add data to the Transmit buffer
-    this->TransmitITEnable();                               // Enable the transmit interrupt
+    this->TransmtIT(UART_Enable);                           // Enable the transmit interrupt
 #else
 //==================================================================================================
 
@@ -274,57 +274,134 @@ _GenBufState UARTDevice::SingleRead_IT(uint8_t *pData) {
 #endif
 }
 
-void UARTDevice::ReceiveITEnable(void) {
+void UARTDevice::ReceiveIT(_UARTITState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
- * This will enable the Receive interrupt event.
+ * This will enable/disable the Receive interrupt event.
  *************************************************************************************************/
+
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_RXNE);  // Enable the RXNE interrupt
+    if (intr == UART_Enable)
+        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_RXNE);  // Enable the RXNE interrupt
+
+    else
+        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_RXNE); // Disable the RXNE interrupt
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    UARTD_EnabInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
-    // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
+    if (intr == UART_Enable)
+        UARTD_EnabInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
+        // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
+
+    else
+        UARTD_DisaInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
+        // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
+
 #else
 //==================================================================================================
 
 #endif
 }
 
-void UARTDevice::TransmitITEnable(void) {
+void UARTDevice::TransmtIT(_UARTITState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
- * This will enable the Transmit interrupt event.
+ * This will enable/disable the Transmit interrupt event.
  *************************************************************************************************/
+
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Enable the Transmit Data interrupt
+    if (intr == UART_Enable)
+        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Enable the TXE interrupt
+
+    else
+        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);  // Disable the TXE interrupt
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    UARTD_EnabInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
-    // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
+    if (intr == UART_Enable)
+        UARTD_EnabInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+        // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
+
+    else
+        UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+        // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
+
 #else
 //==================================================================================================
 
 #endif
 }
 
-void UARTDevice::TransmitITDisable(void) {
+uint8_t UARTDevice::ReceiveDataToReadChk(void) {
 /**************************************************************************************************
- * INTERRUPTS:
- * This will disable the Transmit interrupt event.
+ * INTERRUPTS CHECKS:
+ * Check the state of the Read data register not empty interrupt - which indicates that data is
+ * ready to be read from the hardware.
+ * Will return (0x01) if data can be read, and (0x00) if not.
  *************************************************************************************************/
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);  // Disable the Transmit Data interrupt
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
+    if(((isrflags & USART_SR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
-    // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
+    // Check to see if Receive Interrupt bit has been set.
+    if (((this->pseudo_interrupt & (0x01<<UARTD_ReceiveIntBit)) == (0x01<<UARTD_ReceiveIntBit)))
+        return (0x01);
+
+    else
+        return(0x00);
+
+#else
+//==================================================================================================
+
+#endif
+}
+
+uint8_t UARTDevice::TransmitEmptyITCheck(void) {
+/**************************************************************************************************
+ * INTERRUPTS CHECKS:
+ * Check the state of the Transmit data empty interrupt - which indicates that data can be added
+ * onto hardware queue to be transmitted.
+ * Will return (0x01) if data can be added, and (0x00) if not.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
+    if(((isrflags & USART_SR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    // Check to see if Transmit Interrupt bit has been set.
+    if ((this->pseudo_interrupt & (0x01<<UARTD_TransmtIntBit)) == (0x01<<UARTD_TransmtIntBit))
+        return (0x01);
+
+    else
+        return(0x00);
+
 #else
 //==================================================================================================
 
@@ -376,28 +453,22 @@ void UARTDevice::IRQHandle(void) {
  *      void UARTDevice_IRQHandler(void);
  *      }
  *************************************************************************************************/
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
     uint8_t tempdata = 0x00;    // Temporary variable to store data for UART
 
     // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
-    if(((isrflags & USART_SR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET)) {
+    if(this->ReceiveDataToReadChk() == 0x01) {
         tempdata  = this->UART_Handle->Instance->DR;    // Read data and put onto temp variable
         this->Receive->InputWrite((uint8_t) tempdata);  // Add to Receive buffer
     }
 
-    // If the Data Empty Interrupt has been triggered AND is enabled as Interrutp then...
-    if(((isrflags & USART_SR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET)) {
+    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
+    if(this->TransmitEmptyITCheck() == 0x01) {
         // If there is data to be transmitted, then take from buffer and transmit
         if (this->Transmit->OutputRead(&tempdata) != GenBuffer_Empty) {
             this->UART_Handle->Instance->DR = (uint8_t)tempdata;
         }
         else {      // Otherwise, disable the TXE interrupt
-            this->TransmitITDisable();
+            this->TransmtIT(UART_Disable);
         }
     }
 
@@ -443,7 +514,7 @@ void UARTDevice::IRQHandle(void) {
     int BufferContents = 0;             // Variable to store the amount of data in UART peripheral
 
     // Check to see if Receive Interrupt bit has been set.
-    if (((this->pseudo_interrupt & (0x01<<UARTD_ReceiveIntBit)) == (0x01<<UARTD_ReceiveIntBit))) {
+    if (this->ReceiveDataToReadChk() == 0x01) {
         // If it has check to see if there is any data to be read
         BufferContents = serialDataAvail(this->UART_Handle);    // Get the amount of data in UART
 
@@ -455,13 +526,12 @@ void UARTDevice::IRQHandle(void) {
 
     uint8_t tempdata;
 
-    if (((this->pseudo_interrupt & (0x01<<UARTD_TransmtIntBit)) == (0x01<<UARTD_TransmtIntBit))) {
-
+    if(this->TransmitEmptyITCheck() == 0x01) {
         while (this->Transmit->OutputRead(&tempdata) != GenBuffer_Empty) {
             this->PoleSingleTransmit(tempdata);
         }
 
-        this->TransmitITDisable();
+        this->TransmtIT(UART_Disable);
     }
 #else
 //==================================================================================================
