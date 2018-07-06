@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V0.3
- * @date        24 Jun 2018
+ * @version     V0.4
+ * @date        06 Jul 2018
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -20,9 +20,7 @@
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
  *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
  *
- *          All constructors are overloaded, as if a number is provided at the end of the call this
- *          is taken as a demand for the size of the UART buffer array. If this is not provided,
- *          the size of the buffer will be set to a default of 128 entries.
+ *          Additional to this the size of the UART buffer array is required.
  *
  *      Depending upon how the programmer wants to use the UART device, will change which functions
  *      are utilised.
@@ -35,22 +33,32 @@
  *      is not part of this class), then the following can be used
  *          ".ReceiveIT(<intr>)"    - To enable/disable Read data register is empty
  *          ".TransmtIT(<intr>)"    - To enable/disable Transmit data register is empty
+ *          ".TransCmIT(<intr>)"    - To enable/disable Transmission Complete register interrupt
  *
  *          ".SingleTransmit_IT"    - Put data onto "Transmit" buffer to be set via UART (will
  *                                    enable the transmit buffer empty flag)
  *          ".SingleRead_IT"        - Pulls any new data from the "Receive" buffer
  *
+ *          ".IRQHandle"            - Interrupt handler, to be called in Interrupt Routine
+ *                                      -> How to do this is detailed in the source file for this
+ *                                         function
+ *
+ *      Following functions are protected, so will only work for classes which inherit from this
+ *      one, and not visible external to class:
+ *          ".DRRead"               - Will take data straight from the hardware
+ *          ".DRWrite"              - Will put data straight onto the hardware
  *          ".TransmitEmptyITCheck" - Check state of the Transmit hardware interrupt, if data can
  *                                    be added to hardware queue output will be 0x01, otherwise
  *                                    0x00.
  *          ".ReceiveDataToReadChk" - Check state of the Receive hardware interrupt, if data is
  *                                    ready to be read from hardware output will be 0x01, otherwise
  *                                    0x00.
+ *          ".TransmitComptITCheck" - Check state of the Transmission Complete hardware interrupt,
+ *                                    if data has been transmitted then 0x01, otherwise 0x00.
  *
- *          ".IRQHandle"            - Interrupt handler, to be called in Interrupt Routine
- *                                      -> How to do this is detailed in the source file for this
- *                                         function
- *          ".UpdateBufferSize"     - Used to increase size of both Receive and Transmit buffers
+ *  If "__LiteImplement__" has been defined, then the class will not use "use" or "delete" to
+ *  minimise the size impact. Therefore fully defined "GenBuffers" need to be provided to the
+ *  constructors of the UARTDevice class.
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
@@ -83,6 +91,7 @@
 //==================================================================================================
 #define UARTD_ReceiveIntBit     0       // Define the bit position for enabling Receive interrupt
 #define UARTD_TransmtIntBit     1       // Define the bit position for enabling Transmit interrupt
+#define UARTD_TransCmIntBit     2       // Define the bit position for enabling Transmit Complete
 
 #define UARTD_EnabInter(reg, bit)  ((reg) |=  (0x01 << bit))    // Enable specified bit
 #define UARTD_DisaInter(reg, bit)  ((reg) &= ~(0x01 << bit))    // Disable specified bit
@@ -95,10 +104,11 @@
 
 // Types used within this class
 typedef enum {
-    UART_NoFault = 0,
-    UART_DataError = 1,
+    UART_NoFault        = 0,
+    UART_DataError      = 1,
+    UART_Parity         = 2,
 
-    UART_Initialised = -1
+    UART_Initialised    = -1
 } _UARTDevFlt;
 
 typedef enum {
@@ -108,25 +118,44 @@ typedef enum {
 
 class UARTDevice {
     // Declarations which are generic, and will be used in ALL devices
-    _UARTDevFlt    Flt;                 // Fault state of the class
-    GenBuffer<uint8_t>  *Receive;       // Pointer to GenBuffer class used for data "Receive"d via
-                                        // UART
-    GenBuffer<uint8_t>  *Transmit;      // Pointer to GenBuffer class used for data to be
-                                        // "Transmit"ted via UART
+    protected:
+        _UARTDevFlt    Flt;                 // Fault state of the class
+        GenBuffer<uint8_t>  *Receive;       // Pointer to GenBuffer class used for data "Receive"d
+                                            // via UART
+        GenBuffer<uint8_t>  *Transmit;      // Pointer to GenBuffer class used for data to be
+                                            // "Transmit"ted via UART
 
 // Device specific entries
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    private:
+    protected:
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
 
     public:
-        UARTDevice(UART_HandleTypeDef *UART_Handle);    // Setup the UART class, for STM32Fxx by
-                                                        // providing the UART type define handle
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
+                                // fully defined, and provided to the "GenBuffer"
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    public:
+        UARTDevice(UART_HandleTypeDef *UART_Handle,
+                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
+        // Setup the UART class, for STM32Fxx by providing the UART type define handle, as well the
+        // "GenBuffer" needing to be provided to the function, to be fully defined outside of class
+
+#else                           // If "__LiteImplement__" has not been defined, then allow use of
+                                // "new" and "delete" for defining internal arrays
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    public:
         UARTDevice(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize);
         // Setup the UART class, for STM32Fxx by providing the UART type define handle, as well as
         // a defined value for the depth of the UART buffers
 
+#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -137,12 +166,31 @@ class UARTDevice {
         uint8_t             pseudo_interrupt;   // Pseudo interrupt register
 
     public:
-        UARTDevice(const char *deviceloc, int baud);    // Setup the UART class, by providing
-                                                        // folder location of serial interface, and
-                                                        // baudrate
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
+                                // fully defined, and provided to the "GenBuffer"
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    public:
+        UARTDevice(const char *deviceloc, int baud,
+                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
+        // Setup the UART class, by providing the folder location of serial interface, and baudrate
+        // as well the "GenBuffer" needing to be provided to the function, to be fully defined
+        // outside of class
+
+#else                           // If "__LiteImplement__" has not been defined, then allow use of
+                                // "new" and "delete" for defining internal arrays
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    public:
         UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize);
-        // Setup the UART class, similar to the first version, however with the "Buffersize"
-        // defined for the UART buffers.
+        // Setup the UART class, by providing the folder location of serial interface, and baudrate
+        // and define the required Buffersize
+
+#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #else
 //==================================================================================================
@@ -150,6 +198,16 @@ class UARTDevice {
         UARTDevice();
 
 #endif
+
+protected:
+    //0> Hardware reading
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    uint8_t DRRead(void);                       // Function to read direct from the hardware
+    void DRWrite(uint8_t data);                 // Function to write direct to the hardware
+
+    uint8_t TransmitEmptyITCheck(void);         // Check state of transmission hardware buffer
+    uint8_t TransmitComptITCheck(void);         // Check state of transmission complete hardware
+    uint8_t ReceiveDataToReadChk(void);         // Check state of receive data from hardware
 
 public:
     // 1> Following functions will WAIT for actions to complete before finishing
@@ -161,19 +219,16 @@ public:
 
     // 2> Interrupt functions
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    void UpdateBufferSize(uint32_t newsize);                // Update the size of buffer
-
-    uint8_t TransmitEmptyITCheck(void);         // Check state of transmission hardware buffer
-    uint8_t ReceiveDataToReadChk(void);         // Check state of receive data from hardware
+    void ReceiveIT(_UARTITState intr);          // Controller for enabling/disabling Receive IT
+    void TransmtIT(_UARTITState intr);          // Controller for enabling/disabling Transmit IT
+    void TransCmIT(_UARTITState intr);          // Controller for enabling/disabling Transmit
+                                                // Complete IT
 
     void SingleTransmit_IT(uint8_t data);       // Add data to be transmitted via UART
     _GenBufState SingleRead_IT(uint8_t *pData); // Take data from received buffer if data is
                                                 // available
 
-    void ReceiveIT(_UARTITState intr);          // Controller for enabling/disabling Receive IT
-    void TransmtIT(_UARTITState intr);          // Controller for enabling/disabling Transmit IT
-
-    void IRQHandle(void);                       // Interrupt handler
+    virtual void IRQHandle(void);               // Interrupt handler
 
     virtual ~UARTDevice();
 };

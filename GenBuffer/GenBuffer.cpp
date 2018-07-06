@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V0.3
- * @date        24 Jun 2018
+ * @version     V0.4
+ * @date        05 Jul 2018
  * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -31,6 +31,41 @@ void GenBuffer<Typ>::Flush(void) {
     input_pointer   = 0;            // Initialise pointers back to the start of the buffer
 }
 
+template <typename Typ>
+void GenBuffer<Typ>::QFlush(void) {
+/**************************************************************************************************
+ * Quick clear of the buffers, by setting all pointers to 0.
+ *************************************************************************************************/
+    output_pointer  = 0;            // Initialise pointers back to the start of the buffer
+    input_pointer   = 0;            // Initialise pointers back to the start of the buffer
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
+                                // fully defined, and provided to the "GenBuffer"
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Typ>
+GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
+/**************************************************************************************************
+ * "Lite" function for GenBuffer.
+ * Where the fully defined array is provided as input to constructor. This will then be linked to
+ * internal class pointer "pa"
+ *
+ * Once done it will call the "Flush" function to write contents, and setup pointers to the start
+ * of the buffer.
+ *************************************************************************************************/
+    length = size;                  // Setup size of the buffer as per input
+    pa = arrayloc;                  // Have pointer now point to input "arrayloc"
+
+    Flush();                        // Flush the data to default values
+}
+
+
+#else                           // If "__LiteImplement__" has not been defined, then allow use of
+                                // "new" and "delete" for defining internal arrays
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Typ>
 GenBuffer<Typ>::GenBuffer() {
 /**************************************************************************************************
@@ -89,6 +124,11 @@ void GenBuffer<Typ>::SizeUpdate(uint32_t size) {
     input_pointer   = (input_pointer % length);     // Limit the pointers to the new size
     output_pointer  = (output_pointer % length);    // Limit the pointers to the new size
 }
+
+#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 template <typename Typ>
 _GenBufState GenBuffer<Typ>::State(void) {
@@ -201,7 +241,19 @@ GenBuffer<Typ>::~GenBuffer() {
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
  * to avoid "memory leakage"
  *************************************************************************************************/
-    delete [] pa;                   // Delete the array "pa"
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
+                                // fully defined, and provided to the "GenBuffer"
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#else                           // If "__LiteImplement__" has not been defined, then allow use of
+                                // "new" and "delete" for defining internal arrays
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    delete [] pa;               // Delete the array "pa"
+
+#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 #endif
