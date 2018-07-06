@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V0.4
+ * @version     V0.5
  * @date        06 Jul 2018
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
@@ -107,6 +107,13 @@ UARTDevice::UARTDevice(const char *deviceloc, int baud,
     this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
             // Open the serial interface
 }
+
+int  UARTDevice::AnySerDataAvil(void) {
+/**************************************************************************************************
+* RaspberryPi specific function to determine amount of data within the hardware
+*************************************************************************************************/
+   return(serialDataAvail(this->UART_Handle));
+}
 #else
 //==================================================================================================
 UARTDevice::UARTDevice() {
@@ -161,6 +168,13 @@ UARTDevice::UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize) {
 
     this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
             // Open the serial interface
+}
+
+int  UARTDevice::AnySerDataAvil(void) {
+/**************************************************************************************************
+ * RaspberryPi specific function to determine amount of data within the hardware
+ *************************************************************************************************/
+    return(serialDataAvail(this->UART_Handle));
 }
 #else
 //==================================================================================================

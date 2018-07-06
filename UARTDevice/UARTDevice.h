@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V0.4
+ * @version     V0.5
  * @date        06 Jul 2018
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
@@ -166,6 +166,9 @@ class UARTDevice {
         uint8_t             pseudo_interrupt;   // Pseudo interrupt register
 
     public:
+        int  AnySerDataAvil(void);              // Function to provide the amount of data at
+                                                // hardware baundry
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

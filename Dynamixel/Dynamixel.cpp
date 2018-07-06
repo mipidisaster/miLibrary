@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        Dynamixel.cpp
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        06 Jul 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -117,7 +117,8 @@ Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint16_t size)
     this->State     = Dynm_Idle;                // Set initial state to "Idle"
     this->SrcState  = Dynm_Nothing;             // Set search state to "Nothing"
 
-    this->CommsBoard = new (uint8_t)(size);     // Create array to store the data communication
+    this->CommsBoard = new uint8_t[size];       // Create array to store the data communication
+    //this->CommsBoard = new (uint8_t)(size);     // Create array to store the data communication
 
     this->Length   = size;                      // Setup "Length" variable as per input size
     this->watermark= size;                      // Set current watermark to input size - such that
@@ -155,7 +156,7 @@ Dynamixel::Dynamixel(const char *deviceloc, int baud, uint16_t size)
     this->State     = Dynm_Idle;                // Set initial state to "Idle"
     this->SrcState  = Dynm_Nothing;             // Set search state to "Nothing"
 
-    this->CommsBoard = new (uint8_t)(size);     // Create array to store the data communication
+    this->CommsBoard = new uint8_t[size];       // Create array to store the data communication
 
     this->Length   = size;                      // Setup "Length" variable as per input size
     this->watermark= size;                      // Set current watermark to input size - such that
@@ -690,6 +691,8 @@ void Dynamixel::IRQHandle(void) {
  * Similar to the STM32 a pointer to the Dynamixel will need to be made global to allow this
  * new thread to all the "IRQHandler"
  *************************************************************************************************/
+    uint8_t tempdata = 0x00;    // Temporary variable to store data for UART
+
     if (this->TransmitComptITCheck() == 0x01) { // Will be triggered when transmission is complete
         if (this->State == Dynm_Speaking) {
             this->State     = Dynm_Listening;
@@ -721,9 +724,12 @@ void Dynamixel::IRQHandle(void) {
 
     // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
     if(this->ReceiveDataToReadChk() == 0x01) {
-        BufferContents = serialDataAvail(this->UART_Handle);    // Get the amount of data in UART
+        BufferContents = this->AnySerDataAvil();    // Get the amount of data in UART
 
         while (BufferContents > 0) {
+            tempdata = (uint8_t) this->DRRead();    // Read data from array, this is done before
+                                                    // the check of "state" to empty buffer if
+                                                    // not in listening mode
             if ( (this->State == Dynm_Idle) || (this->State == Dynm_Listening) ) {
                 this->State = Dynm_Listening;               // Force state into "Listening"
                 // Only put data onto the "CommsBoard" only when Search State - "SrcState" is not

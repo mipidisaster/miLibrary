@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        Dynamixel.h
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        06 Jul 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -102,6 +102,7 @@ class Dynamixel : public UARTDevice {
     private:
         uint8_t         *CommsBoard;                    // Pointer to array to store single wire
                                                         // UART communication
+        //uint8_t         CommsBoard[128];
         uint16_t        Length;                         // Size of array
         uint16_t        curpoint;                       // Pointer to current position
         uint16_t        maxpoint;                       // Pointer to maximum size of data
