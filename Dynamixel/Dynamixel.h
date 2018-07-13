@@ -83,7 +83,25 @@
 #endif
 
 // Defines specific within this class
-// None
+// \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+#define     Dynm_Instr_Ping     0x01    // Instruction code for Pinging to device
+#define     Dynm_Instr_Read     0x02    // Instruction code for Reading from a device
+#define     Dynm_Instr_Wrte     0x03    // Instruction code for Writing to a device
+#define     Dynm_Instr_RegW     0x04    // Instruction code for Register write (won't be written
+                                        // till "Action" instruction is sent)
+#define     Dynm_Instr_Acti     0x05    // Instruction code for Action
+#define     Dynm_Instr_FctR     0x06    // Instruction code for returning factory conditions
+#define     Dynm_Instr_Rebt     0x08    // Instruction code for Rebooting device
+
+#define     Dynm_Instr_Stts     0x55    // Instruction code for Return status from device
+
+#define     Dynm_Instr_SyRd     0x82    // Instruction code for multiple device read - same address
+#define     Dynm_Instr_SyWt     0x83    // Instruction code for multiple device write - as above
+
+#define     Dynm_Instr_BkRd     0x92    // Instruction code for multiple device read - dif address
+#define     Dynm_Instr_BkWt     0x93    // Instruction code for multiple device write - as above
+
+// \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 // Types used within this class
 typedef enum {
