@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V0.5
- * @date        06 Jul 2018
+ * @version     V0.6
+ * @date        11 Jul 2018
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -598,7 +598,7 @@ void UARTDevice::IRQHandle(void) {
  *************************************************************************************************/
     uint8_t tempdata = 0x00;    // Temporary variable to store data for UART
 
-    if (this->ReceiveDataToReadChk() == 0x01) {}
+    if (this->TransmitComptITCheck() == 0x01) {}
 
     // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
     if(this->ReceiveDataToReadChk() == 0x01) {
@@ -610,7 +610,7 @@ void UARTDevice::IRQHandle(void) {
     if(this->TransmitEmptyITCheck() == 0x01) {
         // If there is data to be transmitted, then take from buffer and transmit
         if (this->Transmit->OutputRead(&tempdata) != GenBuffer_Empty) {
-            this->DRWrite(tempdata);
+            this->DRWrite((uint8_t)tempdata);
         }
         else {      // Otherwise, disable the TXE interrupt
             this->TransmtIT(UART_Disable);
