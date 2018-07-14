@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        MAX6675.h
  * @author      Thomas
- * @version     V0.1
- * @date        22 Apr 2018
+ * @version     V0.2
+ * @date        13 Jul 2018
  * @brief       Source file for the MAX6675 Thermocouple Digital Converter
  **************************************************************************************************
  @ attention
@@ -82,6 +82,7 @@ class MAX6675 {
     public:
         float           Temp;           // Calculated temperature (celsius) from last "readTemp"
         _MAX6675Flt     Flt;            // Fault indication of Temperature from last "readTemp"
+        uint16_t        rawData;        // Raw data read from MAX6675
 
         MAX6675(SPIDevice *Device);
         MAX6675(SPIDevice *Device, GPIO *ChipSelect);

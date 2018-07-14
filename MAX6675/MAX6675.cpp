@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        MAX6675.cpp
  * @author      Thomas
- * @version     V0.1
- * @date        22 Apr 2018
+ * @version     V0.2
+ * @date        13 Jul 2018
  * @brief       Header file for the MAX6675 Thermocouple Digital Converter
  **************************************************************************************************
  @ attention
@@ -26,6 +26,7 @@ void MAX6675::InitSetup(SPIDevice *Device) {
     this->DeMuxCS       = -1;           // Setup the Chip Select to default number
 
     this->Temp          = -999;         // Default Temperature to -999Degrees
+    this->rawData       = 0;            // Initialise to zero
     this->Flt           = MAX6675_Initialised;  // Indicate initialised state for fault flag
 }
 
@@ -91,6 +92,7 @@ _MAX6675Flt MAX6675::readTemp(void) {
     }
 
     registerdata = ((uint16_t)data[0] << 8) | data[1];      // Shift data into 16bit data
+    this->rawData = registerdata;                           // Copy data into class
 
     if (returnvalue != 0) {                 // If the write fails then
         this->Flt = MAX6675_ReadError;      // Indicate fault
