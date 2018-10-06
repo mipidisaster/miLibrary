@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.h
  * @author      Thomas
- * @version     V0.3
- * @date        06 Jul 2018
+ * @version     V1.1
+ * @date        06 Oct 2018
  * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -53,8 +53,10 @@
 #ifndef GENBUFFER_H_
 #define GENBUFFER_H_
 
+#include "FileIndex.h"
 #include <stdint.h>         // Include standard integer entries
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
 // None
 
@@ -132,7 +134,7 @@ class GenBuffer {
 // None
 };
 
-#include "GenBuffer/GenBuffer.cpp"
+#include FilInd_GENBUF_Cp
 // As this is a template format, cannot just include the declarations of the class, need to also
 // provide the definitions of the functions for the compiler to work.
 

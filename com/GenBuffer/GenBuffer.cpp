@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V0.4
- * @date        05 Jul 2018
+ * @version     V1.1
+ * @date        06 Oct 2018
  * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -10,7 +10,8 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include <GenBuffer/GenBuffer.h>
+#include "FileIndex.h"
+#include FilInd_GENBUF_HD
 
 #ifndef GENBUFFER_CPP_              // As this class contains a template format, need to include
 #define GENBUFFER_CPP_              // the source file within the header, therefore protection is
