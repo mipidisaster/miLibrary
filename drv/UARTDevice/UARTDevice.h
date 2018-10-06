@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V0.5
- * @date        06 Jul 2018
+ * @version     V1.1
+ * @date        06 Oct 2018
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -18,6 +18,7 @@
  * The basic use of the class is the same for all target devices
  *      Call Class UARTDevice to initialise the class
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
+ *          For STM32L devices, providing the address of the UART handler - from cubeMX
  *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
  *
  *          Additional to this the size of the UART buffer array is required.
@@ -65,12 +66,18 @@
 #ifndef UARTDevice_H_
 #define UARTDevice_H_
 
+#include "FileIndex.h"
 #include <stdint.h>
-#include "GenBuffer/GenBuffer.h"        // Provide the template for the circular buffer class
+
+#include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+#include "stm32l4xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -84,6 +91,10 @@
 
 // Defines specific within this class
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+// None
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 // None
 
@@ -126,7 +137,8 @@ class UARTDevice {
                                             // "Transmit"ted via UART
 
 // Device specific entries
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     protected:
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
