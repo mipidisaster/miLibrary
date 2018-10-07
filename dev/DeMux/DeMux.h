@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        DeMux.h
  * @author      Thomas
- * @version     V0.1
- * @date        2 Jun 2018
+ * @version     V1.1
+ * @date        07 Oct 2018
  * @brief       Header file for the Demultiplexor Class handle
  **************************************************************************************************
  @ attention
@@ -37,10 +37,12 @@
 #ifndef DEMUX_H_
 #define DEMUX_H_
 
-#include <stdint.h>         // Defines types - uint8_t, etc.
-#include "GPIO/GPIO.h"      // Defines class - GPIO
+#include "FileIndex.h"
+#include <stdint.h>             // Defines types - uint8_t, etc.
+#include FilInd_GPIO___HD       // Defines class - GPIO
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
 // None
 

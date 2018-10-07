@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.cpp
  * @author      Thomas
- * @version     V0.6
- * @date        21 Apr 2018
+ * @version     V1.1
+ * @date        07 Oct 2018
  * @brief       Source file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -10,9 +10,11 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include "GPIO/GPIO.h"
+#include "FileIndex.h"
+#include FilInd_GPIO___HD
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
 GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, _GPIODirec direction) {
 /**************************************************************************************************
@@ -60,7 +62,8 @@ uint8_t GPIO::toggleOutput() {
     if (this->pindirection != GPIO_OUT) // Check direction of pin, if not equal to OUTPUT
         return -1;                      // return error '-1'
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     HAL_GPIO_TogglePin(this->PortAddress, this->pinnumber); // Use HAL function to toggle pin
 
@@ -88,7 +91,8 @@ uint8_t GPIO::setValue(_GPIOValue value) {
     if (this->pindirection != GPIO_OUT) // Check direction of pin, if not equal to OUTPUT
         return -1;                      // return error '-1'
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     if (value == GPIO_LOW)      // If demand is to set it LOW
         HAL_GPIO_WritePin(this->PortAddress, this->pinnumber, GPIO_PIN_RESET);
@@ -122,7 +126,8 @@ _GPIOValue GPIO::getValue() {
     if (this->pindirection != GPIO_IN)  // Check direction of pin, if not equal to INPUT
         return GPIO_LOW;                // return LOW state
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     if (HAL_GPIO_ReadPin(this->PortAddress, this->pinnumber) == GPIO_PIN_RESET)
             // Check the state of the pin, and if it is RESET, then output LOW status

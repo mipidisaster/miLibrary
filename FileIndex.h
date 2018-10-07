@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        FileIndex.h
  * @author      Thomas
- * @version     V0.1
- * @date        1 Oct 2018
+ * @version     V0.2
+ * @date        07 Oct 2018
  * @brief       File index for my code and functions
  **************************************************************************************************
   @ attention
@@ -26,7 +26,9 @@
  * All of the defines below are for "Drives" - examples: UART interface drives, etc.
  * These would be contained within a "drv" folder
  *************************************************************************************************/
+#define FilInd_GPIO___HD    "drv\GPIO\GPIO.h"               // File for the GPIO driver code
 #define FilInd_USART__HD    "drv\UARTDevice\UARTDevice.h"   // File for the USART driver code
+#define FilInd_SPIDe__HD    "drv\SPIDevice\SPIDevice.h"     // File for the SPI driver code
 
 /**************************************************************************************************
  * All of the defines below are for "Common" code - examples: Buffers, Math, etc.
@@ -39,6 +41,6 @@
  * All of the defines below are for "Devices" - examples: external hardware, shift registers, etc.
  * These would be contained within a "dev" folder
  *************************************************************************************************/
-
+#define FilInd_DeMux__HD    "dev\DeMux\DeMux.h"             // File for the DeMultiplexor device
 
 #endif /* FILEINDEX_H_ */

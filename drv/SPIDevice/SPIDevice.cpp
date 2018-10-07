@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.cpp
  * @author      Thomas
- * @version     V0.4
- * @date        21 Apr 2018
+ * @version     V1.1
+ * @date        07 Oct 2018
  * @brief       Source file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -10,9 +10,11 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include "SPIDevice/SPIDevice.h"
+#include "FileIndex.h"
+#include FilInd_SPIDe__HD
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
 SPIDevice::SPIDevice(SPI_HandleTypeDef *SPIHandle) {
 /**************************************************************************************************
@@ -101,6 +103,14 @@ uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
 
     // Only exit function once transfer is complete -> detected by BUSY flag clearing
     while(__HAL_SPI_GET_FLAG(this->SPIHandle, SPI_FLAG_BSY) == 0x01) {};
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+    // Ensure that the SPI interface has been enabled
+    if ((this->SPIHandle->Instance->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+        __HAL_SPI_ENABLE(this->SPIHandle);  // Enable the SPI interface
+
+    HAL_SPI_TransmitReceive(this->SPIHandle, pData, pData, size, 100);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        DeMux.cpp
- * @author      thomas
- * @version     V0.2
- * @date        2 Jun 2018
+ * @author      Thomas
+ * @version     V1.1
+ * @date        07 Oct 2018
  * @brief       Source file for the Demultiplexor Class handle
  **************************************************************************************************
  @ attention
@@ -10,7 +10,8 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include "DeMux/DeMux.h"
+#include "FileIndex.h"
+#include FilInd_DeMux__HD
 
 DeMux::DeMux(GPIO *High_Enable, GPIO *Low_Enable, GPIO Switches[], uint8_t SwitchSize) {
 /**************************************************************************************************

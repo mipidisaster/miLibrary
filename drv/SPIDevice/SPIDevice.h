@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.h
  * @author      Thomas
- * @version     V0.4
- * @date        21 Apr 2018
+ * @version     V1.1
+ * @date        07 Oct 2018
  * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -18,6 +18,7 @@
  * The basic used of the class is the same for all target devices
  *      Call Class SPIDevice to initialise the class
  *          For STM32F devices, provide the address of the SPI handler - from cubeMX
+ *          For STM32L devices, provide the address of the SPI handler - from cubeMX
  *          For RaspberryPi, provide the channel, speed and mode
  *
  *      To transfer data to the selected slave device, a pointer to the array of data is required
@@ -40,13 +41,18 @@
 #ifndef SPIDEVICE_H_
 #define SPIDEVICE_H_
 
+#include "FileIndex.h"
 #include <stdint.h>
-#include "GPIO/GPIO.h"                  // Allow use of GPIO class, for Chip Select
-#include "DeMux/DeMux.h"
+#include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
+#include FilInd_DeMux__HD
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+#include "stm32l4xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -71,7 +77,8 @@ class SPIDevice {
         _SPIMode         Mode;
 
 // Device specific entries
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     private:
         SPI_HandleTypeDef   *SPIHandle;         // Store the Handle for the SPI Device, from cubeMX
