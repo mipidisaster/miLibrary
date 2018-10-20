@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        07 Oct 2018
+ * @version     V1.2
+ * @date        09 Oct 2018
  * @brief       Source file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -68,16 +68,16 @@ SPIDevice::SPIDevice() {
 }
 #endif
 
-uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
+uint8_t SPIDevice::SPIRWTransfer(uint8_t *wData, uint8_t *rData, uint16_t size) {
 /**************************************************************************************************
- * Transfers 8bit data from Master device (this device) and transfers to selected device
+ * Transfers 8bit data from Master device (this device) and transfers to selected device.
  * Function assumes that the Slave Select pin has already been pulled low, so upper class (which
- * will device the use of device, will need to pull selection pin low)
- * Receives a pointer to data to be transfered, and the number of bytes to transmit.
- * Will then put any data read back from the slave onto the same array
+ * will need to have selected the device).
+ * It is provided a pointer to the data to written, and the pointer to the data to be read - along
+ * the size.
  *************************************************************************************************/
-    if (pData == __null || size == 0)       // If no data has been requested to be set
-        return -1;                          // return error
+    if (wData == __null || rData == __null || size == 0)    // If no data has been requested
+        return -1;                                          // to be set return error
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -90,14 +90,16 @@ uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
         while(__HAL_SPI_GET_FLAG(this->SPIHandle, SPI_FLAG_TXE) == 0x00) {};
             // No timeout period has been specified - Can get stuck
 
-        this->SPIHandle->Instance->DR = *pData; // Put data onto buffer for transfer
+        this->SPIHandle->Instance->DR = *wData; // Put data onto buffer for transfer
 
         // Wait for the transfer to complete, and data to be read back from SLAVE
         while(__HAL_SPI_GET_FLAG(this->SPIHandle, SPI_FLAG_RXNE) == 0x00) {};
 
-        *pData = this->SPIHandle->Instance->DR; // Put data read from device back into array
-        pData += sizeof(uint8_t);               // Increment pointer by the size of the data to be
-                                                // transmitted
+        *rData = this->SPIHandle->Instance->DR; // Put data read from device back into array
+        wData += sizeof(uint8_t);               // Increment pointer for write array by the size of
+                                                // the data type.
+        rData += sizeof(uint8_t);               // Increment pointer for read array by the size of
+                                                // the data type.
         size--;                                 // Decrement count
     }
 
@@ -110,11 +112,17 @@ uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
     if ((this->SPIHandle->Instance->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
         __HAL_SPI_ENABLE(this->SPIHandle);  // Enable the SPI interface
 
-    HAL_SPI_TransmitReceive(this->SPIHandle, pData, pData, size, 100);
+    HAL_SPI_TransmitReceive(this->SPIHandle, wData, rData, size, 100);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    wiringPiSPIDataRW(this->SPIChannel, pData, (int)size);
+    uint16_t i = 0;
+
+    for (i = 0; i != size; i++)         // Cycle through the data to be written
+        rData[i] = wData[i];            // and copy into the read data
+
+
+    wiringPiSPIDataRW(this->SPIChannel, rData, (int)size);
         // Using wiringPiSPI function, transfer data from RaspberryPi to selected device
 
 #else
@@ -131,14 +139,14 @@ uint8_t SPIDevice::SPIRWTransfer(uint8_t *pData, uint16_t size) {
  *  The second  is provided the GPIO for Chip Select, which will be pulled low prior to transfer
  *              and then pushed back high after
  *************************************************************************************************/
-uint8_t SPIDevice::SPITransfer(uint8_t *pData, uint16_t size) {
+uint8_t SPIDevice::SPITransfer(uint8_t *wData, uint8_t *rData, uint16_t size) {
 /**************************************************************************************************
  * Default use of SPITransfer, no slave selection is done within this function
  *************************************************************************************************/
-    return(this->SPIRWTransfer(pData, size));       // Use private function to transfer data
+    return(this->SPIRWTransfer(wData, rData, size));    // Use private function to transfer data
 }
 
-uint8_t SPIDevice::SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size) {
+uint8_t SPIDevice::SPITransfer(GPIO *ChipSelect, uint8_t *wData, uint8_t *rData, uint16_t size) {
 /**************************************************************************************************
  * Slave selection is done within this function, where GPIO class (ChipSelect) is pulled LOW
  * prior to transmission, and then pushed HIGH after transmission
@@ -147,14 +155,16 @@ uint8_t SPIDevice::SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size) 
 
     ChipSelect->setValue(GPIO_LOW);                 // Select the SLAVE (pull Chip Select LOW)
 
-    returnvalue = this->SPIRWTransfer(pData, size); // Use private function to transfer data
+    returnvalue = this->SPIRWTransfer(wData, rData, size);
+        // Use private function to transfer data
 
     ChipSelect->setValue(GPIO_HIGH);                // De-select the SLAVE (push Chip Select HIGH)
 
     return(returnvalue);                            // Return providing the output of transfer
 }
 
-uint8_t SPIDevice::SPITransfer(DeMux *DeMuxCS, uint8_t CSNum, uint8_t *pData, uint16_t size) {
+uint8_t SPIDevice::SPITransfer(DeMux *DeMuxCS, uint8_t CSNum,
+                               uint8_t *wData, uint8_t *rData, uint16_t size) {
 /**************************************************************************************************
  * Slave selection is done within this function, where the DeMux class (DeMuxCS) has been provided
  * along with the selection number (CSNum) for the SPI Slave device that transmission is required
@@ -174,7 +184,8 @@ uint8_t SPIDevice::SPITransfer(DeMux *DeMuxCS, uint8_t CSNum, uint8_t *pData, ui
             // This expects that at least 1 of the EnableLow pins has been linked to the
             // SPI hardware CS signal (will not has been allocated to the DeMuxCS entry)
 
-    returnvalue = this->SPIRWTransfer(pData, size); // Use private function to transfer data
+    returnvalue = this->SPIRWTransfer(wData, rData, size);
+        // Use private function to transfer data
 
     DeMuxCS->disable();                             // Disable the Demultiplexor
 

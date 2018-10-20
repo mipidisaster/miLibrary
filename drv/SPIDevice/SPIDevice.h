@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIDevice.h
  * @author      Thomas
- * @version     V1.1
- * @date        07 Oct 2018
+ * @version     V1.2
+ * @date        09 Oct 2018
  * @brief       Header file for the Generic SPIDevice Class handle
  **************************************************************************************************
  @ attention
@@ -102,8 +102,8 @@ class SPIDevice {
 
 #endif
     private:
-        uint8_t SPIRWTransfer(uint8_t *pData, uint16_t size);   // Private function to transmit
-                // data via SPI
+        uint8_t SPIRWTransfer(uint8_t *wData, uint8_t *rData, uint16_t size);
+        // Private function to transmit data via SPI
 
     public:
     // Functions which are generic for any device being controlled
@@ -118,10 +118,11 @@ class SPIDevice {
  *              At least one of the Low Enable pins will need to be connected to the SPI
  *              peripherals hardware CS.
  *************************************************************************************************/
-        uint8_t SPITransfer(uint8_t *pData, uint16_t size);
-        uint8_t SPITransfer(GPIO *ChipSelect, uint8_t *pData, uint16_t size);
-        uint8_t SPITransfer(DeMux *DeMuxCS, uint8_t CSNum, uint8_t *pData, uint16_t size);
+        uint8_t SPITransfer(uint8_t *wData, uint8_t *rData, uint16_t size);
 
+        uint8_t SPITransfer(GPIO *ChipSelect, uint8_t *wData, uint8_t *rData, uint16_t size);
+        uint8_t SPITransfer(DeMux *DeMuxCS, uint8_t CSNum,
+                            uint8_t *wData, uint8_t *rData, uint16_t size);
 
         virtual ~SPIDevice();
 };
