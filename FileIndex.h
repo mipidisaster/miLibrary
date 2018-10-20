@@ -42,5 +42,7 @@
  * These would be contained within a "dev" folder
  *************************************************************************************************/
 #define FilInd_DeMux__HD    "dev\DeMux\DeMux.h"             // File for the DeMultiplexor device
+#define FilInd_AS5x4__HD    "dev\AS5x4x\AS5x4x.h"           // File for the AS5x4x Position Sensor
+                                                            // devices
 
 #endif /* FILEINDEX_H_ */
