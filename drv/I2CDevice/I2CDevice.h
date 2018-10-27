@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CDevice.h
  * @author      Thomas
- * @version     V0.2
+ * @version     V0.3
  * @date        27 Oct 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -162,6 +162,8 @@ protected:
 
     void RequestTransfer(uint16_t devAddress, uint8_t size, _I2CCommMode mode, _I2CRequest reqst);
         // Request a new communicate via I2C device, function handles the START/STOP, R/~W setup
+        // devAddress needs to be full, i.e. 7bit address needs to be provided as 8bits. The
+        // R/~W will be ignored and populated as required
 
     /**********************************************************************************************
      * ##  PUBLIC   ## >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<

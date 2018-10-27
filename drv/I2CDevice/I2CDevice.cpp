@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CDevice.cpp
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        27 Oct 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -337,6 +337,8 @@ void I2CDevice::RequestTransfer(uint16_t devAddress, uint8_t size, _I2CCommMode 
  * can be either read/write, however the maximum number of packets which can be transmitted is
  * limited to 255 (1 byte). If more is required then this function will need to be called multiple
  * times with divisions of 255 to complete the communication.
+ * The devAddress that is provided needs to be provided as a 11bit or 8bit address; so the last
+ * bit which is the read/write bit will need to be set to zero.
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
@@ -410,17 +412,28 @@ void I2CDevice::RequestTransfer(uint16_t devAddress, uint8_t size, _I2CCommMode 
 }
 
 I2CDevice::I2CDevice(I2C_HandleTypeDef *I2C_Handle) {
-
-
+/**************************************************************************************************
+ * Creates a I2C class specific for the STM32F device.
+ *
+ * As the STM32CubeMX alread y pre-generates the setting up and configuring of the desired I2C
+ * device, there is no need to define that within this function. Simply providing the handle is
+ * required.
+ *************************************************************************************************/
     this->I2C_Handle    = I2C_Handle;      // Copy data into class
     this->Flt           = I2C_Initialised; // Initialise the fault to "initialised"
 
-    this->curSize       = 0;
-    this->curReqst      = I2C_Nothing;
+    this->curSize       = 0;                // Initialise the current packet size to 0
+    this->curReqst      = I2C_Nothing;      // Initialise the current request state to 0
 
 }
 
 _I2CDevFlt I2CDevice::poleMasterTransmit(uint16_t devAddress, uint8_t *pdata, uint8_t size) {
+/**************************************************************************************************
+ * Function will setup a communication link with the selected Device address. Where it will then
+ * send the requested amount of data to be written to the device.
+ * Any errors observed with the bus during the interaction will result in exiting of the function,
+ * and the class fault status being updated.
+ *************************************************************************************************/
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
@@ -472,6 +485,12 @@ _I2CDevFlt I2CDevice::poleMasterTransmit(uint16_t devAddress, uint8_t *pdata, ui
 }
 
 _I2CDevFlt I2CDevice::poleMasterReceive(uint16_t devAddress, uint8_t *pdata, uint8_t size) {
+/**************************************************************************************************
+ * Function will setup a communication link with the selected Device address. Where it will then
+ * read back the request amount of data from the device.
+ * Any errors observed with the bus during the interaction will result in exiting of the function,
+ * and the class fault status being updated.
+ *************************************************************************************************/
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
