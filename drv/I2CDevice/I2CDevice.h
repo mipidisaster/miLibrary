@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CDevice.h
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        27 Oct 2018
  * @brief       << Manually Entered >>
  **************************************************************************************************
@@ -50,6 +50,7 @@
  *          ".ClearBusEr"           - Clear the Bus error status bis
  *          ".Clear_STOP"           - Clear the STOP status bit
  * 
+ *      There is no other functionality within this class.
  *************************************************************************************************/
 #ifndef I2CDEVICE_H_
 #define I2CDEVICE_H_
