@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTDevice.h
  * @author      Thomas
- * @version     V1.1
- * @date        06 Oct 2018
+ * @version     V2.1
+ * @date        21 Oct 2018
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -130,7 +130,6 @@ typedef enum {
 class UARTDevice {
     // Declarations which are generic, and will be used in ALL devices
     protected:
-        _UARTDevFlt    Flt;                 // Fault state of the class
         GenBuffer<uint8_t>  *Receive;       // Pointer to GenBuffer class used for data "Receive"d
                                             // via UART
         GenBuffer<uint8_t>  *Transmit;      // Pointer to GenBuffer class used for data to be
@@ -214,7 +213,7 @@ class UARTDevice {
 
 #endif
 
-protected:
+public:
     //0> Hardware reading
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     uint8_t DRRead(void);                       // Function to read direct from the hardware
@@ -225,6 +224,8 @@ protected:
     uint8_t ReceiveDataToReadChk(void);         // Check state of receive data from hardware
 
 public:
+    _UARTDevFlt    Flt;                 // Fault state of the class
+
     // 1> Following functions will WAIT for actions to complete before finishing
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     uint8_t PoleSingleRead(void);           // Will wait until there is new data to be read

@@ -59,6 +59,166 @@ void UARTDevice::DRWrite(uint8_t data) {
 #endif
 }
 
+uint8_t UARTDevice::TransmitEmptyITCheck(void) {
+/**************************************************************************************************
+ * INTERRUPTS CHECKS:
+ * Check the state of the Transmit data empty interrupt - which indicates that data can be added
+ * onto hardware queue to be transmitted.
+ * Will return (0x01) if data can be added, and (0x00) if not.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
+    if(((isrflags & USART_SR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
+    if(((isrflags & USART_ISR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    // Check to see if Transmit Interrupt bit has been set.
+    if ((this->pseudo_interrupt & (0x01<<UARTD_TransmtIntBit)) == (0x01<<UARTD_TransmtIntBit))
+        return (0x01);
+
+    else
+        return(0x00);
+
+#else
+//==================================================================================================
+
+#endif
+}
+
+uint8_t UARTDevice::TransmitComptITCheck(void) {
+/**************************************************************************************************
+ * INTERRUPTS CHECKS:
+ * Check the state of the Transmission complete interrupt - which indicates that data has completed
+ * transmission
+ * Will return (0x01) if data can be added, and (0x00) if not.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Tranmission has completed been triggered AND is enabled as Interrupt then...
+    if(((isrflags & USART_SR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET)) {
+        this->UART_Handle->Instance->SR &= ~(USART_SR_TC);  // Clear the status register
+        return(0x01);
+    }
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Tranmission has completed been triggered AND is enabled as Interrupt then...
+    if(((isrflags & USART_ISR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET)) {
+        this->UART_Handle->Instance->ICR &= ~(USART_ICR_TCCF);  // Clear the status register
+        return(0x01);
+    }
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    // Check to see if Transmit Complete Interrupt bit has been set.
+    if ((this->pseudo_interrupt & (0x01<<UARTD_TransCmIntBit)) == (0x01<<UARTD_TransCmIntBit))
+        return (0x01);
+
+    else
+        return(0x00);
+
+#else
+//==================================================================================================
+
+#endif
+}
+
+uint8_t UARTDevice::ReceiveDataToReadChk(void) {
+/**************************************************************************************************
+ * INTERRUPTS CHECKS:
+ * Check the state of the Read data register not empty interrupt - which indicates that data is
+ * ready to be read from the hardware.
+ * Will return (0x01) if data can be read, and (0x00) if not.
+ *************************************************************************************************/
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
+    if(((isrflags & USART_SR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
+        // Get the Interrupt flags
+
+    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
+        // Add status flags for Interrupts
+
+    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
+    if(((isrflags & USART_ISR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
+        return(0x01);
+
+    else
+        return(0x00);
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+    // Check to see if Receive Interrupt bit has been set.
+    if (((this->pseudo_interrupt & (0x01<<UARTD_ReceiveIntBit)) == (0x01<<UARTD_ReceiveIntBit)))
+        return (0x01);
+
+    else
+        return(0x00);
+
+#else
+//==================================================================================================
+
+#endif
+}
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -450,166 +610,6 @@ void UARTDevice::TransCmIT(_UARTITState intr) {
     else
         UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransCmIntBit);
         // Disable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
-
-#else
-//==================================================================================================
-
-#endif
-}
-
-uint8_t UARTDevice::ReceiveDataToReadChk(void) {
-/**************************************************************************************************
- * INTERRUPTS CHECKS:
- * Check the state of the Read data register not empty interrupt - which indicates that data is
- * ready to be read from the hardware.
- * Will return (0x01) if data can be read, and (0x00) if not.
- *************************************************************************************************/
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
-    if(((isrflags & USART_SR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
-        return(0x01);
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
-    if(((isrflags & USART_ISR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
-        return(0x01);
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-    // Check to see if Receive Interrupt bit has been set.
-    if (((this->pseudo_interrupt & (0x01<<UARTD_ReceiveIntBit)) == (0x01<<UARTD_ReceiveIntBit)))
-        return (0x01);
-
-    else
-        return(0x00);
-
-#else
-//==================================================================================================
-
-#endif
-}
-
-uint8_t UARTDevice::TransmitEmptyITCheck(void) {
-/**************************************************************************************************
- * INTERRUPTS CHECKS:
- * Check the state of the Transmit data empty interrupt - which indicates that data can be added
- * onto hardware queue to be transmitted.
- * Will return (0x01) if data can be added, and (0x00) if not.
- *************************************************************************************************/
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
-    if(((isrflags & USART_SR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
-        return(0x01);
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
-    if(((isrflags & USART_ISR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
-        return(0x01);
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-    // Check to see if Transmit Interrupt bit has been set.
-    if ((this->pseudo_interrupt & (0x01<<UARTD_TransmtIntBit)) == (0x01<<UARTD_TransmtIntBit))
-        return (0x01);
-
-    else
-        return(0x00);
-
-#else
-//==================================================================================================
-
-#endif
-}
-
-uint8_t UARTDevice::TransmitComptITCheck(void) {
-/**************************************************************************************************
- * INTERRUPTS CHECKS:
- * Check the state of the Transmission complete interrupt - which indicates that data has completed
- * transmission
- * Will return (0x01) if data can be added, and (0x00) if not.
- *************************************************************************************************/
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->SR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Tranmission has completed been triggered AND is enabled as Interrupt then...
-    if(((isrflags & USART_SR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET)) {
-        this->UART_Handle->Instance->SR &= ~(USART_SR_TC);  // Clear the status register
-        return(0x01);
-    }
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
-    uint32_t isrflags   = READ_REG(this->UART_Handle->Instance->ISR);
-        // Get the Interrupt flags
-
-    uint32_t cr1its     = READ_REG(this->UART_Handle->Instance->CR1);
-        // Add status flags for Interrupts
-
-    // If the Tranmission has completed been triggered AND is enabled as Interrupt then...
-    if(((isrflags & USART_ISR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET)) {
-        this->UART_Handle->Instance->ICR &= ~(USART_ICR_TCCF);  // Clear the status register
-        return(0x01);
-    }
-
-    else
-        return(0x00);
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-    // Check to see if Transmit Complete Interrupt bit has been set.
-    if ((this->pseudo_interrupt & (0x01<<UARTD_TransCmIntBit)) == (0x01<<UARTD_TransCmIntBit))
-        return (0x01);
-
-    else
-        return(0x00);
 
 #else
 //==================================================================================================
