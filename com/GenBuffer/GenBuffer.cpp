@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        06 Oct 2018
+ * @version     V1.2
+ * @date        08 Nov 2018
  * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -41,12 +41,6 @@ void GenBuffer<Typ>::QFlush(void) {
     input_pointer   = 0;            // Initialise pointers back to the start of the buffer
 }
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Typ>
 GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
 /**************************************************************************************************
@@ -54,17 +48,19 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
  * Where the fully defined array is provided as input to constructor. This will then be linked to
  * internal class pointer "pa"
  *
- * Once done it will call the "Flush" function to write contents, and setup pointers to the start
- * of the buffer.
+ * Once done it will call the "QFlush" function to  setup pointers to the start of the buffer.
+ *  Leaves the contents of the data unaffected.
  *************************************************************************************************/
     length = size;                  // Setup size of the buffer as per input
     pa = arrayloc;                  // Have pointer now point to input "arrayloc"
 
-    Flush();                        // Flush the data to default values
+    QFlush();                       // Flush the data to default values
 }
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Typ>
@@ -234,6 +230,74 @@ Typ GenBuffer<Typ>::ReadBuffer(uint32_t position) {
     position %= length;         // Limit and loop the position to ensure it is within the buffer
 
     return (pa[position]);      // Return buffer entry
+}
+
+template <typename Typ>
+uint32_t GenBuffer<Typ>::SpaceRemaining(void) {
+/**************************************************************************************************
+ * Calculates the number of entries the buffer can take, before Buffer is FULL.
+ *  Whereas the "InputWrite" will ensure that even if the buffer is full, it populates the latest
+ *  data into the queue. This function will return "0" if the buffer is FULL, if the buffer is
+ *  empty, then the output of this will be length - 1 (to cater for the buffer requiring 1 blank
+ *  entry between input and output.
+ *************************************************************************************************/
+    if (State() == GenBuffer_Empty) {
+        return (length - 1);
+    }
+    else { return((uint32_t)( output_pointer - input_pointer + length - 1 ) % length); }
+        // Difference between the output and input pointers (note input is likely to be larger
+        // than the output), take this difference and add to the length
+}
+
+template <typename Typ>
+uint32_t GenBuffer<Typ>::SpaceTilArrayEnd(void) {
+/**************************************************************************************************
+ * Calculates the number of entries remaining within the source array, till the bottom is reached.
+ *  At which point the GenBuffer will loop.
+ *************************************************************************************************/
+    return (length - input_pointer );
+}
+
+template <typename Typ>
+void GenBuffer<Typ>::QuickWrite(Typ *newdata, uint32_t size) {
+/**************************************************************************************************
+ * Populates the entries from "newdata" and puts into the GenBuffer. Only "size" entries are
+ * copied.
+ *  Relies upon the function "InputWrite"
+ *************************************************************************************************/
+    while(size != 0) {              // Cycle through the number of requested inputs
+        InputWrite(*newdata);       // Put into array (also does loop back)
+        newdata++;                  // Increase data pointer
+        size--;                     // Decrease size (till = 0)
+    }
+}
+
+template <typename Typ>
+uint32_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint32_t size) {
+/**************************************************************************************************
+ * Goes through the contents of the Buffer, and returns the data into the return array "backdata".
+ * Will only cycle through "size" number of entries, actual entries returned is captured within
+ * "retsize"
+ *
+ * Populates the entries from "backdata" and puts into the GenBuffer. Only "size" entries are
+ * copied.
+ *  Relies upon the function "InputWrite"
+ *************************************************************************************************/
+    uint32_t returnsize = 0;    // Initialise a count of the entries returned.
+    Typ BufEntry = 0;           // Data variable to retain buffer entry
+
+    while(size != 0) {          // Cycle through the number of data points to return
+        if (OutputRead(&BufEntry) != GenBuffer_Empty) { // If buffer is not empty
+            *backdata = BufEntry;                       // Return data to input array
+            backdata++;                                 // Increase data pointer
+            returnsize++;                               // Increment the return size count
+            size--;                                     // Decrease size (till = 0)
+        }
+        else                                        // If buffer is empty
+            break;                                  // exit loop
+    }                                               // return size count will already be updated
+
+    return (returnsize);                    // Return the number of entries populated
 }
 
 template <typename Typ>

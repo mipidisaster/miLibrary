@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.h
  * @author      Thomas
- * @version     V1.1
- * @date        06 Oct 2018
+ * @version     V1.2
+ * @date        08 Nov 2018
  * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -30,6 +30,9 @@
  *      data if there is new data within the buffer (i.e. not empty). If empty then it will not
  *      update pointer, and return the state "GenBuffer_Empty"
  *
+ *      Quicker functions "QuickWrite" and "QuickRead", allow for cycling through the entries
+ *      within the buffer and returning values.
+ *
  *      ".Flush" can be used to clear the entire contents of the buffer, and return all pointers
  *      back to the start of the buffer.
  *
@@ -37,6 +40,10 @@
  *      enumerate type of "_GenBufState" defined below.
  *
  *      ".ReadBuffer(<position>)" Return specified position within buffer.
+ *
+ *      ".SpaceRemaining" and ".SpaceTilArrayEnd", can be used to determine how much size is
+ *      remaining within the buffer. "SpaceTilArrayEnd", shows how many entries are left before
+ *      the source array reaches the bottom (it includes the entry currently pointed too).
  *
  *  This class has been defined within a template format (which is why the include at the end for
  *  the source file has been added - template call needs to include declaration and definition)
@@ -92,18 +99,15 @@ class GenBuffer {
         Typ             *pa;                // Points to the array (Buffer)
 
     public:
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         GenBuffer(Typ *arrayloc, uint32_t size);
         // As have defined that the "GenBuffer" needs to be "Lite", then use of "new" and "delete"
         // is not required, therefore a fully defined array is to be provided, and used within
         // the class.
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         GenBuffer();                        // Constructor of the buffer class
@@ -127,6 +131,16 @@ class GenBuffer {
         _GenBufState OutputRead(Typ *readdata); // Read next data entry in buffer (if data is
                                                 // present)
         Typ ReadBuffer(uint32_t position);      // Read specific entry from buffer
+
+        uint32_t SpaceRemaining(void);          // Return number of entries in buffer before, FULL
+        uint32_t SpaceTilArrayEnd(void);        // Return number of entries left till end of array
+
+        void QuickWrite(Typ *newdata, uint32_t size);   // Take input array, and populate "size"
+                                                        // into Buffer
+        uint32_t QuickRead(Typ *backdata, uint32_t size);
+        // Provide array to retain read back data from buffer. Input size, limits the number of
+        // entries returned. Returned value is the number of entries actually populated (to cater
+        // for the buffer being empty; therefore output will not equal size).
 
         virtual ~GenBuffer();               // Destructor of class
 
