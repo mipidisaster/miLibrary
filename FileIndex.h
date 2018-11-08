@@ -45,5 +45,7 @@
 #define FilInd_DeMux__HD    "dev\DeMux\DeMux.h"             // File for the DeMultiplexor device
 #define FilInd_AS5x4__HD    "dev\AS5x4x\AS5x4x.h"           // File for the AS5x4x Position Sensor
                                                             // devices
+#define FilInd_AD741x_HD    "dev\AD741x\AD741x.h"           // File for the AD741x Temperature
+                                                            // Sensor
 
 #endif /* FILEINDEX_H_ */
