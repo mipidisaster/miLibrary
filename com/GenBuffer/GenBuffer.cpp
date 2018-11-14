@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V1.2
- * @date        08 Nov 2018
+ * @version     V1.3
+ * @date        11 Nov 2018
  * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -259,6 +259,18 @@ uint32_t GenBuffer<Typ>::SpaceTilArrayEnd(void) {
 }
 
 template <typename Typ>
+uint32_t GenBuffer<Typ>::UnreadCount(void) {
+/**************************************************************************************************
+ * Calculates the number of entries within the buffer which have not been read yet.
+ * If the buffer is already full, then it will return the full buffer size.
+ *************************************************************************************************/
+    if (State() == GenBuffer_FULL) {
+        return (length - 1);
+    }
+    else { return((uint32_t)( length + input_pointer - output_pointer ) % length); }
+}
+
+template <typename Typ>
 void GenBuffer<Typ>::QuickWrite(Typ *newdata, uint32_t size) {
 /**************************************************************************************************
  * Populates the entries from "newdata" and puts into the GenBuffer. Only "size" entries are
@@ -298,6 +310,38 @@ uint32_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint32_t size) {
     }                                               // return size count will already be updated
 
     return (returnsize);                    // Return the number of entries populated
+}
+
+template <typename Typ>
+void GenBuffer<Typ>::WriteErase(uint32_t size) {
+/**************************************************************************************************
+ * Bring the input_pointer forward by "size" number of entries - erasing "size" number of buffer
+ * entries from being written too.
+ *************************************************************************************************/
+    if (SpaceRemaining() >= size) {
+        input_pointer = (input_pointer + size) % length;
+        // Bring the input pointer forward by specified amount. So long as the space remaining is
+        // enough to allow this.
+    }
+    else
+        input_pointer = (input_pointer + SpaceRemaining()) % length;
+    // Otherwise, bring the input_pointer such that it is at the FULL threshold of the buffer
+}
+
+template <typename Typ>
+void GenBuffer<Typ>::ReadErase(uint32_t size) {
+/**************************************************************************************************
+ * Bring the output_pointer forward by "size" number of entries - erasing "size" number of buffer
+ * entries from being read from.
+ *************************************************************************************************/
+    if (UnreadCount() >= size) {
+        output_pointer = (output_pointer + size) % length;
+        // Bring the input pointer forward by specified amount. So long as the space remaining is
+        // enough to allow this.
+    }
+    else
+        output_pointer = input_pointer;
+    // Otherwise, bring the input_pointer such that it is at the FULL threshold of the buffer
 }
 
 template <typename Typ>

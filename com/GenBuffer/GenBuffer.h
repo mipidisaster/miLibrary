@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.h
  * @author      Thomas
- * @version     V1.2
- * @date        08 Nov 2018
+ * @version     V1.3
+ * @date        11 Nov 2018
  * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -44,6 +44,16 @@
  *      ".SpaceRemaining" and ".SpaceTilArrayEnd", can be used to determine how much size is
  *      remaining within the buffer. "SpaceTilArrayEnd", shows how many entries are left before
  *      the source array reaches the bottom (it includes the entry currently pointed too).
+ *      ".UnreadCount" can be used to determine how many entries within the buffer have not been
+ *      read yet.
+ *
+ *      ".WriteErase" and ".ReadErase" are functions which can be used to quickly erase a
+ *      specified number of entries either from the read/write side of the buffer.
+ *      NOTE however, that if the number of entries to erase brings the write pointer pass the
+ *           buffer being FULL. Then function will bring the pointer such that the state of the
+ *           buffer will be FULL.
+ *           Additionally, if the same is done for the read pointer, then instead it will just put
+ *           the buffer into the EMPTY state.
  *
  *  This class has been defined within a template format (which is why the include at the end for
  *  the source file has been added - template call needs to include declaration and definition)
@@ -135,12 +145,26 @@ class GenBuffer {
         uint32_t SpaceRemaining(void);          // Return number of entries in buffer before, FULL
         uint32_t SpaceTilArrayEnd(void);        // Return number of entries left till end of array
 
+        uint32_t UnreadCount(void);             // Return the number of un-read entries within
+                                                // Buffer
+
         void QuickWrite(Typ *newdata, uint32_t size);   // Take input array, and populate "size"
                                                         // into Buffer
         uint32_t QuickRead(Typ *backdata, uint32_t size);
         // Provide array to retain read back data from buffer. Input size, limits the number of
         // entries returned. Returned value is the number of entries actually populated (to cater
         // for the buffer being empty; therefore output will not equal size).
+
+        void WriteErase(uint32_t size);         // Erase "size" number of data points from the
+                                                // current position for the write/input buffer
+                                                // "input_pointer"
+        void ReadErase(uint32_t size);          // Erase "size" number of data points from the
+                                                // current position for the read/output buffer
+                                                // "output_pointer"
+        // For both of these functions, if the size specified, brings the buffer past "FULL". Then
+        // the specified pointers will be setup such that:
+        //  input_pointer will be set to bring the buffer to "FULL"
+        //  output_pointer will be set to bring the buffer to "EMPTY"
 
         virtual ~GenBuffer();               // Destructor of class
 
