@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        FileIndex.h
  * @author      Thomas
- * @version     V0.2
- * @date        07 Oct 2018
+ * @version     V0.3
+ * @date        14 Nov 2018
  * @brief       File index for my code and functions
  **************************************************************************************************
   @ attention
@@ -28,8 +28,8 @@
  *************************************************************************************************/
 #define FilInd_GPIO___HD    "drv\GPIO\GPIO.h"               // File for the GPIO driver code
 #define FilInd_USART__HD    "drv\UARTDevice\UARTDevice.h"   // File for the USART driver code
-#define FilInd_SPIDe__HD    "drv\SPIDevice\SPIDevice.h"     // File for the SPI driver code
-#define FilInd_I2CDe__HD    "drv\I2CDevice\I2CDevice.h"     // File for the I2C driver code
+#define FilInd_SPIPe__HD    "drv\SPIPeriph\SPIPeriph.h"     // File for the SPI driver code
+#define FilInd_I2CPe__HD    "drv\I2CPeriph\I2CPeriph.h"     // File for the I2C driver code
 
 /**************************************************************************************************
  * All of the defines below are for "Common" code - examples: Buffers, Math, etc.
