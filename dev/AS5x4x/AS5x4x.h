@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.h
  * @author      Thomas
- * @version     V0.1
- * @date        20 Oct 2018
+ * @version     V1.1
+ * @date        21 Dec 2018
  * @brief       Header file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -23,22 +23,56 @@
  *      If in "LiteImplementation" mode, then pointers to the write and read buffers need to be
  *      provided. Otherwise they will be generated internally to the class.
  *
- *      Functions used internal to the class:
- *          ".WriteDataPacket"      - Put packet requested into the write buffer
- *          ".ReadDataPacket"       - Read the packet from device from read buffer
+ *      Depending upon how the programmer has setup the SPI Device, will change which of the
+ *      functions listed below can be used:
+ *      For function to wait for new data, or data to be transmitted utilising "poling mode":
+ *          ".poleSPITransmit"      - This is an OVERLOADED function, where only the SPI + Chip
+ *                                    select is provided, then function will communication with
+ *                                    only the specific class AS5x4x (assumes device is directly
+ *                                    linked)
+ *                                    Other configuration is to include the "Daisy" structure (see
+ *                                    below), which will transmit to multiple devices
  *
+ *      If interrupt based communication is to be used then, the following functions are required:
+ *          ".reInitialise"         - Initialise the internal forms/queues in fault situations.
+ *          ".intSingleTransmit"    - OVERLADED function, similar to the "poling" version. Either
+ *                                    provide it just the SPI + CS, or Daisy chain and SPI
+ *
+ *      Generic functions used to build/manage the device(s) either in a Daisy format (see below):
+ * static   ".SPIReadChain"         - Read any SPI read data, and transfer to internal class 16bit
+ *                                    queue, for later deconstruction.
+ *          ".checkDataRequest"     - See if the internal write buffer contains any new requests
+ *                                    to be transfered to device
+ *          ".readDataPacket"       - Scan through all unread internal 16bit registers and
+ *                                    deconstruct as per device format, and make available
+ *                                    external to class
+ * static   ".constructDaisy"       - Construct a Daisy change structure, with "x" number of
+ *                                    AS5x4x devices (1st entry is last in the actual DAISY)
+ * static   ".checkDaisyRequest"    - Scan through all devices within Daisy chain and check for
+ *                                    any new requests
+ * static   ".readDaisyPackets"     - Similar to "readDataPacket", however is done for all devices
+ *                                    attached in Daisy chain
+ *
+ *      Fundamental functions used within the class, which are protected, so not visible outside
+ *      of class:
+ * static   ".EventParityCheck"     - Check data packet to see if parity is correct
+ * static   ".SPIWriteChain"        - Baseline function to transmit data in poling mode
  *          ".deconstructAS5048A"   - Deconstruct the AS5048A data from device
  *          ".deconstructAS5047D"   - Deconstruct the AS5047D data from device
- *
- *      Functions to be used to request/read data from AS5x4x device
- *          ".SPIWriteChain"        - SPI Write Daisy Chain for AS5x4x device
- *          ".SPIReadChain"         - SPI Read Daisy Chain for AS5x4x device
- *
- *          ".DirectSPITransmit"    - Directly transmit data via SPI to a single AS5x4x device
  *
  *      Functions to requested data from the AS5x4x device:
  *          constructNOP, constructCEF, constructAGC, constructMag, constructAng
  *          constructALL
+ *
+ *  [#] AS5x4x Daisy Struct
+ *      ~~~~~~~~~~~~~~~~~~~
+ *      As the AS5x4x devices all support use of devices in a "Daisy Chain" format - see datasheet
+ *      for details. This class utilises a "Daisy" structure, which can be constructed (and is
+ *      suggested to be used anyway for interrupt based communication - irrespective on number of
+ *      devices in chain).
+ *      This structure contains a pointer to the array of constructed AS5x4x devices, along with
+ *      the number of devices. Also contains parameters used to manage interrupt based
+ *      communication, namely - Fault status, Target number of transfers, Complete flag.
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
@@ -50,7 +84,7 @@
 
 #include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
 #include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
-#include FilInd_SPIDe__HD               // Allow use of the SPI Device class
+#include FilInd_SPIPe__HD               // Include class for SPI Peripheral
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -114,29 +148,64 @@
 #define AS5048_ANGLE    0x3FFF          // Address for the Measured angle
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
+#define AS5x4x_MAXChain     10          // Define the maximum number of AS5x4x devices in a chain
+
 #ifndef PI
 #define PI                 3.14159265358979f
 #endif
 
 // Types used within this class
-typedef enum {
-    AS5x4x_NoFault      = 0,
-    AS5x4x_Frame        = 1,
-    AS5x4x_CmdInv       = 2,
-    AS5x4x_Parity       = 3,
 
-    AS5x4x_Initialised = -1
-} _AS5x4xFlt;
-
-typedef enum {
-    AS5048A         = 0,
-    AS5047D         = 1
-} _AS5x4xDev;
 
 class AS5x4x {
+/**************************************************************************************************
+ * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+ *   -----------
+ *  Following types are generated within this class. If needed outside of the class, need to
+ *  state "AS5x4x::" followed by the type.
+ *************************************************************************************************/
+public:
+    enum class DevFlt : uint8_t {
+        None                = 0x00,
+        Frame               = 0x01,
+        CmdInv              = 0x02,
+        Parity              = 0x03,
+        MultiFault          = 0x04,
+
+        Initialised         = 0xFF
+    };
+
+    enum class DevPart : uint8_t {
+        AS5048A         = 0,
+        AS5047D         = 1
+    };
+
+    typedef struct {                    // Structure used to handle multiple AS5x4x devices in a
+                                        // Daisy Chain format
+                                        // Consult the AS5048A datasheet to see how this needs to
+                                        // constructed.
+        AS5x4x          *Devices;       // Pointer to the devices in the chain, note the first
+                                        // entry, needs to be the LAST in the chain!
+        uint16_t        numDevices;     // Number of devices
+
+        volatile SPIPeriph::DevFlt  Flt;    // Pointer to fault flag for interrupt based
+                                            // communication
+        volatile uint8_t            Cmplt;  // Pointer to completed flag for interrupt based
+                                            // communication
+        uint8_t                     Trgt;   // SPI target number of bytes to be requested to be
+                                            // transfered.
+    }   Daisy;
+
+/**************************************************************************************************
+ * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
+ *   -----------
+ *  Parameters required for the class to function.
+ *************************************************************************************************/
 protected:
-    GenBuffer<uint16_t> *rdBuff;        // Read buffer for data transfer
-    GenBuffer<uint16_t> *wtBuff;        // Write buffer for data transfer
+    GenBuffer<uint16_t> rdBuff;         // Read buffer for data transfer
+    GenBuffer<uint16_t> wtBuff;         // Write buffer for data transfer
+
+    void popGenParam(void);             // Populate generic parameters for the class
 
 public:
     float       Angle;                  // Calculated real angle from device (radians)
@@ -145,22 +214,31 @@ public:
                                         // CORDIC = Coordinate Rotation Digital Computer
     uint16_t    AGC;                    // Automatic Gain Control value
     uint16_t    Diagnostic;             // Diagnostic flags
-    _AS5x4xFlt  Flt;                    // Fault status of the device
+    DevFlt      Flt;                    // Fault status of the device
 
-    _AS5x4xDev  Device;                 // Store the device type
+    DevPart     Device;                 // Store the device type
+
+/**************************************************************************************************
+ * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
+ *   -----------
+ *  Following are functions and parameters which are specific for the embedded device selected.
+ *  The initialisation function for the class is also within this section, which again will be
+ *  different depending upon the embedded device selected.
+ *  >> NOTE <<
+ *      As this is a class which utilises the lower level classes, the selection of the embedded
+ *      device at this level doesn't change how the class works, therefore there is no selection
+ *      of different devices.
+ *************************************************************************************************/
+public:
+    AS5x4x(void);                           // Basic constructor for AS5x4x class
+    AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size);
+    // Setup the AS5x4x device, by providing the device type, as well as array pointer(s) to be
+    // used as the internal write and read buffers.
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        AS5x4x(_AS5x4xDev Device, GenBuffer<uint16_t> *wtBuff, GenBuffer<uint16_t> *rdBuff);
-        // Setup the AS5x4x device, by providing the device type, as well as the "GenBuffer"
-        // to be used as the internal write and read buffer.
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public:
@@ -172,23 +250,43 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    // 0> Basic functions for organising data
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/**************************************************************************************************
+ * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
+ *   -----------
+ *  The following are functions scoped within the "AS5x4x" class, which are generic; this means
+ *  are used by ANY of the embedded devices supported by this class.
+ *  >> NOTE <<
+ *      As this is a class which utilises the lower level classes, the selection of the embedded
+ *      device at this level doesn't change how the class works, therefore there is no selection
+ *      of different devices.
+ *************************************************************************************************/
+protected:  /**************************************************************************************
+             * == PROTECTED == >>>  FUNDAMENTAL FUNCTION FOR CLASS TO WORK   <<<
+             *   -----------
+             *  These functions are the bases for use of this class. The "upper level" function
+             *  (which are public), rely upon these functions to operate.
+             *  Are protected, as the upper level functions will not need to use these.
+             *************************************************************************************/
     static uint8_t EvenParityCheck(uint16_t packet);    // Determine if the data packet is even
                                                         // parity
     void WriteDataPacket(uint16_t PacketData);          // Check data for parity, and put into
                                                         // Buffer
-    void ReadDataPacket(void);                          // Read the contents of the 16bit buffer
 
-    // 1> SPI peripheral functions
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    static uint16_t SPIWriteChain(AS5x4x *device, uint16_t numchain, uint8_t *wtdata);
-    static uint8_t SPIReadChain(AS5x4x *device, uint16_t numchain, uint8_t *rddata, uint16_t size);
 
-    void DirectSPITransmit(SPIDevice *Interface, GPIO *CS);
+    static uint16_t SPIWriteChain(AS5x4x *device, uint16_t numchain, GenBuffer<uint8_t> *wtdata);
 
-    // 2> Functions to request and understand data from the AS5x4x devices
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    void deconstructAS5048A(uint16_t Address, uint16_t packetdata); // Deconstruct AS5048A data
+    void deconstructAS5047D(uint16_t Address, uint16_t packetdata); // Deconstruct AS5047D data
+
+public:     /**************************************************************************************
+             * ==  PUBLIC   == >>>    GENERIC FUNCTIONS FOR DATA REQUESTS    <<<
+             *   -----------
+             *  Visible functions which are generic for any use of the SPI peripheral.
+             *  Are used to build up a "queue" of requests on the selected AS5x4x device
+             *************************************************************************************/
+    static uint8_t SPIReadChain(AS5x4x *device, uint16_t numchain,
+                                GenBuffer<uint8_t> *rddata, uint16_t size);
+
     void constructNOP(void);            // Function to request a NOP transmission
     void constructCEF(void);            // Function to request a CEF transmission
     void constructAGC(void);            // Function to request a AGC transmission
@@ -197,8 +295,42 @@ public:
 
     void constructALL(void);            // Function to request full update of device
 
-    void deconstructAS5048A(uint16_t Address, uint16_t packetdata); // Deconstruct AS5048A data
-    void deconstructAS5047D(uint16_t Address, uint16_t packetdata); // Deconstruct AS5047D data
+    uint8_t checkDataRequest(void);
+    void readDataPacket(void);                      // Read the contents of the 16bit buffer
+
+    static Daisy constructDaisy(AS5x4x *device, uint16_t numchain);
+        // Construct the Daisy chain structure, with input parameters
+
+    static uint8_t checkDaisyRequest(Daisy *chain);
+        // Check to see if there is any new data to be transmitted for devices in the Daisy chain
+    static void readDaisyPackets(Daisy *chain); // Read the contents of all devices in chain
+
+public:     /**************************************************************************************
+             * ==  PUBLIC   == >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<
+             *   -----------
+             *  Visible functions used to setup and transfer packets of data to the selected
+             *  AS5x4x device - Will wait for any hardware registers to be in correct state before
+             *  progressing.
+             *************************************************************************************/
+    void        poleSPITransmit(SPIPeriph *Interface, GPIO *CS);
+    static void poleSPITransmit(Daisy *chain, SPIPeriph *Interface, GPIO *CS);
+
+public:     /**************************************************************************************
+             * ==  PUBLIC   == >>>   INTERRUPT FUNCTIONS FOR DATA TRANSFER   <<<
+             *
+             *  Visible functions used to support communication to AD741x device, on a interrupt
+             *  bases.
+             *      Enabling of interrupt bits/DMAs are not handled within this class.
+             *************************************************************************************/
+    void reInitialise(void);                                // Initialise the write/read internal
+                                                            // request buffers
+    void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,
+                           GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff,
+                           volatile SPIPeriph::DevFlt *fltReturn, volatile uint8_t *cmpFlag,
+                           uint8_t *cmpTarget);
+
+    static void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, Daisy *chain,
+                                  GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
 
     virtual ~AS5x4x();
 };
