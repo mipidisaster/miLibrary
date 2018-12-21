@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V0.1
+ * @version     V1.1
  * @date        08 Nov 2018
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
@@ -33,14 +33,15 @@
  *          ".poleTempRead"         - Read the contents of the device's Temperature Register
  *
  *      If interrupt based communication is to be used then, the following functions are required:
+ *          ".reInitialise"         - Resets the internals mechanics of the class
  *          ".intConfigRead"        - Request a read of the contents of device's Configuration
  *                                    Register
  *          ".intConfigWrite"       - Request a write of the device's Configuration Register
  *          ".intTempRead"          - Request a read of the contents of device's Temperature
  *                                    Register
  *
- *          ".intCheckCommStatus"   - Function to be used periodically, so as to determine if
- *                                    interrupt communication has completed AD741x data request.
+ *          ".intCheckCommStatus"   - Function to be used periodically, after confirming that the
+ *                                    interrupt I2C routine has completed communication
  *
  *      Fundamental functions used within this class, which are protected, so not visible outside
  *      the class:
@@ -83,7 +84,7 @@
 #include "FileIndex.h"
 
 #include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
-#include FilInd_I2CDe__HD               // Allow use of the I2C Device class
+#include FilInd_I2CPe__HD               // Include class for I2C Peripheral
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -205,6 +206,10 @@ public:
  *  Parameters required for the class to function.
  *************************************************************************************************/
     protected:
+        GenBuffer<Form>      AdBuff;// Buffer for the state of the Address pointer, needs to line
+                                    // up with any read backs (as this indicates what has been
+                                    // read!)
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         DevPart     PartNumber;     // Retain the selected part number of device
         AddrBit     AddressPin;     // Retain the status of the Address Pin
         PwrState    Mode;           // Mode of the device
@@ -212,11 +217,6 @@ public:
 
         uint16_t    I2CAddress;     // I2C Address of the device
         uint8_t     AddressPointer; // Stores the current state of the Address Pointer
-        GenBuffer<uint8_t>  *rdBuff;// Read buffer for AD741x device communications
-        GenBuffer<Form>     *AdBuff;// Buffer for the state of the Address pointer, needs to line
-                                    // up with any read backs (as this indicates what has been
-                                    // read!)
-        GenBuffer<uint8_t>  *wtBuff;// Write buffer for AD741x device communications
 
     public:
         DevFlt      Flt;            // Fault status of the device
@@ -225,13 +225,13 @@ public:
         int16_t     TempReg;        // Read temperature register
 
         // Parameters used for interrupt based I2C communication
-        I2CDevice::DevFlt   I2CWFlt;// Fault status of the I2C write Communication
-        uint8_t     wtcmpFlag;      // I2C write communication complete flag
+        volatile I2CPeriph::DevFlt   I2CWFlt;// Fault status of the I2C write Communication
+        volatile uint8_t     wtcmpFlag;      // I2C write communication complete flag
         uint8_t     wtcmpTarget;    // I2C write communication number of bytes to have been
                                     // transmitted
 
-        I2CDevice::DevFlt   I2CRFlt;// Fault status of the I2C read Communication
-        uint8_t     rdcmpFlag;      // I2C read communication complete flag
+        volatile I2CPeriph::DevFlt   I2CRFlt;// Fault status of the I2C read Communication
+        volatile uint8_t     rdcmpFlag;      // I2C read communication complete flag
         uint8_t     rdcmpTarget;    // I2C read communication number of bytes to have been
                                     // received
 
@@ -251,8 +251,8 @@ public:
                                                                 // class generation
 
     public:
-        AD741x(DevPart DeviceNum, AddrBit ASPin, GenBuffer<Form> *AddressBuffer,
-                GenBuffer<uint8_t> *readBuffer, GenBuffer<uint8_t> *writeBuffer);
+        AD741x(void);                           // Basic constructor for AS5x4x class
+        AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -316,13 +316,13 @@ public:     /*******************************************************************
              *  AD741x device - Will wait for any hardware registers to be in correct state before
              *  progressing.
              *************************************************************************************/
-    DevFlt poleAvailability(I2CDevice *hal_I2C);            // Check to see if device is available
-    DevFlt poleConfigRead(I2CDevice *hal_I2C);              // Read Configuration of Device
-    DevFlt poleConfigWrite(I2CDevice *hal_I2C,
+    DevFlt poleAvailability(I2CPeriph *hal_I2C);            // Check to see if device is available
+    DevFlt poleConfigRead(I2CPeriph *hal_I2C);              // Read Configuration of Device
+    DevFlt poleConfigWrite(I2CPeriph *hal_I2C,
                                       PwrState Mode, FiltState Filt, OneShot Conv);
         // Update the contents of the Configuration register as per input conditions
 
-    DevFlt poleTempRead(I2CDevice *hal_I2C);                // Read the contents of the
+    DevFlt poleTempRead(I2CPeriph *hal_I2C);                // Read the contents of the
                                                             // temperature register
 
 public:     /**************************************************************************************
@@ -332,17 +332,23 @@ public:     /*******************************************************************
              *  bases.
              *      Enabling of interrupt bits/DMAs are not handled within this class.
              *************************************************************************************/
-    void intConfigRead(I2CDevice *hal_I2C);                 // Request read of Configuration
-                                                            // Register
-    void intConfigWrite(I2CDevice *hal_I2C,
-                        PwrState Mode, FiltState Filt, OneShot Conv);
+    void reInitialise(void);                                // Initialise the internal Address
+                                                            // Pointer, etc.
+    void intConfigRead(I2CPeriph *hal_I2C,
+                       GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
+        // Request read of Configuration Register
+
+    void intConfigWrite(I2CPeriph *hal_I2C,
+                        PwrState Mode, FiltState Filt, OneShot Conv,
+                        GenBuffer<uint8_t> *wBuff);
         // Request write to update contents of the Configuration Register
 
-    void intTempRead(I2CDevice *hal_I2C);                   // Request temperature read
+    void intTempRead(I2CPeriph *hal_I2C, GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
+        // Request temperature read
 
-    void intCheckCommStatus(void);                          // Check to see if interrupt based
-                                                            // communication has completed
-                                                            // Will then update class parameters
+    void intCheckCommStatus(GenBuffer<uint8_t> *rBuff, uint16_t size);
+    // Will take the input parameters and decode the specified number of entries
+
     virtual ~AD741x();
 };
 
