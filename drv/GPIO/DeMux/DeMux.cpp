@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        DeMux.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        07 Oct 2018
+ * @version     V2.1
+ * @date        21 Dec 2018
  * @brief       Source file for the Demultiplexor Class handle
  **************************************************************************************************
  @ attention
