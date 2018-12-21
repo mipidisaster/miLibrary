@@ -109,6 +109,7 @@ class GenBuffer {
         Typ             *pa;                // Points to the array (Buffer)
 
     public:
+        GenBuffer(void);
         GenBuffer(Typ *arrayloc, uint32_t size);
         // As have defined that the "GenBuffer" needs to be "Lite", then use of "new" and "delete"
         // is not required, therefore a fully defined array is to be provided, and used within
@@ -120,7 +121,6 @@ class GenBuffer {
 #ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        GenBuffer();                        // Constructor of the buffer class
         GenBuffer(uint32_t size);           // Overloaded Constructor of the buffer class, where
                                             // the size of the buffer is defined
 

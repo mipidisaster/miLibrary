@@ -42,6 +42,17 @@ void GenBuffer<Typ>::QFlush(void) {
 }
 
 template <typename Typ>
+GenBuffer<Typ>::GenBuffer(void) {
+/**************************************************************************************************
+ * Basic constructor of the class. Will initialise all pointers to zero, and the array poiner to
+ * null.
+ *************************************************************************************************/
+    QFlush();                       // Flush the data to default values
+    length = 0;                     // Initialise length to zero
+    pa = __null;                    // Ensure that pointer is set to NULL
+}
+
+template <typename Typ>
 GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
 /**************************************************************************************************
  * "Lite" function for GenBuffer.
@@ -63,21 +74,6 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
 #ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Typ>
-GenBuffer<Typ>::GenBuffer() {
-/**************************************************************************************************
- * Default constructor, that demands a buffer to be 32 entries deep. It will then generate a
- * new array structure and link to the private pointer "pa"
- *
- * Once done it will call the "Flush" function to write contents, and setup pointers to the start
- * of the buffer.
- *************************************************************************************************/
-    length = 32;                    // Setup class variable "length" to 32
-    pa = new Typ[length];           // Generate array
-
-    Flush();                        // Flush the data to default values
-}
-
 template <typename Typ>
 GenBuffer<Typ>::GenBuffer(uint32_t size) {
 /**************************************************************************************************
@@ -197,7 +193,7 @@ void GenBuffer<Typ>::InputWrite(Typ newdata) {
 }
 
 template <typename Typ>
-_GenBufState GenBuffer<Typ>::OutputRead(Typ *readdata)
+_GenBufState GenBuffer<Typ>::OutputRead(Typ *readdata) {
 /**************************************************************************************************
  * Function will take data from the buffer.
  * It will only provide an updated output if the buffer contains data (i.e. is not empty), if it
@@ -206,7 +202,6 @@ _GenBufState GenBuffer<Typ>::OutputRead(Typ *readdata)
  * If there is data, again it will be linked to the pointed data. Then it will increase the output
  * pointer, and limit it to the defined size of the buffer.
  *************************************************************************************************/
-{
     _GenBufState returnentry = State();     // Generate variable to store the current state of
                                             // buffer, and update with latest state
 
