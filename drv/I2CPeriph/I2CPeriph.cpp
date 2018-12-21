@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V1.2
+ * @version     V1.3
  * @date        08 Nov 2018
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
@@ -14,9 +14,11 @@
 #include "FileIndex.h"
 #include FilInd_I2CPe__HD
 
-void I2CPeriph::PopGenClassParameters(void) {
+void I2CPeriph::popGenParam(void) {
 /**************************************************************************************************
- * Populate generic parameters used within the I2CPeriph class.
+ * Generate default parameters for the I2CPeriph class. To be called by all constructors.
+ * Initial construction will populate the internal GenBuffers with default parameters (as basic
+ * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
     this->Flt           = DevFlt::Initialised;      // Initialise the fault to "initialised"
     this->CommState     = CommLock::Free;           // Indicate bus is free
@@ -25,17 +27,18 @@ void I2CPeriph::PopGenClassParameters(void) {
     this->curForm       = { 0 };            // Initialise the form to a blank entry
 
     this->curReqst      = Request::Nothing; // Initialise the current request state to 0
-
-    // Pull "NULL" into each of the GenBuffer pointer arrays. Constructor call will populate
-    // accordingly.
-    this->Receive       = __null;
-    this->Transmit      = __null;
-
-    this->FormQueue     = __null;
 }
 
-I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, GenBuffer<Form> *FormBuffer,
-        GenBuffer<uint8_t> *readBuffer, GenBuffer<uint8_t> *writeBuffer) {
+I2CPeriph::I2CPeriph(void) {
+/**************************************************************************************************
+ * Basic construction of I2C Periph Device
+ *************************************************************************************************/
+    this->popGenParam();                    // Populate generic class parameters
+
+    this->I2C_Handle    = __null;           // Point to NULL
+}
+
+I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
 /**************************************************************************************************
  * Creates a I2C class specific for the STM32F device.
  *
@@ -43,13 +46,11 @@ I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, GenBuffer<Form> *FormBuffer,
  * device, there is no need to define that within this function. Simply providing the handle is
  * required.
  *************************************************************************************************/
-    this->PopGenClassParameters();          // Populate generic class parameters
+    this->popGenParam();                    // Populate generic class parameters
 
     this->I2C_Handle    = I2C_Handle;       // Link input I2C handler to class.
 
-    this->FormQueue     = FormBuffer;
-    this->Transmit      = writeBuffer;
-    this->Receive       = readBuffer;
+    this->FormQueue     = GenBuffer<Form>(FormArray, FormSize);
 }
 
 uint8_t I2CPeriph::DRRead(void) {
@@ -613,7 +614,8 @@ void I2CPeriph::RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
 }
 
 I2CPeriph::Form I2CPeriph::GenericForm(uint16_t devAddress, uint8_t size, CommMode mode,
-                                          Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag) {
+                                          Request reqst,
+                                          volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a I2CForm request, based upon the generic information provided as input.
  *************************************************************************************************/
@@ -671,7 +673,8 @@ void I2CPeriph::FlushFormWritedData(Form *RequestForm, uint8_t count) {
  *  The second  is the same as "default", however the datatype provided is the class "GenBuffer"
  *************************************************************************************************/
 void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
-                        CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag) {
+                        CommMode mode, Request reqst,
+                        volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * OVERLOADED function used to populate the internal I2C Form stack, with the input requested
  * communication.
@@ -683,11 +686,12 @@ void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pDat
     this->FormW8bitArray(&RequestForm, pData);
 
 
-    this->FormQueue->InputWrite(RequestForm);   // Put request onto I2C Form Queue
+    this->FormQueue.InputWrite(RequestForm);    // Put request onto I2C Form Queue
 }
 
 void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-                        CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag) {
+                        CommMode mode, Request reqst,
+                        volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * OVERLOADED function used to populate the internal I2C Form stack, with the input requested
  * communication.
@@ -698,7 +702,7 @@ void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, GenBuffer<uin
 
     this->FormWGenBuffer(&RequestForm, genBuff);
 
-    this->FormQueue->InputWrite(RequestForm);   // Put request onto I2C Form Queue
+    this->FormQueue.InputWrite(RequestForm);    // Put request onto I2C Form Queue
 }
 
 uint8_t I2CPeriph::GetFormWriteData(Form *RequestForm) {
@@ -1091,7 +1095,8 @@ void I2CPeriph::configBusErroIT(InterState intr) {
 }
 
 void I2CPeriph::intMasterReq(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-        CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag) {
+                             CommMode mode, Request reqst,
+                             volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new I2C communication.
  * This version of the I2C Form update functions, is expected to be only used for "Interrupt"
@@ -1114,9 +1119,26 @@ void I2CPeriph::I2CInterruptStart(void) {
  * Function will be called to start off a new I2C communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (this->CommState == Free) && (this->FormQueue->State() != GenBuffer_Empty) ) {
+    if ( (this->CommState == Free) && (this->FormQueue.State() != GenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
-        this->FormQueue->OutputRead( &(this->curForm) );    // Capture form request
+        this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+
+        // Check current form to see if a fault has already been detected - therefore any new
+        // request is no longer valid
+        while (  *(this->curForm.Flt) != I2CPeriph::DevFlt::None  ) {
+            // Flush the contents of the write buffer
+            //this->FlushFormWritedData( &(this->curForm) , this->curCount );
+
+            FlushWriteForm( this->curForm , this->curReqst , this->curCount );
+
+            // If there is a fault in request form, check to see if there is a new request
+            if ( this->FormQueue.State() == GenBuffer_Empty ) { // If buffer is empty, break out
+                //this->Disable();
+                return;
+            }
+            // If there is something in the queue, then make it current. Then re-check
+            this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+        }
 
         this->CommState = Communicating;        // Lock I2C bus
 
@@ -1137,7 +1159,7 @@ void I2CPeriph::I2CInterruptStart(void) {
             this->configReceiveIT(ITEnable);                // Then enable Receive buffer full
         }                                                   // interrupt
     }
-    else if ( (this->CommState == Free) && (this->FormQueue->State() == GenBuffer_Empty) ) {
+    else if ( (this->CommState == Free) && (this->FormQueue.State() == GenBuffer_Empty) ) {
         //this->Disable();
     }
 }
@@ -1207,13 +1229,13 @@ void I2CPeriph:: IRQEventHandle(void) {
  *************************************************************************************************/
     uint8_t tempDR = 0;
 
-    if ( (TransmitComptChk() & TransmitComptITChk()) == 0x01) {     // If Transmit Complete
-                                                                    // triggered
+    if ( (this->TransmitComptChk() & this->TransmitComptITChk()) == 0x01) {
+        // If Transmit Complete triggered
         // Not really supported yet!
     }
 
-    if ( (TransmitEmptyChk() & TransmitEmptyITChk()) == 0x01) {     // If Transmit Buffer Empty
-                                                                    // triggered
+    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) {
+        // If Transmit Buffer Empty triggered
         // Only update the transmit hardware buffer, if the class global count is not zero
         if (this->curCount == 0)    // If count is equal to zero
             tempDR  = 0x00;         // Populate with zeroes (default data)
@@ -1229,8 +1251,8 @@ void I2CPeriph:: IRQEventHandle(void) {
         this->DRWrite(tempDR);
     }
 
-    if ( (ReceiveToReadChk() & ReceiveToReadITChk()) == 0x01) {     // If Receive Buffer full
-                                                                    // triggered
+    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) {
+        // If Receive Buffer full triggered
         tempDR  = this->DRRead();
         // Retrieve data from the hardware
 
@@ -1243,7 +1265,7 @@ void I2CPeriph:: IRQEventHandle(void) {
         }
     }
 
-    if ( (BusSTOPChk() & BusSTOPITChk()) == 0x01) {                 // If I2C Stop triggered
+    if ( (this->BusSTOPChk() & this->BusSTOPITChk()) == 0x01) {     // If I2C Stop triggered
         this->Clear_STOP();                                         // Clear the STOP status
         this->ClearNACK();                                          // Clear the NACK status
 
@@ -1257,12 +1279,13 @@ void I2CPeriph:: IRQEventHandle(void) {
                                                                     // remain
     }
 
-    if ( (BusNACKChk() & BusNACKITChk()) == 0x01) {                 // If I2C NACK received
+    if ( (this->BusNACKChk() & this->BusNACKITChk()) == 0x01) {     // If I2C NACK received
         this->ClearNACK();                                          // Clear the NACK status
         *(this->curForm.Flt)    = DevFlt::NACK;                     // Set requested fault flag
 
         // Flush the contents of the write buffer
-        this->FlushFormWritedData( &(this->curForm) , this->curCount );
+        //this->FlushFormWritedData( &(this->curForm) , this->curCount );
+        FlushWriteForm( this->curForm , this->curReqst , this->curCount );
 
         // Flush the contents of the Transmit buffer
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1294,7 +1317,7 @@ void I2CPeriph:: IRQErrorHandle(void) {
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    if ( (BusErroChk() & BusErrorITChk()) == 0x01) {                // If Bus Error
+    if ( (this->BusErroChk() & this->BusErrorITChk()) == 0x01) {    // If Bus Error
                                                                     // triggered
         this->ClearBusEr();                                         // Clear the Bus Error
         *(this->curForm.Flt)    = DevFlt::BUS_ERROR;                // Set requested fault flag

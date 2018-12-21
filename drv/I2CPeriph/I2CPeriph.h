@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CPeriph.h
  * @author      Thomas
- * @version     V1.2
+ * @version     V1.3
  * @date        08 Nov 2018
  * @brief       Header file for the Generic I2C Class handle
  **************************************************************************************************
@@ -121,6 +121,7 @@
 #define I2CPeriph_H_
 
 #include "FileIndex.h"
+#include <stdint.h>
 
 #include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
 
@@ -143,7 +144,13 @@
 #endif
 
 // Defines specific within this class
-// None
+#define FlushWriteForm(__FORM__, __REQ__, __SIZE__)                         \
+    ({                                                                      \
+ if (__FORM__.BuffType == Form::GenBuffer8bit) {                            \
+     if (__REQ__ == Request::START_WRITE)                                   \
+         __FORM__.Buff.ptrGenBuf->ReadErase((__FORM__.size - __SIZE__));    \
+ }                                                                          \
+ })
 
 // Types used within this class
 // Defined within the class, to ensure are contained within the correct scope
@@ -205,9 +212,9 @@ public:
         CommMode        Mode;                   // State the Mode
 
 
-        uint8_t         *Cmplt;             // Provide a pointer to a "Complete" flag (will be
+        volatile uint8_t         *Cmplt;    // Provide a pointer to a "Complete" flag (will be
                                             // incremented) - to be cleared by source function
-        DevFlt          *Flt;               // Provide a pointer to a I2CPeriph::DevFlt for the
+        volatile DevFlt          *Flt;      // Provide a pointer to a I2CPeriph::DevFlt for the
                                             // I2C fault status to be provided to source
                                             // function
     }   Form;
@@ -218,17 +225,10 @@ public:
  *  Parameters required for the class to function.
  *************************************************************************************************/
     protected:
-        GenBuffer<Form> *FormQueue;         // Pointer to the class internal I2CForm buffer, which
+        GenBuffer<Form>     FormQueue;      // Pointer to the class internal I2CForm buffer, which
                                             // is used to manage interrupt based communication.
                                             // Functions will add request forms to this buffer,
                                             // and interrupt then goes through them sequentially.
-        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        GenBuffer<uint8_t>  *Receive;       // Pointer to the class internal buffer for data read
-                                            // back from I2C Device.
-        GenBuffer<uint8_t>  *Transmit;      // Pointer to the class internal buffer for data
-                                            // written to I2C Device.
-        // These buffers to be used when source functionality doesn't require its own dedicated
-        // buffer.
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         uint8_t         curCount;       // Current communication packet count
         Request         curReqst;       // Current request for communication (ignores "Nothing")
@@ -246,7 +246,7 @@ public:
  *  different depending upon the embedded device selected.
  *************************************************************************************************/
     protected:
-        void PopGenClassParameters(void);   // Populate generic parameters for the class
+        void popGenParam(void);         // Populate generic parameters for the class
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
@@ -254,19 +254,17 @@ public:
     protected:
         I2C_HandleTypeDef  *I2C_Handle;     // Store the I2C handle
 
-public:
+    public:
+        I2CPeriph(void);                    // Basic constructor for I2C class
+        I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize);
+        // Setup the I2C class, for STM32 by providing the I2C Request Form array pointer, as well
+        // as the size.
+        // Class will then generate a GenBuffer item internally.
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        I2CPeriph(I2C_HandleTypeDef *I2C_Handle, GenBuffer<Form> *FormBuffer,
-                GenBuffer<uint8_t> *readBuffer, GenBuffer<uint8_t> *writeBuffer);
-        // Setup the UART class, for STM32 by providing the I2C type define handle, as well the
-        // "GenBuffer" needing to be provided to the function, to be fully defined outside of class
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         UARTDevice(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize);
@@ -345,7 +343,7 @@ protected:  /*******************************************************************
         // R/~W will be ignored and populated as required
 
     static Form GenericForm(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst,
-                            DevFlt *fltReturn, uint8_t *cmpFlag);
+                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *pData);
     static void FormWGenBuffer(Form *RequestForm, GenBuffer<uint8_t> *genBuff);
@@ -357,10 +355,12 @@ protected:  /*******************************************************************
     // Therefore need to retain data consistency.
 
     void specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
-                            CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag);
+                            CommMode mode, Request reqst,
+                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     void specificRequest(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-                                CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag);
+                                CommMode mode, Request reqst,
+                                volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static uint8_t GetFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
@@ -394,7 +394,8 @@ public:     /*******************************************************************
     void configBusErroIT(InterState intr);      // Configure the BUS Error interrupt
 
     void intMasterReq(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-                      CommMode mode, Request reqst, DevFlt *fltReturn, uint8_t *cmpFlag);
+                      CommMode mode, Request reqst,
+                      volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     void I2CInterruptStart(void);           // Enable communication if bus is free, otherwise
                                             // wait (doesn't actually wait)
