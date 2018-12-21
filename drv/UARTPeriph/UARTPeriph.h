@@ -1,7 +1,7 @@
 /**************************************************************************************************
- * @file        UARTDevice.h
+ * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V2.1
+ * @version     V2.2
  * @date        21 Oct 2018
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
@@ -16,7 +16,7 @@
  * Class supports multiple target devices, depending upon which one is defined will modify how the
  * UART class can be initialised.
  * The basic use of the class is the same for all target devices
- *      Call Class UARTDevice to initialise the class
+ *      Call Class UARTPeriph to initialise the class
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
  *          For STM32L devices, providing the address of the UART handler - from cubeMX
  *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
@@ -59,12 +59,12 @@
  *
  *  If "__LiteImplement__" has been defined, then the class will not use "use" or "delete" to
  *  minimise the size impact. Therefore fully defined "GenBuffers" need to be provided to the
- *  constructors of the UARTDevice class.
+ *  constructors of the UARTPeriph class.
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
-#ifndef UARTDevice_H_
-#define UARTDevice_H_
+#ifndef UARTPeriph_H_
+#define UARTPeriph_H_
 
 #include "FileIndex.h"
 #include <stdint.h>
@@ -127,7 +127,7 @@ typedef enum {
     UART_Disable = 1
 } _UARTITState;
 
-class UARTDevice {
+class UARTPeriph {
     // Declarations which are generic, and will be used in ALL devices
     protected:
         GenBuffer<uint8_t>  *Receive;       // Pointer to GenBuffer class used for data "Receive"d
@@ -143,23 +143,20 @@ class UARTDevice {
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
 
     public:
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        UARTDevice(UART_HandleTypeDef *UART_Handle,
+        UARTPeriph(void);                       // Basic constructor for UART class
+        UARTPeriph(UART_HandleTypeDef *UART_Handle,
                    GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
-        // Setup the UART class, for STM32Fxx by providing the UART type define handle, as well the
+        // Setup the UART class, for STM32 by providing the UART type define handle, as well the
         // "GenBuffer" needing to be provided to the function, to be fully defined outside of class
 
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public:
-        UARTDevice(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize);
+        UARTPeriph(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize);
         // Setup the UART class, for STM32Fxx by providing the UART type define handle, as well as
         // a defined value for the depth of the UART buffers
 
@@ -180,24 +177,20 @@ class UARTDevice {
         int  AnySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        UARTDevice(const char *deviceloc, int baud,
+        UARTPeriph(const char *deviceloc, int baud,
                    GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
         // as well the "GenBuffer" needing to be provided to the function, to be fully defined
         // outside of class
 
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public:
-        UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize);
+        UARTPeriph(const char *deviceloc, int baud, uint32_t Buffersize);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
         // and define the required Buffersize
 
@@ -209,7 +202,7 @@ class UARTDevice {
 #else
 //==================================================================================================
     public:
-        UARTDevice();
+        UARTPeriph();
 
 #endif
 
@@ -246,7 +239,7 @@ public:
 
     virtual void IRQHandle(void);               // Interrupt handler
 
-    virtual ~UARTDevice();
+    virtual ~UARTPeriph();
 };
 
 #endif /* UART_UART_H_ */

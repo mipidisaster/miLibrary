@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V1.1
+ * @version     V1.2
  * @date        06 Oct 2018
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
@@ -13,7 +13,7 @@
 #include "FileIndex.h"
 #include FilInd_USART__HD
 
-uint8_t UARTDevice::DRRead(void) {
+uint8_t UARTPeriph::DRRead(void) {
 /**************************************************************************************************
  * Read from the UART hardware
  *************************************************************************************************/
@@ -36,7 +36,7 @@ uint8_t UARTDevice::DRRead(void) {
 #endif
 }
 
-void UARTDevice::DRWrite(uint8_t data) {
+void UARTPeriph::DRWrite(uint8_t data) {
 /**************************************************************************************************
  * Write from the UART hardware
  *************************************************************************************************/
@@ -59,7 +59,7 @@ void UARTDevice::DRWrite(uint8_t data) {
 #endif
 }
 
-uint8_t UARTDevice::TransmitEmptyITCheck(void) {
+uint8_t UARTPeriph::TransmitEmptyITCheck(void) {
 /**************************************************************************************************
  * INTERRUPTS CHECKS:
  * Check the state of the Transmit data empty interrupt - which indicates that data can be added
@@ -111,7 +111,7 @@ uint8_t UARTDevice::TransmitEmptyITCheck(void) {
 #endif
 }
 
-uint8_t UARTDevice::TransmitComptITCheck(void) {
+uint8_t UARTPeriph::TransmitComptITCheck(void) {
 /**************************************************************************************************
  * INTERRUPTS CHECKS:
  * Check the state of the Transmission complete interrupt - which indicates that data has completed
@@ -167,7 +167,7 @@ uint8_t UARTDevice::TransmitComptITCheck(void) {
 #endif
 }
 
-uint8_t UARTDevice::ReceiveDataToReadChk(void) {
+uint8_t UARTPeriph::ReceiveDataToReadChk(void) {
 /**************************************************************************************************
  * INTERRUPTS CHECKS:
  * Check the state of the Read data register not empty interrupt - which indicates that data is
@@ -219,16 +219,23 @@ uint8_t UARTDevice::ReceiveDataToReadChk(void) {
 #endif
 }
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-UARTDevice::UARTDevice(UART_HandleTypeDef *UART_Handle,
+UARTPeriph::UARTPeriph(void) {
+/**************************************************************************************************
+ * Basic construction of UART Periph Device
+ *************************************************************************************************/
+    this->UART_Handle   = __null;           // Point to NULL
+    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
+
+    // As basic constructor, do not have pointer to Buffers, so point to NULL
+    this->Receive       = __null;       // Point to NULL
+    this->Transmit      = __null;       // Point to NULL
+}
+
+
+UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
                        GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray) {
 /**************************************************************************************************
  * Create a UART class specific for the STM32F device. Also need to provide the fully defined
@@ -248,9 +255,36 @@ UARTDevice::UARTDevice(UART_HandleTypeDef *UART_Handle,
                                             // provided Transmit Buffer
 }
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
+                                // "new" and "delete" for defining internal arrays
+                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize) {
+/**************************************************************************************************
+ * Create a UART class specific for the STM32F device. Also generate Receive/Transmit buffers are
+ * per the input defined size.
+ *
+ * As the STM32CubeMX already pre-generates the setting up and configuring of the desired UART
+ * device, there is no need to define that within this function. Simply providing the handle is
+ * required.
+ *************************************************************************************************/
+    this->UART_Handle   = UART_Handle;  // Copy data into class
+    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
+
+    // Configure both the Input and Output Buffers to be the size as per input
+    this->Receive       = new GenBuffer<uint8_t>(Buffersize);
+    this->Transmit      = new GenBuffer<uint8_t>(Buffersize);
+}
+#endif
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-UARTDevice::UARTDevice(const char *deviceloc, int baud,
+UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
                        GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)) {
 /**************************************************************************************************
  * Create a UART class specific for the Raspberry Pi
@@ -278,45 +312,20 @@ UARTDevice::UARTDevice(const char *deviceloc, int baud,
             // Open the serial interface
 }
 
-int  UARTDevice::AnySerDataAvil(void) {
+int  UARTPeriph::AnySerDataAvil(void) {
 /**************************************************************************************************
 * RaspberryPi specific function to determine amount of data within the hardware
 *************************************************************************************************/
    return(serialDataAvail(this->UART_Handle));
 }
-#else
-//==================================================================================================
-UARTDevice::UARTDevice() {
 
-}
-#endif
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
+#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
                                 // "new" and "delete" for defining internal arrays
                                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
-// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
-UARTDevice::UARTDevice(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize) {
-/**************************************************************************************************
- * Create a UART class specific for the STM32F device. Also generate Receive/Transmit buffers are
- * per the input defined size.
- *
- * As the STM32CubeMX already pre-generates the setting up and configuring of the desired UART
- * device, there is no need to define that within this function. Simply providing the handle is
- * required.
- *************************************************************************************************/
-    this->UART_Handle   = UART_Handle;  // Copy data into class
-    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
-
-    // Configure both the Input and Output Buffers to be the size as per input
-    this->Receive       = new GenBuffer<uint8_t>(Buffersize);
-    this->Transmit      = new GenBuffer<uint8_t>(Buffersize);
-}
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-UARTDevice::UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize) {
+UARTPeriph::UARTPeriph(const char *deviceloc, int baud, uint32_t Buffersize) {
 /**************************************************************************************************
  * Create a UART class specific for the Raspberry Pi
  *  The provided information is the folder location of the serial interface in text, along with the
@@ -340,25 +349,19 @@ UARTDevice::UARTDevice(const char *deviceloc, int baud, uint32_t Buffersize) {
     this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
             // Open the serial interface
 }
+#endif
 
-int  UARTDevice::AnySerDataAvil(void) {
-/**************************************************************************************************
- * RaspberryPi specific function to determine amount of data within the hardware
- *************************************************************************************************/
-    return(serialDataAvail(this->UART_Handle));
-}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #else
 //==================================================================================================
-UARTDevice::UARTDevice() {
+UARTPeriph::UARTPeriph() {
 
 }
 #endif
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-uint8_t UARTDevice::PoleSingleRead(void) {
+uint8_t UARTPeriph::PoleSingleRead(void) {
 /**************************************************************************************************
  * Will take a single byte of data from the UART peripheral, and return out of function.
  * Note that this will WAIT until there is data available to be read.
@@ -408,7 +411,7 @@ uint8_t UARTDevice::PoleSingleRead(void) {
 #endif
 }
 
-void UARTDevice::PoleSingleTransmit(uint8_t data) {
+void UARTPeriph::PoleSingleTransmit(uint8_t data) {
 /**************************************************************************************************
  * Will take the provided data, and put onto the UART peripheral for transmission.
  * Note that this will WAIT until it is able to transmit the data.
@@ -452,7 +455,7 @@ void UARTDevice::PoleSingleTransmit(uint8_t data) {
 #endif
 }
 
-_UARTDevFlt UARTDevice::PoleTransmit(uint8_t *pData, uint16_t size) {
+_UARTDevFlt UARTPeriph::PoleTransmit(uint8_t *pData, uint16_t size) {
 /**************************************************************************************************
  * An extension of the Single Transmit function, this allows for an array of data to be set via
  * UART.
@@ -501,7 +504,7 @@ _UARTDevFlt UARTDevice::PoleTransmit(uint8_t *pData, uint16_t size) {
 
 }
 
-void UARTDevice::SingleTransmit_IT(uint8_t data) {
+void UARTPeriph::SingleTransmit_IT(uint8_t data) {
 /**************************************************************************************************
  * INTERRUPTS:
  * The will add the input data onto the Transmit buffer, for it to be handled by the UART
@@ -512,7 +515,7 @@ void UARTDevice::SingleTransmit_IT(uint8_t data) {
     this->TransmtIT(UART_Enable);                           // Enable the transmit interrupt
 }
 
-_GenBufState UARTDevice::SingleRead_IT(uint8_t *pData) {
+_GenBufState UARTPeriph::SingleRead_IT(uint8_t *pData) {
 /**************************************************************************************************
  * INTERRUPTS:
  * This will read the latest read packet via UART, which will be stored within the "Received"
@@ -524,7 +527,7 @@ _GenBufState UARTDevice::SingleRead_IT(uint8_t *pData) {
         // GenBuffer class
 }
 
-void UARTDevice::ReceiveIT(_UARTITState intr) {
+void UARTPeriph::ReceiveIT(_UARTITState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
  * This will enable/disable the Receive interrupt event.
@@ -555,7 +558,7 @@ void UARTDevice::ReceiveIT(_UARTITState intr) {
 #endif
 }
 
-void UARTDevice::TransmtIT(_UARTITState intr) {
+void UARTPeriph::TransmtIT(_UARTITState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
  * This will enable/disable the Transmit interrupt event.
@@ -586,7 +589,7 @@ void UARTDevice::TransmtIT(_UARTITState intr) {
 #endif
 }
 
-void UARTDevice::TransCmIT(_UARTITState intr) {
+void UARTPeriph::TransCmIT(_UARTITState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
  * This will enable/disable the Transmit Complete interrupt event.
@@ -617,7 +620,7 @@ void UARTDevice::TransCmIT(_UARTITState intr) {
 #endif
 }
 
-void UARTDevice::IRQHandle(void) {
+void UARTPeriph::IRQHandle(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the UART class. Each of the supported devices needs to call this
@@ -650,18 +653,18 @@ void UARTDevice::IRQHandle(void) {
  *
  *  main.c
  *      * Global pointer
- *      UART *UARTDevice;
+ *      UART *UARTPeriph;
  *
  *      main() {
- *      UARTDevice = new UART(&huart1);
+ *      UARTPeriph = new UART(&huart1);
  *      while() {};
  *      }
  *
- *      void UARTDevice_IRQHandler(void) {  UARTDevice->IRQHandle();  }
+ *      void UARTPeriph_IRQHandler(void) {  UARTPeriph->IRQHandle();  }
  *
  *  main.h
  *      extern "C" {
- *      void UARTDevice_IRQHandler(void);
+ *      void UARTPeriph_IRQHandler(void);
  *      }
  *************************************************************************************************/
     uint8_t tempdata = 0x00;    // Temporary variable to store data for UART
@@ -721,12 +724,12 @@ void UARTDevice::IRQHandle(void) {
  *  return 0;
  * }
  *
- * Similar to the STM32 a pointer to the UARTDevice will need to be made global to allow this
+ * Similar to the STM32 a pointer to the UARTPeriph will need to be made global to allow this
  * new thread to all the "IRQHandler"
  *************************************************************************************************/
     int BufferContents = 0;             // Variable to store the amount of data in UART peripheral
 
-    if (this->ReceiveDataToReadChk() == 0x01) {}
+    if (this->TransmitComptITCheck() == 0x01) {}
 
     // Check to see if Receive Interrupt bit has been set.
     if (this->ReceiveDataToReadChk() == 0x01) {
@@ -755,7 +758,7 @@ void UARTDevice::IRQHandle(void) {
 #endif
 }
 
-UARTDevice::~UARTDevice() {
+UARTPeriph::~UARTPeriph() {
 /**************************************************************************************************
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
  * to avoid "memory leakage"
