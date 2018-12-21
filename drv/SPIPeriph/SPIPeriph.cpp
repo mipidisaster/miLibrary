@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIPeriph.cpp
  * @author      Thomas
- * @version     V2.1
+ * @version     V2.2
  * @date        14 Nov 2018
  * @brief       Source file for the Generic SPIPeriph Class handle
  **************************************************************************************************
@@ -14,9 +14,11 @@
 #include "FileIndex.h"
 #include FilInd_SPIPe__HD
 
-void SPIPeriph::PopGenClassParameters(void) {
+void SPIPeriph::popGenParam(void) {
 /**************************************************************************************************
- * Populate generic parameters used within the SPIPeriph class.
+ * Generate default parameters for the SPIPeriph class. To be called by all constructors.
+ * Initial construction will populate the internal GenBuffers with default parameters (as basic
+ * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
     this->Flt           = DevFlt::Initialised;      // Initialise the fault to "initialised"
     this->CommState     = CommLock::Free;           // Indicate bus is free
@@ -24,32 +26,32 @@ void SPIPeriph::PopGenClassParameters(void) {
     this->curCount      = 0;                // Initialise the current packet size count
 
     this->curForm       = { 0 };            // Initialise the form to a blank entry
-
-    // Pull "NULL" into each of the GenBuffer pointer arrays. Constructor call will populate
-    // accordingly.
-    this->Receive       = __null;
-    this->Transmit      = __null;
-
-    this->FormQueue     = __null;
 }
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, GenBuffer<Form> *FormBuffer,
-        GenBuffer<uint8_t> *readBuffer, GenBuffer<uint8_t> *writeBuffer) {
+SPIPeriph::SPIPeriph(void) {
+/**************************************************************************************************
+ * Basic construction of SPI Periph Device
+ *************************************************************************************************/
+    this->SPI_Handle    = __null;           // Point to NULL
+    this->Mode          = MODE0;            // Initialise to MODE0
+
+    this->popGenParam();                    // Populate generic class parameters
+}
+
+SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for the STM32F device
  * Receives the address of the SPI Handle of device - generated from cubeMX
  * Will then determine which mode has been selected, based upon the states of the registers
  *************************************************************************************************/
-    this->PopGenClassParameters();          // Populate generic class parameters
+    this->popGenParam();                    // Populate generic class parameters
 
-    this->SPI_Handle         = SPIHandle;   // copy handle across into class
+    this->SPI_Handle        = SPIHandle;    // copy handle across into class
 
-    this->FormQueue     = FormBuffer;
-    this->Transmit      = writeBuffer;
-    this->Receive       = readBuffer;
+    this->FormQueue         = GenBuffer<Form>(FormArray, FormSize);
 
     // From handle can determine what the MODE of the SPI can be configured too:
     if (SPIHandle->Instance->CR1 & SPI_POLARITY_HIGH) {     // If Clock Idles HIGH
@@ -73,7 +75,7 @@ SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
  * Create a SPIPeriph class specific for RaspberryPi
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
-    this->PopGenClassParameters();          // Populate generic class parameters
+    this->popGenParam();                // Populate generic class parameters
 
     this->Mode          = Mode;         // Copy across the selected Mode
     this->SPIChannel    = channel;      //
@@ -539,17 +541,17 @@ void SPIPeriph::ChipSelectHandle(CSHandle selection, CSSelection Mode) {
     if (selection.Type == CSHandle::Software_GPIO) {        // If the CSHandle indicates Software
                                                             // management, then...
         if (Mode == Select)                                 // If Mode is "Select"
-            selection.GPIO_CS->setValue(GPIO_LOW);          // Pull the GPIO "LOW"
+            selection.GPIO_CS->setValue(GPIO::LOW);         // Pull the GPIO "LOW"
 
         else                                                // If Mode is "DeSelect"
-            selection.GPIO_CS->setValue(GPIO_HIGH);         // Pull the GPIO "HIGH"
+            selection.GPIO_CS->setValue(GPIO::HIGH);        // Pull the GPIO "HIGH"
     }
     // Hardware Managed doesn't require any software interaction. Therefore doesn't do anything
     // is selected.
 }
 
 SPIPeriph::Form SPIPeriph::GenericForm(CSHandle devLoc, uint8_t size,
-                                       DevFlt *fltReturn, uint8_t *cmpFlag) {
+                                       volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a SPIForm request, based upon the generic information provided as input.
  *************************************************************************************************/
@@ -866,7 +868,7 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 
 void SPIPeriph::intMasterTransfer(uint16_t size,
                                   GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
-                                  DevFlt *fltReturn, uint8_t *cmpFlag) {
+                                  volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
  * This version of the SPI Form update functions, is expected to be only used for "Interrupt"
@@ -880,7 +882,7 @@ void SPIPeriph::intMasterTransfer(uint16_t size,
     this->FormWGenBuffer(&RequestForm, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
-    this->FormQueue->InputWrite(RequestForm);
+    this->FormQueue.InputWrite(RequestForm);
     // Add to queue
 
     // Trigger interrupt(s)
@@ -889,7 +891,7 @@ void SPIPeriph::intMasterTransfer(uint16_t size,
 
 void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size,
                                   GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
-                                  DevFlt *fltReturn, uint8_t *cmpFlag) {
+                                  volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
  * This version of the SPI Form update functions, is expected to be only used for "Interrupt"
@@ -902,7 +904,7 @@ void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size,
     this->FormWGenBuffer(&RequestForm, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
-    this->FormQueue->InputWrite(RequestForm);
+    this->FormQueue.InputWrite(RequestForm);
     // Add to queue
 
     // Trigger interrupt(s)
@@ -914,9 +916,21 @@ void SPIPeriph::SPIInterruptStart(void) {
  * Function will be called to start off a new SPI communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (this->CommState == Free) && (this->FormQueue->State() != GenBuffer_Empty) ) {
+    if ( (this->CommState == Free) && (this->FormQueue.State() != GenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
-        this->FormQueue->OutputRead( &(this->curForm) );    // Capture form request
+        this->FormQueue.OutputRead( &(this->curForm) );    // Capture form request
+
+        // Check current form to see if a fault has already been detected - therefore any new
+        // request is no longer valid
+        while (  *(this->curForm.Flt) != SPIPeriph::DevFlt::None  ) {
+            // If there is a fault in request form, check to see if there is a new request
+            if ( this->FormQueue.State() == GenBuffer_Empty ) { // If buffer is empty, break out
+                this->Disable();
+                return;
+            }
+            // If there is something in the queue, then make it current. Then re-check
+            this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+        }
 
         this->CommState = Communicating;        // Lock SPI bus
 
@@ -930,7 +944,7 @@ void SPIPeriph::SPIInterruptStart(void) {
         this->configReceiveIT(ITEnable);            // Then enable Receive buffer full interrupt
         this->configTransmtIT(ITEnable);            // Then enable Transmit Empty buffer interrupt
     }
-    else if ( (this->CommState == Free) && (this->FormQueue->State() == GenBuffer_Empty) ) {
+    else if ( (this->CommState == Free) && (this->FormQueue.State() == GenBuffer_Empty) ) {
         this->Disable();
     }
 }
@@ -954,7 +968,7 @@ void SPIPeriph::intReqFormCmplt(void) {
     this->configTransmtIT(ITDisable);       // Disable Transmit empty buffer interrupt
 }
 
-void SPIPeriph:: IRQHandle(void) {
+void SPIPeriph::IRQHandle(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the SPI events within the I2C class.
@@ -994,8 +1008,8 @@ void SPIPeriph:: IRQHandle(void) {
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    if ( (TransmitEmptyChk() & TransmitEmptyITChk()) == 0x01) {     // If Transmit Buffer Empty
-                                                                    // triggered
+    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) { // If Transmit Buffer
+                                                                            // Empty triggered
         this->DRWrite (  this->GetFormWriteData( &(this->curForm) )  );
         // Retrieve next data point from the Request SPI Form, and put onto hardware queue
 
@@ -1014,8 +1028,8 @@ void SPIPeriph:: IRQHandle(void) {
 #endif
     }
 
-    if ( (ReceiveToReadChk() & ReceiveToReadITChk()) == 0x01) {     // If Receive Buffer full
-                                                                    // triggered
+    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) { // If Receive Buffer
+                                                                            // full triggered
         this->PutFormReadData( &(this->curForm) , this->DRRead() );
         // Put next data point into the area requested from the SPI Form
         this->curCount--;       // Decrement the class global current count

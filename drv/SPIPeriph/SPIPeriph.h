@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        SPIPeriph.h
  * @author      Thomas
- * @version     V2.1
+ * @version     V2.2
  * @date        14 Nov 2018
  * @brief       Header file for the Generic SPIPeriph Class handle
  **************************************************************************************************
@@ -110,6 +110,7 @@
 #define SPIPeriph_H_
 
 #include "FileIndex.h"
+#include <stdint.h>
 
 #include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
 #include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
@@ -203,9 +204,9 @@ public:
         DataType        RxBufType;              // Enumerate for data handling for Receive
 
 
-        uint8_t         *Cmplt;             // Provide a pointer to a "Complete" flag (will be
+        volatile uint8_t         *Cmplt;    // Provide a pointer to a "Complete" flag (will be
                                             // incremented) - to be cleared by source function
-        DevFlt          *Flt;               // Provide a pointer to a SPIPeriph::DevFlt for the
+        volatile DevFlt          *Flt;      // Provide a pointer to a SPIPeriph::DevFlt for the
                                             // SPI fault status to be provided to source
                                             // function
     }   Form;
@@ -216,17 +217,10 @@ public:
 *  Parameters required for the class to function.
 *************************************************************************************************/
     protected:
-    GenBuffer<Form> *FormQueue;         // Pointer to the class internal SPIForm buffer, which
+    GenBuffer<Form>     FormQueue;      // Pointer to the class internal SPIForm buffer, which
                                         // is used to manage interrupt based communication.
                                         // Functions will add request forms to this buffer,
                                         // and interrupt then goes through them sequentially.
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GenBuffer<uint8_t>  *Receive;       // Pointer to the class internal buffer for data read
-                                        // back from SPI Device.
-    GenBuffer<uint8_t>  *Transmit;      // Pointer to the class internal buffer for data
-                                        // written to SPI Device.
-    // These buffers to be used when source functionality doesn't require its own dedicated
-    // buffer.
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         SPIMode     Mode;               // Selected mode of SPI Device
@@ -246,7 +240,7 @@ public:
  *  different depending upon the embedded device selected.
  *************************************************************************************************/
     protected:
-        void PopGenClassParameters(void);   // Populate generic parameters for the class
+        void popGenParam(void);         // Populate generic parameters for the class
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
@@ -255,9 +249,11 @@ public:
         SPI_HandleTypeDef   *SPI_Handle;    // Store the Handle for the SPI Device, from cubeMX
 
     public:
-        SPIPeriph(SPI_HandleTypeDef *SPIHandle, GenBuffer<Form> *FormBuffer,
-                  GenBuffer<uint8_t> *readBuffer, GenBuffer<uint8_t> *writeBuffer);
-
+        SPIPeriph(void);                    // Basic constructor for SPI class
+        SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize);
+        // Setup the SPI class, for STM32 by providing the SPI Request Form array pointer, as well
+        // as the size.
+        // Class will then generate a GenBuffer item internally.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -325,7 +321,7 @@ protected:  /*******************************************************************
     // SPI Communication Request Form handling
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static Form GenericForm(CSHandle devLoc, uint8_t size,
-                            DevFlt *fltReturn, uint8_t *cmpFlag);
+                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData);
     static void FormWGenBuffer(Form *RequestForm, GenBuffer<uint8_t> *TxBuff,
@@ -368,11 +364,11 @@ public:     /*******************************************************************
 
     void intMasterTransfer(uint16_t size,
                            GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
-                           DevFlt *fltReturn, uint8_t *cmpFlag);
+                           volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     void intMasterTransfer(GPIO *CS, uint16_t size,
                            GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
-                           DevFlt *fltReturn, uint8_t *cmpFlag);
+                           volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
     // Above OVERLOADED function "intMasterTransfer" takes the input parameters and uses this to
     // populate a SPI Request Form, and then add this to the Device Queue.
 
