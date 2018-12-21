@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        FileIndex.h
  * @author      Thomas
- * @version     V0.3
+ * @version     V0.4
  * @date        14 Nov 2018
  * @brief       File index for my code and functions
  **************************************************************************************************
@@ -27,7 +27,10 @@
  * These would be contained within a "drv" folder
  *************************************************************************************************/
 #define FilInd_GPIO___HD    "drv\GPIO\GPIO.h"               // File for the GPIO driver code
-#define FilInd_USART__HD    "drv\UARTDevice\UARTDevice.h"   // File for the USART driver code
+#define FilInd_DeMux__HD    "drv\GPIO\DeMux\DeMux.h"        // File for the DeMultiplexor driver
+#define FilInd_Stppr__HD    "drv\GPIO\Stepper\Stepper.h"    // File for the Stepper driver
+
+#define FilInd_USART__HD    "drv\UARTPeriph\UARTPeriph.h"   // File for the USART driver code
 #define FilInd_SPIPe__HD    "drv\SPIPeriph\SPIPeriph.h"     // File for the SPI driver code
 #define FilInd_I2CPe__HD    "drv\I2CPeriph\I2CPeriph.h"     // File for the I2C driver code
 
@@ -42,7 +45,6 @@
  * All of the defines below are for "Devices" - examples: external hardware, shift registers, etc.
  * These would be contained within a "dev" folder
  *************************************************************************************************/
-#define FilInd_DeMux__HD    "dev\DeMux\DeMux.h"             // File for the DeMultiplexor device
 #define FilInd_AS5x4__HD    "dev\AS5x4x\AS5x4x.h"           // File for the AS5x4x Position Sensor
                                                             // devices
 #define FilInd_AD741x_HD    "dev\AD741x\AD741x.h"           // File for the AD741x Temperature
