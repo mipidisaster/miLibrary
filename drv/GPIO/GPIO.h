@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.h
  * @author      Thomas
- * @version     V1.1
- * @date        07 Oct 2018
+ * @version     V2.1
+ * @date        21 Dec 2018
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -48,16 +48,36 @@
 #endif
 
 // Types used within this class
-typedef enum GPIO_VALUE { GPIO_LOW = 0, GPIO_HIGH = ~GPIO_LOW } _GPIOValue;
-typedef enum GPIO_DIREC { GPIO_OUT = 0, GPIO_IN = ~GPIO_OUT} _GPIODirec;
+// Defined within the class, to ensure are contained within the correct scope
 
 class GPIO {
-    // Declarations which are generic, and will be used in ALL devices
+/**************************************************************************************************
+ * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+ *   -----------
+ *  Following types are generated within this class. If needed outside of the class, need to
+ *  state "GPIO::" followed by the type.
+ *************************************************************************************************/
+public:
+        enum State : uint8_t  {   LOW = 0,   HIGH = 1 };
+        enum Dir   : uint8_t  {OUTPUT = 0,  INPUT = 1 };
+
+/**************************************************************************************************
+ * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
+ *   -----------
+ *  Parameters required for the class to function.
+ *************************************************************************************************/
     private:
         uint32_t        pinnumber;
-        _GPIODirec      pindirection;
+        Dir             pindirection;
 
-// Device specific entries
+/**************************************************************************************************
+ * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
+ *   -----------
+ *  Following are functions and parameters which are specific for the embedded device selected.
+ *  The initialisation function for the class is also within this section, which again will be
+ *  different depending upon the embedded device selected.
+ *************************************************************************************************/
+
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
@@ -65,7 +85,8 @@ class GPIO {
         GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
 
     public:
-    GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, _GPIODirec direction);
+        GPIO(void);                             // Basic constructor for AS5x4x class
+        GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -82,15 +103,28 @@ class GPIO {
 
 #endif
 
-    public:
-    // Functions which are generic for any device being controlled
+/**************************************************************************************************
+ * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
+ *   -----------
+ *  The following are functions scoped within the "SPIPeriph" class, which are generic; this means
+ *  are used by ANY of the embedded devices supported by this class.
+ *  The internals of the class, will then determine how it will be managed between the multiple
+ *  embedded devices.
+ *************************************************************************************************/
+
+public:     /**************************************************************************************
+             * == PROTECTED == >>>     DIRECT HARDWARE READING FUNCTIONS     <<<
+             *   -----------
+             * As the GPIO is relatively low level, there is no need to separate out functions
+             * which are/are not visible outside of this class
+             *************************************************************************************/
         // Output controls
-        virtual uint8_t toggleOutput();
-        virtual uint8_t setValue(_GPIOValue value);
+        virtual uint8_t toggleOutput();                 // Toggle the target GPIO
+        virtual uint8_t setValue(State value);
 
 
         // Input controls
-        virtual _GPIOValue getValue();
+        virtual State getValue();
         virtual ~GPIO();
 };
 
