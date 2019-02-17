@@ -16,7 +16,7 @@
  * This header is used to allow for "Computed Includes" within all the code and functions that I
  * have created.
  * This will contain a list of defines, which can be changed allowing for a single point of update
- * for all of the files. This will allow for re-arranging of the folder sturcture without having
+ * for all of the files. This will allow for re-arranging of the folder structure without having
  * to update ALL of the files.
  *************************************************************************************************/
 #ifndef FILEINDEX_H_
@@ -45,7 +45,7 @@
  * All of the defines below are for "Devices" - examples: external hardware, shift registers, etc.
  * These would be contained within a "dev" folder
  *************************************************************************************************/
-#define FilInd_AS5x4__HD    "dev\AS5x4x\AS5x4x.h"           // File for the AS5x4x Position Sensor
+#define FilInd_AS5x4x_HD    "dev\AS5x4x\AS5x4x.h"           // File for the AS5x4x Position Sensor
                                                             // devices
 #define FilInd_AD741x_HD    "dev\AD741x\AD741x.h"           // File for the AD741x Temperature
                                                             // Sensor
