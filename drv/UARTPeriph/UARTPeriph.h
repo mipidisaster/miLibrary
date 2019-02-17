@@ -143,11 +143,15 @@ class UARTPeriph {
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
 
     public:
+        void create(UART_HandleTypeDef *UART_Handle,
+                    GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
+
         UARTPeriph(void);                       // Basic constructor for UART class
         UARTPeriph(UART_HandleTypeDef *UART_Handle,
                    GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
         // Setup the UART class, for STM32 by providing the UART type define handle, as well the
         // "GenBuffer" needing to be provided to the function, to be fully defined outside of class
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

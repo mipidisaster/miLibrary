@@ -11,7 +11,7 @@
 
  *************************************************************************************************/
 #include "FileIndex.h"
-#include FilInd_AS5x4__HD
+#include FilInd_AS5x4x_HD
 
 void AS5x4x::popGenParam(void) {
 /**************************************************************************************************
@@ -36,7 +36,7 @@ AS5x4x::AS5x4x(void) {
     this->popGenParam();                        // Populate generic class parameters
 }
 
-AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size) {
+void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size) {
 /**************************************************************************************************
  * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
  * along with a pointer to the Write and Read buffers, which will be used internally to the class
@@ -48,11 +48,23 @@ AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size
     this->Device        = Device;               // Store the device
 
     // Setup buffer pointers:
-    this->wtBuff        = GenBuffer<uint16_t>(wtBuff, size);    // Create internal GenBuffer
-    this->rdBuff        = GenBuffer<uint16_t>(rdBuff, size);    // Create internal GenBuffer
+    this->wtBuff.create(wtBuff, size);          // Create internal GenBuffer
+    this->rdBuff.create(rdBuff, size);          // Create internal GenBuffer
+
 
     this->wtBuff.QFlush();                      // Flush data
     this->rdBuff.QFlush();                      // Flush data
+}
+
+AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size) {
+/**************************************************************************************************
+ * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
+ * along with a pointer to the Write and Read buffers, which will be used internally to the class
+ * to manage the data that is transfered to the attached device.
+ * The class construction will initialise all the parameters, and set the fault state to
+ * initialised.
+ *************************************************************************************************/
+    this->create(Device, wtBuff, rdBuff, size);
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

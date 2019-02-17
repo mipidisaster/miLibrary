@@ -85,6 +85,8 @@ public:
         GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
 
     public:
+        void create(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
+
         GPIO(void);                             // Basic constructor for AS5x4x class
         GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
 

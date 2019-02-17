@@ -42,9 +42,9 @@ void GenBuffer<Typ>::QFlush(void) {
 }
 
 template <typename Typ>
-GenBuffer<Typ>::GenBuffer(void) {
+GenBuffer<Typ>::GenBuffer() {
 /**************************************************************************************************
- * Basic constructor of the class. Will initialise all pointers to zero, and the array poiner to
+ * Basic constructor of the class. Will initialise all pointers to zero, and the array pointer to
  * null.
  *************************************************************************************************/
     QFlush();                       // Flush the data to default values
@@ -53,7 +53,7 @@ GenBuffer<Typ>::GenBuffer(void) {
 }
 
 template <typename Typ>
-GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
+void GenBuffer<Typ>::create(Typ *arrayloc, uint32_t size) {
 /**************************************************************************************************
  * "Lite" function for GenBuffer.
  * Where the fully defined array is provided as input to constructor. This will then be linked to
@@ -66,6 +66,19 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
     pa = arrayloc;                  // Have pointer now point to input "arrayloc"
 
     QFlush();                       // Flush the data to default values
+}
+
+template <typename Typ>
+GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
+/**************************************************************************************************
+ * "Lite" function for GenBuffer.
+ * Where the fully defined array is provided as input to constructor. This will then be linked to
+ * internal class pointer "pa"
+ *
+ * Once done it will call the "QFlush" function to  setup pointers to the start of the buffer.
+ *  Leaves the contents of the data unaffected.
+ *************************************************************************************************/
+    create(arrayloc, size);
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,7 +190,13 @@ void GenBuffer<Typ>::InputWrite(Typ newdata) {
  * buffer.
  *************************************************************************************************/
     pa[input_pointer] = newdata;                    // Add the input data into the buffer
+
+    if (State() == GenBuffer_FULL) {
+        output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
+                                                        // limited to size "length"
+    }
     input_pointer = (input_pointer + 1) % length;   // Increment the input pointer, then take the
+
     // Modulus of this. This will then cause the input_pointer to be circled round if it equal to
     // the length.
 
@@ -186,9 +205,12 @@ void GenBuffer<Typ>::InputWrite(Typ newdata) {
     // Then to force buffer size to be maintained as per "length", need to increase the output
     // pointer (essentially ensuring that the oldest point in the buffer is limited to "length"
     // old)
-    if (State() == GenBuffer_Empty)                     // Check the buffer state, if equal to
+
+    // This part results in situations where an empty buffer can be turned into a FULL buffer
+    // within a single write. Above correction seems to work...
+    //if (State() == GenBuffer_Empty)                     // Check the buffer state, if equal to
                                                         // EMPTY, then
-        output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
+       // output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
                                                         // limited to size "length"
 }
 

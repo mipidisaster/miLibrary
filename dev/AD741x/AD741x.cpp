@@ -52,7 +52,7 @@ AD741x::AD741x(void) {
     this->popGenParam(DevPart::AD7414_0, AddrBit::Float);   // Populate generic parameters
 }
 
-AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize) {
+void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize) {
 /**************************************************************************************************
  * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
  * "write".
@@ -60,9 +60,18 @@ AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormS
  *************************************************************************************************/
     this->popGenParam(DeviceNum, ASPin);    // Populate generic parameters
 
-    this->AdBuff     = GenBuffer<Form>(FormArray, FormSize);    // Create GenBuffer for internal
-                                                                // Address Pointer queue
+    this->AdBuff.create(FormArray, FormSize);   // Create GenBuffer for internal Address Pointer
+                                                // queue
     this->reInitialise();       // Ensure that the internal mechanics of the class have been reset
+}
+
+AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize) {
+/**************************************************************************************************
+ * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
+ * "write".
+ * Which will then be linked to the class parameters.
+ *************************************************************************************************/
+    this->create(DeviceNum, ASPin, FormArray, FormSize);
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

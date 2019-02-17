@@ -251,6 +251,8 @@ public:
                                                                 // class generation
 
     public:
+        void create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
+
         AD741x(void);                           // Basic constructor for AS5x4x class
         AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
 

@@ -255,6 +255,8 @@ public:
         I2C_HandleTypeDef  *I2C_Handle;     // Store the I2C handle
 
     public:
+        void create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize);
+
         I2CPeriph(void);                    // Basic constructor for I2C class
         I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize);
         // Setup the I2C class, for STM32 by providing the I2C Request Form array pointer, as well

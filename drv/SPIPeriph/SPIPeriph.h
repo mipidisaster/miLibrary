@@ -249,6 +249,8 @@ public:
         SPI_HandleTypeDef   *SPI_Handle;    // Store the Handle for the SPI Device, from cubeMX
 
     public:
+        void create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize);
+
         SPIPeriph(void);                    // Basic constructor for SPI class
         SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize);
         // Setup the SPI class, for STM32 by providing the SPI Request Form array pointer, as well
@@ -261,6 +263,8 @@ public:
         int SPIChannel;                         // Store the channel used for SPI
 
     public:
+        void create(int channel, int speed, _SPIMode Mode);
+
         SPIPeriph(int channel, int speed, _SPIMode Mode);
 
 #else

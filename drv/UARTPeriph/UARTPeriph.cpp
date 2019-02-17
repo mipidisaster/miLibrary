@@ -221,7 +221,27 @@ uint8_t UARTPeriph::ReceiveDataToReadChk(void) {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
+void UARTPeriph::create(UART_HandleTypeDef *UART_Handle,
+                        GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray) {
+/**************************************************************************************************
+ * Create a UART class specific for the STM32F device. Also need to provide the fully defined
+ * "GenBuffer" class for both "Receive" and "Transmit" buffers.
+ *
+ * As the STM32CubeMX already pre-generates the setting up and configuring of the desired UART
+ * device, there is no need to define that within this function. Simply providing the handle is
+ * required.
+ *************************************************************************************************/
+    this->UART_Handle   = UART_Handle;      // Copy data into class
+    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
+
+    // Configure both the Input and Output Buffers to be the size as per input
+    this->Receive       = receivearray;     // Link the internal "Receive" buffer pointer to
+                                            // provided Receive Buffer
+    this->Transmit      = transmitarray;    // Link the internal "Transmit" buffer pointer to
+                                            // provided Transmit Buffer
+}
+
 UARTPeriph::UARTPeriph(void) {
 /**************************************************************************************************
  * Basic construction of UART Periph Device
@@ -245,14 +265,7 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
  * device, there is no need to define that within this function. Simply providing the handle is
  * required.
  *************************************************************************************************/
-    this->UART_Handle   = UART_Handle;      // Copy data into class
-    this->Flt           = UART_Initialised; // Initialise the fault to "initialised"
-
-    // Configure both the Input and Output Buffers to be the size as per input
-    this->Receive       = receivearray;     // Link the internal "Receive" buffer pointer to
-                                            // provided Receive Buffer
-    this->Transmit      = transmitarray;    // Link the internal "Transmit" buffer pointer to
-                                            // provided Transmit Buffer
+    this->create(UART_Handle, receivearray, transmitarray);
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

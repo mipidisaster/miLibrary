@@ -109,6 +109,8 @@ class GenBuffer {
         Typ             *pa;                // Points to the array (Buffer)
 
     public:
+        void create(Typ *arrayloc, uint32_t size);
+
         GenBuffer(void);
         GenBuffer(Typ *arrayloc, uint32_t size);
         // As have defined that the "GenBuffer" needs to be "Lite", then use of "new" and "delete"

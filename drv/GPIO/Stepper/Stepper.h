@@ -156,8 +156,8 @@
                                         // be full!)
 #define  StpMaxMicroStepPins    03      // Define the maximum number of pins linked to the
                                         // "MicrStep", so can fully define internal array
-#define  StpDefStepPrfDly       30      // Default delay from interrupt for rising edge of STEP
-#define  StpDefStepPrfWdt       02      // Default width for STEP pulse
+#define  StpDefStepPrfDly       50      // Default delay from interrupt for rising edge of STEP
+#define  StpDefStepPrfWdt       05      // Default width for STEP pulse
 
 // Types used within this class
 // Defined within the class, to ensure are contained within the correct scope
@@ -291,6 +291,10 @@ public:
         HrdSetup    HrdwreCfg;          // Defined at class construction time
 
     public:
+        void create(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
+                    uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
+                    int32_t FullRev, HrdSetup Config);
+
         Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
                 int32_t FullRev, HrdSetup Config);

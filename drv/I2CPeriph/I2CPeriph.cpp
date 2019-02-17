@@ -38,9 +38,9 @@ I2CPeriph::I2CPeriph(void) {
     this->I2C_Handle    = __null;           // Point to NULL
 }
 
-I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
+void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
 /**************************************************************************************************
- * Creates a I2C class specific for the STM32F device.
+ * Creates a I2C class specific for the STM32 device.
  *
  * As the STM32CubeMX already pre-generates the setting up and configuring of the desired I2C
  * device, there is no need to define that within this function. Simply providing the handle is
@@ -50,7 +50,18 @@ I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t Fo
 
     this->I2C_Handle    = I2C_Handle;       // Link input I2C handler to class.
 
-    this->FormQueue     = GenBuffer<Form>(FormArray, FormSize);
+    this->FormQueue.create(FormArray, FormSize);
+}
+
+I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
+/**************************************************************************************************
+ * Creates a I2C class specific for the STM32 device.
+ *
+ * As the STM32CubeMX already pre-generates the setting up and configuring of the desired I2C
+ * device, there is no need to define that within this function. Simply providing the handle is
+ * required.
+ *************************************************************************************************/
+    this->create(I2C_Handle, FormArray, FormSize);
 }
 
 uint8_t I2CPeriph::DRRead(void) {

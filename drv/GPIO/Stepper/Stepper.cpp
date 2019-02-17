@@ -46,8 +46,7 @@ void Stepper::popGenParam(void) {
     this->ShdPfrl[1]    = StpDefStepPrfDly + StpDefStepPrfWdt;  // Then calculate count for
                                                                 // default width
 
-    this->FormQueue = GenBuffer<Form>(&this->FormArry[0], StpBuffSize);
-        // Link to GenBuffer class
+    this->FormQueue.create(&this->FormArry[0], StpBuffSize);
 
     this->MicStpSiz     = 0;                // Initialise the number of Microstep pins to zero
 
@@ -63,9 +62,9 @@ Stepper::Stepper() {
 
 }
 
-Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
-                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
-                 int32_t FullRev, HrdSetup Config) {
+void Stepper::create(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
+                     uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
+                     int32_t FullRev, HrdSetup Config) {
 /**************************************************************************************************
  * Creates a Stepper class specific for the STM32F device.
  *  Inputs include the TIMER handle which will be used primarily to control the stepper motor
@@ -153,6 +152,33 @@ Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint3
     __HAL_TIM_ENABLE(this->STEP);
 }
 
+Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
+                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
+                 int32_t FullRev, HrdSetup Config) {
+/**************************************************************************************************
+ * Creates a Stepper class specific for the STM32F device.
+ *  Inputs include the TIMER handle which will be used primarily to control the stepper motor
+ *   >>> Doesn't support another other outputs as of yet...  <<<
+ *  Along with the Output Compare channel (which is the channel state shifted up by the channel)
+ *        + channel for the output compare interrupt - used to count number of steps done
+ *  The linked DMA is also required, to provide to the Output Compare output (alias "STEP") with
+ *  the required sequence to generate the STEP pulse.
+ *
+ *  Then all the auxillary GPIO pins - Reset, and Microstep(s) < last one needs to also include
+ *                                                               the number of pins for this
+ *  The number of steps per revolution of the Stepper need to be provided in the format of
+ *  hardware number of steps multiplied by the smallest step size:
+ *      i.e. motor has 200 poles, but driver can provide a step of 1/16
+ *           "FullRev"  = 200 x 16 = 3,200 steps
+ *
+ *  Lastly the Hardware Setup structure is required. This should be configured for the specific
+ *  embedded device (limited to STM32 devices currently). Including the bit positions and address
+ *  to manage interrupts and the DMA.
+ *************************************************************************************************/
+    this->create(STEP_TIM, STEP_DMA, OCChannel, CountChannel,
+                 nReset, DIR, MicStp, McrStp, FullRev, Config);
+}
+
 void Stepper::SetShadowGPIO(void) {
 /**************************************************************************************************
  * Configure the internally linked GPIO pins (RESET, DIR, MicroStep) as per the Shadow Form
@@ -181,7 +207,7 @@ void Stepper::InterruptSetup(void) {
  *************************************************************************************************/
     if ( (this->ShdForm.cMode == Mode::Disabled) &&
          (this->FormQueue.State() != GenBuffer_Empty) ) {
-        FormQueue.OutputRead( &this->ShdForm );                 // Retrieve next request and put
+        this->FormQueue.OutputRead( &this->ShdForm );           // Retrieve next request and put
                                                                 // into shadow form
         this->SetShadowGPIO();                                  // Setup GPIOs are per active form
 
@@ -363,9 +389,9 @@ void Stepper::IRQUPHandler(void) {
 
             if (this->FormQueue.State() != GenBuffer_Empty) {   // Check for any new movement
                                                                 // requests
-                uint32_t prevpoint = FormQueue.output_pointer;  // Capture current position (so as
-                                                                // to rewind queue)
-                FormQueue.OutputRead( &this->ShdForm );         // Read new data
+                uint32_t prevpoint = this->FormQueue.output_pointer;
+                    // Capture current position (so as to rewind queue)
+                this->FormQueue.OutputRead( &this->ShdForm );   // Read new data
 
                 if (this->ShdForm.cMode != Mode::Velocity) {    // If not a velocity mode
                     this->ShdForm.cMode     = Stepper::Disabled;        // Then set mode to
@@ -377,7 +403,7 @@ void Stepper::IRQUPHandler(void) {
                     this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
                             // Clear the output enabling pin for the STEP pulse
  
-                    FormQueue.output_pointer    = prevpoint;            // Rewind Form Queue
+                    this->FormQueue.output_pointer      = prevpoint;    // Rewind Form Queue
                     this->InterruptSetup();     // Check for any other move requests
                 }
                 else {  // Otherwise Mode is Velocity, so load up frequency, and then
@@ -385,6 +411,15 @@ void Stepper::IRQUPHandler(void) {
                     __HAL_TIM_SET_AUTORELOAD(this->STEP, this->ShdForm.Freq);
                         // Update with the requested frequency
             } }
+        }
+        else {
+            this->ShdForm.cMode     = Stepper::Disabled;        // Set mode to "Disabled"
+            __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper controller
+                                                                // interrupt
+            __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);   // Disable Step Count
+                                                                            // Interrupt
+            this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
+                    // Clear the output enabling pin for the STEP pulse
         }
     }
 }

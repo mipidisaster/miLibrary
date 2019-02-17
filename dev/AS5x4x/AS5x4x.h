@@ -230,6 +230,8 @@ public:
  *      of different devices.
  *************************************************************************************************/
 public:
+    void create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size);
+
     AS5x4x(void);                           // Basic constructor for AS5x4x class
     AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size);
     // Setup the AS5x4x device, by providing the device type, as well as array pointer(s) to be
