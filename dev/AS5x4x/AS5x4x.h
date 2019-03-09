@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.h
  * @author      Thomas
- * @version     V1.1
- * @date        21 Dec 2018
+ * @version     V2.1
+ * @date        09 Mar 2019
  * @brief       Header file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -171,6 +171,9 @@ public:
         CmdInv              = 0x02,
         Parity              = 0x03,
         MultiFault          = 0x04,
+
+        NoCommunication     = 0xE0,
+        ParentCommFlt       = 0xF0,
 
         Initialised         = 0xFF
     };

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V1.1
- * @date        08 Nov 2018
+ * @version     V2.1
+ * @date        09 Mar 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -169,6 +169,9 @@ public:
         SizeReqst           = 0x02,
         UnRecognisedAddress = 0x03,
         SynchronizeErr      = 0x04,
+
+        NoCommunication     = 0xE0,
+        ParentCommFlt       = 0xF0,
 
         Initialised         = 0xFF
     };
