@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        16 Dec 2018
+ * @version     V2.1
+ * @date        09 Mar 2019
  * @brief       Source file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -368,58 +368,64 @@ void Stepper::IRQUPHandler(void) {
  *                                     Function "InterruptSetup" is then called to check for any
  *                                     other movement requests.
  *
- *      No other interrupts are currently supported.
+ *      No other interrupts are currently supported. However function will not run if the
+ *      interrupt was not caused by a 'TIM_IT_UPDATE' event
  *************************************************************************************************/
-    __HAL_TIM_CLEAR_IT(this->STEP, TIM_FLAG_UPDATE);// Clear the interrupt bit for the Stepper
-                                                    // controller interrupt
-    if (this->ShdForm.StpCount == 0) {                  // If Shadow Form step count is zero
-        if (this->ShdForm.cMode  == Mode::Position) {   // and current mode is "Position"
-            this->ShdForm.cMode     = Stepper::Disabled;        // Set mode to "Disabled"
-            __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper controller
-                                                                // interrupt
-            __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);   // Disable Step Count
-                                                                            // Interrupt
-            this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
-                    // Clear the output enabling pin for the STEP pulse
+    if (  (__HAL_TIM_GET_IT_SOURCE(this->STEP, TIM_IT_UPDATE) == SET)  &&
+          (__HAL_TIM_GET_FLAG(this->STEP, TIM_FLAG_UPDATE) != 0)  ) {
+        // Check to see if the 'TIM_IT_UPDATE' interrupt has been enabled, and the interrupt has
+        // occurred 'TIM_FLAG_UPDATE' (note different name, as different registers!) then...
+        __HAL_TIM_CLEAR_IT(this->STEP, TIM_FLAG_UPDATE);// Clear the interrupt bit for the Stepper
+                                                        // controller interrupt
+        if (this->ShdForm.StpCount == 0) {                  // If Shadow Form step count is zero
+            if (this->ShdForm.cMode  == Mode::Position) {   // and current mode is "Position"
+                this->ShdForm.cMode     = Stepper::Disabled;        // Set mode to "Disabled"
+                __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper
+                                                                    // controller interrupt
+                __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);   // Disable Step
+                                                                                // Count Interrupt
+                this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
+                        // Clear the output enabling pin for the STEP pulse
 
-            this->InterruptSetup(); // Check for any other move requests
-        }
-        else if (this->ShdForm.cMode == Mode::Velocity) {       // If mode is "Velocity"
-            this->SetShadowGPIO();                              // Set GPIO as per Shadow
+                this->InterruptSetup(); // Check for any other move requests
+            }
+            else if (this->ShdForm.cMode == Mode::Velocity) {       // If mode is "Velocity"
+                this->SetShadowGPIO();                              // Set GPIO as per Shadow
 
-            if (this->FormQueue.State() != GenBuffer_Empty) {   // Check for any new movement
-                                                                // requests
-                uint32_t prevpoint = this->FormQueue.output_pointer;
-                    // Capture current position (so as to rewind queue)
-                this->FormQueue.OutputRead( &this->ShdForm );   // Read new data
+                if (this->FormQueue.State() != GenBuffer_Empty) {   // Check for any new movement
+                                                                    // requests
+                    uint32_t prevpoint = this->FormQueue.output_pointer;
+                        // Capture current position (so as to rewind queue)
+                    this->FormQueue.OutputRead( &this->ShdForm );   // Read new data
 
-                if (this->ShdForm.cMode != Mode::Velocity) {    // If not a velocity mode
-                    this->ShdForm.cMode     = Stepper::Disabled;        // Then set mode to
-                                                                        // "Disabled"
-                    __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper
-                                                                        // controller interrupt
-                    __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);
-                            // Disable Step Count Interrupt
-                    this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
-                            // Clear the output enabling pin for the STEP pulse
- 
-                    this->FormQueue.output_pointer      = prevpoint;    // Rewind Form Queue
-                    this->InterruptSetup();     // Check for any other move requests
-                }
-                else {  // Otherwise Mode is Velocity, so load up frequency, and then
-                        // next loop will drive the GPIO aux. signals
-                    __HAL_TIM_SET_AUTORELOAD(this->STEP, this->ShdForm.Freq);
-                        // Update with the requested frequency
-            } }
-        }
-        else {
-            this->ShdForm.cMode     = Stepper::Disabled;        // Set mode to "Disabled"
-            __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper controller
-                                                                // interrupt
-            __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);   // Disable Step Count
-                                                                            // Interrupt
-            this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
-                    // Clear the output enabling pin for the STEP pulse
+                    if (this->ShdForm.cMode != Mode::Velocity) {    // If not a velocity mode
+                        this->ShdForm.cMode     = Stepper::Disabled;        // Then set mode to
+                                                                            // "Disabled"
+                        __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);
+                                // Disable the stepper controller interrupt
+                        __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);
+                                // Disable Step Count Interrupt
+                        this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
+                                // Clear the output enabling pin for the STEP pulse
+
+                        this->FormQueue.output_pointer      = prevpoint;    // Rewind Form Queue
+                        this->InterruptSetup();     // Check for any other move requests
+                    }
+                    else {  // Otherwise Mode is Velocity, so load up frequency, and then
+                            // next loop will drive the GPIO aux. signals
+                        __HAL_TIM_SET_AUTORELOAD(this->STEP, this->ShdForm.Freq);
+                            // Update with the requested frequency
+                } }
+            }
+            else {
+                this->ShdForm.cMode     = Stepper::Disabled;        // Set mode to "Disabled"
+                __HAL_TIM_DISABLE_IT(this->STEP, TIM_IT_UPDATE);    // Disable the stepper
+                                                                    // controller interrupt
+                __HAL_TIM_DISABLE_IT(this->STEP, this->HrdwreCfg.CounIntBit);
+                        // Disable Step Count Interrupt
+                this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
+                        // Clear the output enabling pin for the STEP pulse
+            }
         }
     }
 }
@@ -441,25 +447,31 @@ void Stepper::IRQCounterCCHandler(void) {
  * Second part, will subtract/add the specific step amount per pulse as per the current "Count
  * Configuration". This is then limited to be within the "FullRev" defined at class construction.
  *
- *      No other interrupts are currently supported.
+ *      No other interrupts are currently supported. However function will not run if the
+ *      interrupt was not caused by a '.CounIntBit' event
  *************************************************************************************************/
-    __HAL_TIM_CLEAR_IT(this->STEP, this->HrdwreCfg.CounSRBit);
-        // Clear the interrupt bit for the Stepper count interrupt
-    if (this->ShdForm.StpCount != 0) {          // So long as the Shadow step count is not zero
-        this->ShdForm.StpCount--;               // subtract by 1
-    }
+    if (  (__HAL_TIM_GET_IT_SOURCE(this->STEP, this->HrdwreCfg.CounIntBit) == SET)  &&
+          (__HAL_TIM_GET_FLAG(this->STEP, this->HrdwreCfg.CounSRBit) != 0)  ) {
+        // Check to see if the '.CounIntBit' interrupt has been enabled, and the interrupt has
+        // occurred '.CounSRBit' (note different name, as different registers!) then...
+        __HAL_TIM_CLEAR_IT(this->STEP, this->HrdwreCfg.CounSRBit);
+            // Clear the interrupt bit for the Stepper count interrupt
+        if (this->ShdForm.StpCount != 0) {          // So long as the Shadow step count is not zero
+            this->ShdForm.StpCount--;               // subtract by 1
+        }
 
-    if (this->ShdCountConf.Pol == CountPanel::Polarity::UP) {   // If current Count Configuration
-                                                                // is count "UP"
-        this->calcPos = (this->calcPos + this->ShdCountConf.stpAmount) % this->FullRev;
-            // Then add the specified count per STEP to the "calcPos". This is then limited to the
-            // maximum number of steps per revolution
-    }
-    else {  // OTHERWISE polarity is "DOWN"
-        this->calcPos = ( (this->calcPos - this->ShdCountConf.stpAmount) + this->FullRev )
-                           % this->FullRev;
-            // Then subtract the specified count per STEP to the "calcPos". This is then limited
-            // to the maximum number of steps per revolution
+        if (this->ShdCountConf.Pol == CountPanel::Polarity::UP) {   // If current Count
+                                                                    // Configuration is count "UP"
+            this->calcPos = (this->calcPos + this->ShdCountConf.stpAmount) % this->FullRev;
+                // Then add the specified count per STEP to the "calcPos". This is then limited to
+                // the maximum number of steps per revolution
+        }
+        else {  // OTHERWISE polarity is "DOWN"
+            this->calcPos = ( (this->calcPos - this->ShdCountConf.stpAmount) + this->FullRev )
+                               % this->FullRev;
+                // Then subtract the specified count per STEP to the "calcPos". This is then
+                // limited to the maximum number of steps per revolution
+        }
     }
 }
 
