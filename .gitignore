@@ -1,0 +1,3 @@
+# Ignore the CMakeLists and package files
+CMakeLists.txt
+package.xml

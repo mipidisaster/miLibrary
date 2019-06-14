@@ -298,7 +298,7 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize) {
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
 UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
-                       GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)) {
+                       GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray) {
 /**************************************************************************************************
  * Create a UART class specific for the Raspberry Pi
  *  As the fully defined "GenBuffer" classes for both "Receive" and "Transmit" buffers have been
