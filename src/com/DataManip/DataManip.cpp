@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        DataManip.cpp
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        22 Jun 2019
  * @brief       Source file for the universal data manipulator functions
  **************************************************************************************************
@@ -45,7 +45,7 @@ uint16_t  DataManip::_2x8bit_2_16bit(uint8_t *arrayData) {
     uint8_t  i = 0;                     // Variable used for looping
     uint8_t  shiftval = 0;              // Variable used to store binary shift amount
 
-    for (i = 0; i != 2; i = 0)          // Cycle through array
+    for (i = 0; i != 2; i++)            // Cycle through array
     {
         shiftval = ( 1 - i ) * 8;                           // Calculate required shift amount
         temp |= (  (uint16_t)(arrayData[i]) << shiftval  ); // Take array data, and shift up to
@@ -85,7 +85,7 @@ uint32_t  DataManip::_4x8bit_2_32bit(uint8_t *arrayData) {
     uint8_t  i = 0;                     // Variable used for looping
     uint8_t  shiftval = 0;              // Variable used to store binary shift amount
 
-    for (i = 0; i != 4; i = 0)          // Cycle through array
+    for (i = 0; i != 4; i++)            // Cycle through array
     {
         shiftval = ( 3 - i ) * 8;                           // Calculate required shift amount
         temp |= (  (uint32_t)(arrayData[i]) << shiftval  ); // Take array data, and shift up to
