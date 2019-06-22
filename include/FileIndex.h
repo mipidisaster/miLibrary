@@ -44,6 +44,8 @@
 #define FilInd_GENBUF_HD    "milibrary/com/GenBuffer/GenBuffer.h"   // File for the Generic Buffer
 #define FilInd_GENBUF_Cp    "milibrary/com/GenBuffer/GenBuffer.cpp" // header and code
 
+#define FilInd_DATMngrHD    "milibrary/com/DataManip/DataManip.h"   // File for Data Manipulator
+
 /**************************************************************************************************
  * All of the defines below are for "Devices" - examples: external hardware, shift registers, etc.
  * These would be contained within a "dev" folder
