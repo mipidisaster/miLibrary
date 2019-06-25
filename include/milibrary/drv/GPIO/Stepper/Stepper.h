@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.h
  * @author      Thomas
- * @version     V1.1
- * @date        16 Dec 2018
+ * @version     V2.1
+ * @date        16 Jun 2019
  * @brief       Header file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -27,6 +27,7 @@
  *
  *      Once construction is done, the parameters which are requires for this class to function
  *      are:
+ *          ".forceSTOP"            - Forces a STOP of the motor
  *          ".newPosition"          - Request a new position (number of steps, at a specific
  *                                    frequency)
  *          ".newVelocity"          - Request a new velocity (just a frequency of steps)
@@ -345,6 +346,8 @@ public:     /*******************************************************************
              *  motor.
              *  Functions are designed in interrupt mode exclusively.
              *************************************************************************************/
+    void forceSTOP(void);           // Build and force a request to stop motor movement
+
     void newPosition(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq, uint32_t PulseCount,
                      CountPanel::Polarity Pol, uint32_t StpprPul);
         // Build a new request to move stepper to a new position, and a specific velocity.

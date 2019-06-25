@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        09 Mar 2019
+ * @version     V2.2
+ * @date        16 Jun 2019
  * @brief       Source file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -246,6 +246,25 @@ void Stepper::InterruptSetup(void) {
     }
 }
 
+void Stepper::forceSTOP(void) {
+/**************************************************************************************************
+ * Function will force the stepper to ignore current request, and clear all queued requests.
+ * This will result in the stepper coming to a stop
+ *************************************************************************************************/
+    this->FormQueue.QFlush();           // First clear the queue
+    Form tmpForm    = this->ShdForm;    // Create a new temporary form equal to current shadow
+
+    // Put in a Position Mode request for a single step
+    tmpForm.StpCount    = 1;                        // Single step
+    tmpForm.cMode       = Mode::Position;           // Set mode to "Position"
+
+    if (this->ShdForm.cMode != Mode::Disabled) {    // If motor is not disabled (yet)
+        this->FormQueue.InputWrite( tmpForm );      // Put new request into queue
+        this->ShdForm.cMode  = Mode::Disabled;      // Force the current mode to Disabled
+        //This will force interrupt to stop current movement, and read new request
+    }
+}
+
 void Stepper::newPosition(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq, uint32_t PulseCount,
                           CountPanel::Polarity Pol, uint32_t StpprPul) {
 /**************************************************************************************************
@@ -425,6 +444,8 @@ void Stepper::IRQUPHandler(void) {
                         // Disable Step Count Interrupt
                 this->STEP->Instance->CCER &= ~(this->OtpCopChnl);
                         // Clear the output enabling pin for the STEP pulse
+
+                this->InterruptSetup(); // Check for any other move requests
             }
         }
     }
