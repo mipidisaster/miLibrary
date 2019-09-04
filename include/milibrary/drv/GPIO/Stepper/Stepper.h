@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.h
  * @author      Thomas
- * @version     V2.1
- * @date        16 Jun 2019
+ * @version     V2.2
+ * @date        23 Aug 2019
  * @brief       Header file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -100,8 +100,8 @@
  *        ________________________________       _____________________________       ___________
  * Auxi   ________________________________X-----X_____________________________X-----X___________
  *
- * Pulse configured such that first toggle occurs when TIMER = 3, and second toggle occurs when
- * it equals 4 (DMA manages this)
+ * Pulse configured such that first toggle occurs when TIMER = 50, and second toggle occurs when
+ * it equals 55 (DMA manages this)
  * CInt     - Counter Interrupt, triggers at same time as rising edge of PULSE. Where the count is
  *            updated
  *            Additionally, the CPU will take some time to manage this interrupt, as well as
@@ -120,8 +120,6 @@
  * So real world plot of the above, will include additional "OvFlo" pulses during phases of change
  * of mode - Position and Disabled. Velocity to Velocity, no double tap will appear.
  *
- * Based upon the points above, the PULSE profile has been defined as 30 and 2; 30 counts for 1st
- * toggle, and 32 for 2nd toggle. This should contain sufficient margain for any target device.
  * The fastest frequency is user imposed as 100 counts.
  * 
  *************************************************************************************************/
