@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.cpp
  * @author      Thomas
- * @version     V2.2
- * @date        14 Nov 2018
+ * @version     V3.1
+ * @date        14 Sept 2018
  * @brief       Source file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -590,38 +590,9 @@ void SPIPeriph::FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxDa
 /**************************************************************************************************
  * Link input 8bit array pointer(s) to the provided SPI Request Form.
  *************************************************************************************************/
-    RequestForm->TxBuff.ptr8bit     = TxData;           // Pass Transmit Buffer to SPIForm
-    RequestForm->TxBufType          = Form::Array8bit;  // Indicate that data type is 8bit array
+    RequestForm->TxBuff     = TxData;           // Pass Transmit Buffer to SPIForm
 
-    RequestForm->RxBuff.ptr8bit     = TxData;           // Pass Transmit Buffer to SPIForm
-    RequestForm->RxBufType          = Form::Array8bit;  // Indicate that data type is 8bit array
-}
-
-void SPIPeriph::FormWGenBuffer(Form *RequestForm, GenBuffer<uint8_t> *TxBuff,
-                                                  GenBuffer<uint8_t> *RxBuff) {
-/**************************************************************************************************
- * Link input GenBuffer pointer(s) to the provided SPI Request Form.
- *************************************************************************************************/
-    RequestForm->TxBuff.ptrGenBuf   = TxBuff;           // Pass Transmit Buffer to SPIForm
-    RequestForm->TxBufType          = Form::GenBuffer8bit;
-    // Indicate that data type is an 8bit GenBuffer
-
-    RequestForm->RxBuff.ptrGenBuf   = RxBuff;           // Pass Transmit Buffer to SPIForm
-    RequestForm->RxBufType          = Form::GenBuffer8bit;
-    // Indicate that data type is an 8bit GenBuffer
-}
-
-void SPIPeriph::FlushFormWritedData(Form *RequestForm, uint8_t count) {
-/**************************************************************************************************
- * Function will receive in the input request form, as well as the amount of data that has already
- * been written (so if zero, all data has been written).
- * Then depending upon if the source data for the write is of the "GenBuffer" type, it will Erase
- * any remaining data within the write buffer - so as to maintain consistency.
- *************************************************************************************************/
-    if (RequestForm->TxBufType == Form::GenBuffer8bit) {    // Check data is "GenBuffer"
-        RequestForm->TxBuff.ptrGenBuf->ReadErase((RequestForm->size - count));
-        // Then Erase the Transmit Buffer (write)
-    }
+    RequestForm->RxBuff     = RxData;           // Pass Transmit Buffer to SPIForm
 }
 
 uint8_t SPIPeriph::GetFormWriteData(Form *RequestForm) {
@@ -630,12 +601,8 @@ uint8_t SPIPeriph::GetFormWriteData(Form *RequestForm) {
  *************************************************************************************************/
     uint8_t tempval = 0;        // Temporary variable to store data value
 
-    if      (RequestForm->TxBufType == Form::Array8bit) {   // If data type is 8bit array
-        tempval = *(RequestForm->TxBuff.ptr8bit);           // Retrieve data from array
-        RequestForm->TxBuff.ptr8bit++;                      // Increment array pointer
-    }
-    else if (RequestForm->TxBufType == Form::GenBuffer8bit) // If data is GenBuffer
-        RequestForm->TxBuff.ptrGenBuf->OutputRead(&tempval);// Retrieve data from buffer
+    tempval = *(RequestForm->TxBuff);           // Retrieve data from array
+    RequestForm->TxBuff     += sizeof(uint8_t); // Increment array pointer
 
     return (tempval);       // Return value outside of function
 }
@@ -645,12 +612,8 @@ void SPIPeriph::PutFormReadData(Form *RequestForm, uint8_t readdata) {
  * Data read from the SPI external device is copied into the requested source location, as per
  * the SPI Request form
  *************************************************************************************************/
-    if      (RequestForm->RxBufType == Form::Array8bit) {   // If data type is 8bit array
-        *(RequestForm->RxBuff.ptr8bit) = readdata;          // Put data into array
-        RequestForm->RxBuff.ptr8bit++;                      // Increment array pointer
-    }
-    else if (RequestForm->RxBufType == Form::GenBuffer8bit) // If data is GenBuffer
-        RequestForm->RxBuff.ptrGenBuf->InputWrite(readdata);// Put data into buffer
+    *(RequestForm->RxBuff)  = readdata;         // Put data into array
+    RequestForm->RxBuff     += sizeof(uint8_t); // Increment array pointer
 }
 
 SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, uint16_t size) {
@@ -884,20 +847,19 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 #endif
 }
 
-void SPIPeriph::intMasterTransfer(uint16_t size,
-                                  GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
+void SPIPeriph::intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
                                   volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
- * This version of the SPI Form update functions, is expected to be only used for "Interrupt"
- * based communication, and therefore uses the "GenBuffer" handle input.
+ * Two arrays are provided which will contain the data to transmit, and the location to store
+ * read back data.
  *   This is an OVERLOADED function, used to populate the SPI Request Form, with the Chip select
  *   being managed by the hardware.
  *************************************************************************************************/
     SPIPeriph::Form RequestForm = this->GenericForm(HardwareCS(), size, fltReturn, cmpFlag);
     // Build the generic parts of the SPI Request Form
 
-    this->FormWGenBuffer(&RequestForm, TxBuff, RxBuff);
+    this->FormW8bitArray(&RequestForm, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
     this->FormQueue.InputWrite(RequestForm);
@@ -907,19 +869,18 @@ void SPIPeriph::intMasterTransfer(uint16_t size,
     this->SPIInterruptStart();
 }
 
-void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size,
-                                  GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
+void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
                                   volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
- * This version of the SPI Form update functions, is expected to be only used for "Interrupt"
- * based communication, and therefore uses the "GenBuffer" handle input.
+ * Two arrays are provided which will contain the data to transmit, and the location to store
+ * read back data.
  *   Second version of the OVERLOADED function.
  *   This version populates the form, but states that the Chip select is managed by the software.
  *************************************************************************************************/
     SPIPeriph::Form RequestForm = this->GenericForm(SoftwareGPIO(CS), size, fltReturn, cmpFlag);
 
-    this->FormWGenBuffer(&RequestForm, TxBuff, RxBuff);
+    this->FormW8bitArray(&RequestForm, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
     this->FormQueue.InputWrite(RequestForm);
@@ -1069,9 +1030,6 @@ void SPIPeriph::IRQHandle(void) {
             this->ClearBusOvrRun();                 // Clear the failure
             *(this->curForm.Flt)    = DevFlt::Overrun;      // Indicate a data overrun fault
 
-            // Flush the contents of the write buffer
-            this->FlushFormWritedData( &(this->curForm) , this->curCount );
-
             this->intReqFormCmplt();                // Complete the current request form
             this->SPIInterruptStart();              // Check if any new requests
                                                     // remain
@@ -1081,9 +1039,6 @@ void SPIPeriph::IRQHandle(void) {
             this->ClearBusModeFlt();                // Clear the fault (results in the SPI
                                                     // peripheral being disabled
             *(this->curForm.Flt)    = DevFlt::ModeFault;    // Indicate a mode fault has occurred
-
-            // Flush the contents of the write buffer
-            this->FlushFormWritedData( &(this->curForm) , this->curCount );
 
             this->intReqFormCmplt();                // Complete the current request form
             this->SPIInterruptStart();              // Check if any new requests

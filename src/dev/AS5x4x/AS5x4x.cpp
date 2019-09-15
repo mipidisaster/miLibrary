@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        21 Dec 2018
+ * @version     V2.1
+ * @date        14 Sept 2019
  * @brief       Source file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -124,7 +124,7 @@ void AS5x4x::WriteDataPacket(uint16_t PacketData) {
     this->wtBuff.InputWrite(PacketData);                // Put data into the buffer
 }
 
-uint16_t AS5x4x::SPIWriteChain(AS5x4x *device, uint16_t numchain, GenBuffer<uint8_t> *wtdata) {
+uint16_t AS5x4x::SPIWriteChain(AS5x4x *device, uint16_t numchain, uint8_t *wtdata) {
 /**************************************************************************************************
  * Externally callable function, which is able to cycle through the AS5x4x device(s) in the daisy
  * chain configuration - See the devices datasheet for how to configure a daisy chain.
@@ -176,15 +176,16 @@ uint16_t AS5x4x::SPIWriteChain(AS5x4x *device, uint16_t numchain, GenBuffer<uint
         device[i].wtBuff.OutputRead(&packetdata);   // Read from internal buffer (no need to check
                                                     // state, as already checked
 
-        wtdata->InputWrite(  (uint8_t) (packetdata >> 8)  );    // Take the MSByte of the packet
+        *wtdata         = (uint8_t) (packetdata >> 8);          // Take the MSByte of the packet
                                                                 // to transmit and put into SPI
                                                                 // buffer.
-        arraysize++;                                            // increment array size
+        arraysize++; wtdata += sizeof(uint8_t);                 // increment array size and pointer
 
-        wtdata->InputWrite(  (uint8_t) (packetdata)  );         // Take the LSByte of the packet
+
+        *wtdata         = (uint8_t) (packetdata);               // Take the LSByte of the packet
                                                                 // to transmit and put into SPI
                                                                 // buffer.
-        arraysize++;                                            // increment array size
+        arraysize++; wtdata += sizeof(uint8_t);                 // increment array size and pointer
     }
 
     return (arraysize);     // Once complete return the number of SPI array entries populated
@@ -285,7 +286,7 @@ void AS5x4x::deconstructAS5047D(uint16_t Address, uint16_t packetdata) {
 }
 
 uint8_t AS5x4x::SPIReadChain(AS5x4x *device, uint16_t numchain,
-                             GenBuffer<uint8_t> *rddata, uint16_t size) {
+                             uint8_t *rddata, uint16_t size) {
 /**************************************************************************************************
  * Externally callable function, which is able to cycle through the input SPI read data, read from
  * AS5x4x device(s) in the daisy chain configuration -  See the devices datasheet for how to
@@ -324,13 +325,15 @@ uint8_t AS5x4x::SPIReadChain(AS5x4x *device, uint16_t numchain,
 
     while(arraysize != size) {
         for (i = 0; i != numchain; i++) {
-            rddata->OutputRead(&MSB);   // The first entry will be the "MSB", so link to MSB
+            MSB = *rddata;              // The first entry will be the "MSB", so link to MSB
                                         // variable
-            arraysize++;                // Increment calculated array size
+            arraysize++; rddata += sizeof(uint8_t);     // Increment calculated array size
 
-            rddata->OutputRead(&LSB);   // The first entry will be the "LSB", so link to MSB
+
+            LSB = *rddata;              // The first entry will be the "LSB", so link to MSB
                                         // variable
-            arraysize++;                // Increment calculated array size
+            arraysize++; rddata += sizeof(uint8_t);     // Increment calculated array size
+
             // Can now populate the data into the AS5x4x internal read buffer
             device[i].rdBuff.InputWrite((uint16_t) ((MSB << 8) | LSB)); // Combine together MSB,
                                                                         // LSB and put into buffer
@@ -532,40 +535,20 @@ void AS5x4x::poleSPITransmit(SPIPeriph *Interface, GPIO *CS) {
  * is connected to other AS5x4x devices in a daisy chain, this function will not yield correct
  * data.
  *************************************************************************************************/
-    uint8_t writedata[3]= { 0 };            // Array to store the SPI write entries
-    uint8_t readdata[3] = { 0 };            // Array to store the SPI read entries
-
-    GenBuffer<uint8_t> wBuff(&writedata[0], 3);      // Convert into temporary buffer
-    GenBuffer<uint8_t> rBuff(&readdata[0], 3);       // Convert into temporary buffer
-
+    uint8_t writedata[2]= { 0 };            // Array to store the SPI write entries
+    uint8_t readdata[2] = { 0 };            // Array to store the SPI read entries
 
     while(this->checkDataRequest() != 0) {          // Keep cycling until the internal
                                                             // write buffer is empty
-        AS5x4x::SPIWriteChain(this, 1, &wBuff);             // Populate the SPI write array
+        AS5x4x::SPIWriteChain(this, 1, &writedata[0]);      // Populate the SPI write array
 
         Interface->poleMasterTransfer(CS, writedata, readdata, 2);  // Transmit data via SPI
 
-        rBuff.input_pointer = 2;    // Update read buffer to contain 2 entries
-
-        AS5x4x::SPIReadChain(this, 1, &rBuff, 2);           // Put the SPI read array into internal
-                                                            // read buffer
-
-        rBuff.QFlush();    // Flush all data in read buffer
-        wBuff.QFlush();    // Flush all data in write buffer
+        AS5x4x::SPIReadChain(this, 1, &readdata[0], 2);     // Put the SPI read array into
+                                                            // internal read buffer
     }
 
     this->readDataPacket();         // Read all data packets
-}
-
-void AS5x4x::reInitialise(void) {
-/**************************************************************************************************
- * This function is to be called when the internal mechanics of the class need to be reset. This
- * is likely to occur in fault situations, or at initialisation.
- *************************************************************************************************/
-    this->wtBuff.QFlush();                  // Clear the internal write buffer
-    this->rdBuff.QFlush();                  // Clear the internal read buffer
-
-    this->Flt           = DevFlt::Initialised;      // Set fault to initialised
 }
 
 void AS5x4x::poleSPITransmit(AS5x4x::Daisy *chain, SPIPeriph *Interface, GPIO *CS) {
@@ -587,34 +570,36 @@ void AS5x4x::poleSPITransmit(AS5x4x::Daisy *chain, SPIPeriph *Interface, GPIO *C
  *************************************************************************************************/
     uint16_t packetsize = 0;                // Variable to store number of bytes to transmit
 
-    uint8_t writedata[(AS5x4x_MAXChain * 2) + 1]= { 0 };// Array to store the SPI write entries
-    uint8_t readdata[(AS5x4x_MAXChain * 2) + 1] = { 0 };// Array to store the SPI read entries
-
-    GenBuffer<uint8_t> wBuff(&writedata[0], (AS5x4x_MAXChain * 2) + 1);     // Convert into temp
-    GenBuffer<uint8_t> rBuff(&readdata[0],  (AS5x4x_MAXChain * 2) + 1);     // buffer
+    uint8_t writedata[(AS5x4x_MAXChain * 2)]= { 0 };// Array to store the SPI write entries
+    uint8_t readdata[(AS5x4x_MAXChain * 2)] = { 0 };// Array to store the SPI read entries
 
     while(AS5x4x::checkDaisyRequest(chain) != 0) {      // Keep cycling till all devices in chain
                                                         // have no new requests to transmit
-        packetsize = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, &wBuff);
+        packetsize = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, &writedata[0]);
             // Populate the SPI write array
 
         Interface->poleMasterTransfer(CS, &writedata[0], &readdata[0], packetsize);
             // Transmit data via SPI
 
-        rBuff.input_pointer = packetsize;   // Update read buffer to contain number of entries
-                                            // transmitted.
-        AS5x4x::SPIReadChain(chain->Devices, chain->numDevices, &rBuff, packetsize);
+        AS5x4x::SPIReadChain(chain->Devices, chain->numDevices, &readdata[0], packetsize);
             // Put the SPI read array into internal read buffer(s) of devices in chain
-
-        rBuff.QFlush();    // Flush all data in read buffer
-        wBuff.QFlush();    // Flush all data in write buffer
     }
 
     AS5x4x::readDaisyPackets(chain);        // Read all data packets
 }
 
-void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,
-                               GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff,
+void AS5x4x::reInitialise(void) {
+/**************************************************************************************************
+ * This function is to be called when the internal mechanics of the class need to be reset. This
+ * is likely to occur in fault situations, or at initialisation.
+ *************************************************************************************************/
+    this->wtBuff.QFlush();                  // Clear the internal write buffer
+    this->rdBuff.QFlush();                  // Clear the internal read buffer
+
+    this->Flt           = DevFlt::Initialised;      // Set fault to initialised
+}
+
+void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uint8_t *wBuff,
                                volatile SPIPeriph::DevFlt *fltReturn, volatile uint8_t *cmpFlag,
                                uint8_t *cmpTarget) {
 /**************************************************************************************************
@@ -625,11 +610,12 @@ void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,
     uint16_t numbytes = 0;          // Number of bytes to be transmitted
     while(this->checkDataRequest() != 0) {                  // Keep cycling until the internal
                                                             // write buffer is empty
-        numbytes = AS5x4x::SPIWriteChain(this, 1, wBuff);  // Populate the GenBuffer
+        numbytes = AS5x4x::SPIWriteChain(this, 1, &wBuff[*cmpTarget]);  // Populate the transmit
+                                                                        // array
 
         // Now build the SPI Request Form:
         hal_SPI->intMasterTransfer(CS, numbytes,
-                                   wBuff, rBuff,
+                                   &wBuff[*cmpTarget], &rBuff[*cmpTarget],
                                    fltReturn, cmpFlag);
 
         *cmpTarget += numbytes;     // Update target count
@@ -637,7 +623,7 @@ void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,
 }
 
 void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,  Daisy *chain,
-                               GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff) {
+                               uint8_t *rBuff, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request for transmission of data to multiple devices in a specific "Daisy"
  * format
@@ -649,10 +635,10 @@ void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,  Daisy *chain,
     while(AS5x4x::checkDaisyRequest(chain) != 0) {      // Keep cycling till all devices in chain
                                                         // have no new requests to transmit
 
-        numbytes = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, wBuff);
+        numbytes = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, &wBuff[chain->Trgt]);
 
         hal_SPI->intMasterTransfer(CS, numbytes,
-                                   wBuff, rBuff,
+                                   &wBuff[chain->Trgt], &rBuff[chain->Trgt],
                                    &(chain->Flt), &(chain->Cmplt));
 
         chain->Trgt += numbytes;    // Update target count

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.h
  * @author      Thomas
- * @version     V2.1
- * @date        09 Mar 2019
+ * @version     V3.1
+ * @date        14 Sept 2019
  * @brief       Header file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -277,8 +277,7 @@ protected:  /*******************************************************************
     void WriteDataPacket(uint16_t PacketData);          // Check data for parity, and put into
                                                         // Buffer
 
-
-    static uint16_t SPIWriteChain(AS5x4x *device, uint16_t numchain, GenBuffer<uint8_t> *wtdata);
+    static uint16_t SPIWriteChain(AS5x4x *device, uint16_t numchain, uint8_t *wtdata);
 
     void deconstructAS5048A(uint16_t Address, uint16_t packetdata); // Deconstruct AS5048A data
     void deconstructAS5047D(uint16_t Address, uint16_t packetdata); // Deconstruct AS5047D data
@@ -289,8 +288,7 @@ public:     /*******************************************************************
              *  Visible functions which are generic for any use of the SPI peripheral.
              *  Are used to build up a "queue" of requests on the selected AS5x4x device
              *************************************************************************************/
-    static uint8_t SPIReadChain(AS5x4x *device, uint16_t numchain,
-                                GenBuffer<uint8_t> *rddata, uint16_t size);
+    static uint8_t SPIReadChain(AS5x4x *device, uint16_t numchain, uint8_t *rddata, uint16_t size);
 
     void constructNOP(void);            // Function to request a NOP transmission
     void constructCEF(void);            // Function to request a CEF transmission
@@ -329,13 +327,12 @@ public:     /*******************************************************************
              *************************************************************************************/
     void reInitialise(void);                                // Initialise the write/read internal
                                                             // request buffers
-    void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,
-                           GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff,
+    void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uint8_t *wBuff,
                            volatile SPIPeriph::DevFlt *fltReturn, volatile uint8_t *cmpFlag,
                            uint8_t *cmpTarget);
 
     static void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, Daisy *chain,
-                                  GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
+                                  uint8_t *rBuff, uint8_t *wBuff);
 
     virtual ~AS5x4x();
 };

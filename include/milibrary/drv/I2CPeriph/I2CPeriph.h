@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.h
  * @author      Thomas
- * @version     V1.3
- * @date        08 Nov 2018
+ * @version     V2.1
+ * @date        15 Sept 2019
  * @brief       Header file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -87,17 +87,16 @@
  *
  *  [#] I2C Request Form System
  *      ~~~~~~~~~~~~~~~~~~~~~~~
- *      Whilst utilising interrupt based communication, the I2C Device will utilise a I2C Request
- *      Form system, so as to ensure that each of the multiple source functions wanting to
- *      communication with multiple I2C devices, is done correctly and effectively.
+ *      Whilst utilising minimised CPU loaded communication, the I2C Device will utilise a I2C
+ *      Request Form system, so as to ensure that each of the multiple source functions wanting to
+ *      communicate with multiple I2C devices, is done correctly and effectively.
  *      Each of the source functions will generate a Request Form, which will then be placed into
  *      the target I2C device Form queue, such that the I2C device can go through each of these
  *      forms in sequence; each form will contain the following:
  *          Target device's I2C Address
  *          Number of packets to transmit (8bits x N)
  *          I2C Request and Mode
- *          Location for where data is to be taken/stored < This is a union, to handle
- *                                                          multiple data types
+ *          Location for where data is to be taken/stored
  *          Communication complete return flag      (will be updated with the amount of packets
  *                                                   transmitted successfully)
  *          I2C communication fault return flag
@@ -105,15 +104,11 @@
  *      Function list (all are protected):
  *          ".GenericForm"          - Populate generic entries of the I2C Form (outputs structure)
  *          ".FormW8bitArray"       - Link form to a 8bit array location
- *          ".FormWGenBuffer"       - Link form to a GenBuffer (8bit) location
  *          ".specificRequest"      - OVERLOADED function, for putting a request onto the target
  *                                    I2C's form queue (handles both 8bit, and GenBuffer inputs)
  *
  *          ".GetFormWriteData"     - Retrieve data from I2C Form's requested location
  *          ".PutFormReadData"      - Write data to location specified by current I2C Form
- *          ".FlushFormWritedData"  - Function will wipe any remaining data from the buffer if
- *                                    I2C request was for "WRITE", and the data type is
- *                                    "GenBuffer".
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
@@ -144,13 +139,7 @@
 #endif
 
 // Defines specific within this class
-#define FlushWriteForm(__FORM__, __REQ__, __SIZE__)                         \
-    ({                                                                      \
- if (__FORM__.BuffType == Form::GenBuffer8bit) {                            \
-     if (__REQ__ == Request::START_WRITE)                                   \
-         __FORM__.Buff.ptrGenBuf->ReadErase((__FORM__.size - __SIZE__));    \
- }                                                                          \
- })
+// None
 
 // Types used within this class
 // Defined within the class, to ensure are contained within the correct scope
@@ -194,27 +183,17 @@ public:
                                                     // communicating
 
     typedef struct {            // I2C Form structure, used to manage I2C Communication interrupts
-        uint16_t        devAddress;         // State the I2C Address to be used
-        uint16_t        size;               // State the amount of data to be transfered
+        uint16_t                devAddress; // State the I2C Address to be used
+        uint16_t                size;       // State the amount of data to be transfered
 
-        union DataUnion  {                      // Union used to contain the data type pointer
-            uint8_t               *ptr8bit;     //   8bit array
-            GenBuffer<uint8_t>    *ptrGenBuf;   //   GenBuffer pointer
-        } Buff;
+        uint8_t                 *Buff;      // Pointer to array to contain data
 
-        enum DataType : uint8_t {               // Enumerate type to support union
-            Array8bit       = 0,                // Set for 8bit array (union points to 8bit array)
-            GenBuffer8bit   = 1                 // Set for GenBuffer class pointer (union points
-                                                // to GenBuffer)
-        } BuffType;                             // Name of enumerate within structure
+        Request                 Reqst;      // State the Request type
+        CommMode                Mode;       // State the Mode
 
-        Request         Reqst;                  // State the Request type
-        CommMode        Mode;                   // State the Mode
-
-
-        volatile uint8_t         *Cmplt;    // Provide a pointer to a "Complete" flag (will be
+        volatile uint8_t        *Cmplt;     // Provide a pointer to a "Complete" flag (will be
                                             // incremented) - to be cleared by source function
-        volatile DevFlt          *Flt;      // Provide a pointer to a I2CPeriph::DevFlt for the
+        volatile DevFlt         *Flt;       // Provide a pointer to a I2CPeriph::DevFlt for the
                                             // I2C fault status to be provided to source
                                             // function
     }   Form;
@@ -348,21 +327,10 @@ protected:  /*******************************************************************
                             volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *pData);
-    static void FormWGenBuffer(Form *RequestForm, GenBuffer<uint8_t> *genBuff);
-
-    void FlushFormWritedData(Form *RequestForm, uint8_t count);
-    // If a fault has occurred during the communication. This function is to be called, to wipe
-    // any of the excess write request data - specifically if data format is "GenBuffer", as
-    // other downstream functions may be utilising the same "GenBuffer" for there communication.
-    // Therefore need to retain data consistency.
 
     void specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
                             CommMode mode, Request reqst,
                             volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
-
-    void specificRequest(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-                                CommMode mode, Request reqst,
-                                volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static uint8_t GetFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
@@ -395,7 +363,7 @@ public:     /*******************************************************************
     void configBusSTOPIT(InterState intr);      // Configure the BUS Stop interrupt
     void configBusErroIT(InterState intr);      // Configure the BUS Error interrupt
 
-    void intMasterReq(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
+    void intMasterReq(uint16_t devAddress, uint8_t size, uint8_t *Buff,
                       CommMode mode, Request reqst,
                       volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 

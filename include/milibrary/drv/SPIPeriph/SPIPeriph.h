@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.h
  * @author      Thomas
- * @version     V2.2
- * @date        14 Nov 2018
+ * @version     V3.1
+ * @date        14 Sept 2018
  * @brief       Header file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -79,16 +79,15 @@
  *
  *  [#] SPI Request Form System
  *      ~~~~~~~~~~~~~~~~~~~~~~~
- *      Whilst utilising interrupt based communication, the SPI Device will utilise a SPI Request
- *      Form system, so as to ensure that each of the multiple source functions wanting to
- *      communication with multiple SPI devices, is done correctly and effectively.
+ *      Whilst utilising minimised CPU loaded communication, the SPI Device will utilise a SPI
+ *      Request Form system, so as to ensure that each of the multiple source functions wanting to
+ *      communicate with multiple SPI devices, is done correctly and effectively.
  *      Each of the source functions will generate a Request Form, which will then be placed into
  *      the target SPI device Form queue, such that the SPI device can go through each of these
  *      forms in sequence; each form will contain the following:
  *          Target device's Chip Select management (hardware/software)
  *          Number of packets to transmit/receive (8bits x N)
- *          Location for where data is to be taken/stored < This is a union, to handle
- *                                                          multiple data types
+ *          Location for where the data is to be taken/stored
  *          Communication complete return flag      (will be updated with the amount of packets
  *                                                   transmitted successfully)
  *          SPI communication fault return flag
@@ -96,13 +95,9 @@
  *      Function list (all are protected):
  *          ".GenericForm"          - Populate generic entries of the SPI Form (outputs structure)
  *          ".FormW8bitArray"       - Link form to a 8bit array location
- *          ".FormWGenBuffer"       - Link form to a GenBuffer (8bit) location
  *
  *          ".GetFormWriteData"     - Retrieve data from SPI Form's requested location
  *          ".PutFormReadData"      - Write data to location specified by current SPI Form
- *          ".FlushFormWritedData"  - Function will wipe any remaining data from the buffer if
- *                                    SPI request was for "WRITE", and the data type is
- *                                    "GenBuffer".
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
@@ -185,23 +180,11 @@ public:
     }   CSHandle;
 
     typedef struct {            // SPI Form structure, used to manage SPI Communication interrupts
-        CSHandle        devLoc;             // Location to trigger the Chip Select
-        uint16_t        size;               // State the amount of data to be transfered
+        CSHandle                devLoc;     // Location to trigger the Chip Select
+        uint16_t                size;       // State the amount of data to be transfered
 
-        union DataUnion  {                      // Union used to contain the data type pointer
-            uint8_t               *ptr8bit;     //   8bit array
-            GenBuffer<uint8_t>    *ptrGenBuf;   //   GenBuffer pointer
-        }   TxBuff;
-
-        enum DataType : uint8_t {               // Enumerate type to support union
-            Array8bit       = 0,                // Set for 8bit array (union points to 8bit array)
-            GenBuffer8bit   = 1                 // Set for GenBuffer class pointer (union points
-                                                // to GenBuffer)
-        } TxBufType;                            // Name of enumerate within structure for Transmit
-
-        DataUnion       RxBuff;                 // Same union to handle data source, but for
-                                                // Receive
-        DataType        RxBufType;              // Enumerate for data handling for Receive
+        uint8_t                 *TxBuff;    // Pointer to data to transmit
+        uint8_t                 *RxBuff;    // Pointer to data to be read back
 
 
         volatile uint8_t         *Cmplt;    // Provide a pointer to a "Complete" flag (will be
@@ -328,14 +311,6 @@ protected:  /*******************************************************************
                             volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData);
-    static void FormWGenBuffer(Form *RequestForm, GenBuffer<uint8_t> *TxBuff,
-                                                  GenBuffer<uint8_t> *RxBuff);
-
-    void FlushFormWritedData(Form *RequestForm, uint8_t count);
-    // If a fault has occurred during the communication. This function is to be called, to wipe
-    // any of the excess write request data - specifically if data format is "GenBuffer", as
-    // other downstream functions may be utilising the same "GenBuffer" for there communication.
-    // Therefore need to retain data consistency.
 
     static uint8_t GetFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
@@ -366,12 +341,10 @@ public:     /*******************************************************************
     void configReceiveIT(InterState intr);      // Configure the Receive full interrupt
     void configBusErroIT(InterState intr);      // Configure the BUS Error interrupt
 
-    void intMasterTransfer(uint16_t size,
-                           GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
+    void intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
 
-    void intMasterTransfer(GPIO *CS, uint16_t size,
-                           GenBuffer<uint8_t> *TxBuff, GenBuffer<uint8_t> *RxBuff,
+    void intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
     // Above OVERLOADED function "intMasterTransfer" takes the input parameters and uses this to
     // populate a SPI Request Form, and then add this to the Device Queue.
@@ -380,14 +353,6 @@ public:     /*******************************************************************
                                                 // wait (doesn't actually wait)
     void intReqFormCmplt(void);                 // Closes out the input Request Form
     void IRQHandle(void);                       // Interrupt Handle for SPI Device
-
-public:     /**************************************************************************************
-             * ==  PUBLIC   == >>>    DMA FUNCTIONS FOR DATA TRANSFER    <<<
-             *   -----------
-             *  Visible functions used to transfer data via DMA SPI - all handling of data to the
-             *  SPI hardware is managed outside of processor, and managed by dedicated hardware.
-             *************************************************************************************/
-
 
         virtual ~SPIPeriph();
 };

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.cpp
  * @author      Thomas
- * @version     V1.1
- * @date        08 Nov 2018
+ * @version     V2.1
+ * @date        15 Sept 2019
  * @brief       Source file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -164,7 +164,7 @@ AD741x::Form AD741x::AddressForm(uint8_t newAdd, AD741x::Form::Dir Direction) {
     return(newForm);
 }
 
-uint8_t AD741x::UpdateAddressPointer(GenBuffer<uint8_t> *buff, uint8_t newval) {
+uint8_t AD741x::UpdateAddressPointer(uint8_t *buff, uint8_t newval) {
 /**************************************************************************************************
  * Function will put the new Address Pointer request into the input Buffer.
  * Buffer needs to be added, so as to allow for use of other buffers other than the internal
@@ -176,13 +176,12 @@ uint8_t AD741x::UpdateAddressPointer(GenBuffer<uint8_t> *buff, uint8_t newval) {
  *************************************************************************************************/
     this->AdBuff.InputWrite(this->AddressForm(newval, Form::Write));
 
-    buff->InputWrite(newval);               // Update the input buffer with new entry
+    *(buff) = newval;           // Update the input buffer with new entry
 
     return (1);         // Return number of bytes to be written to I2C
 }
 
-uint8_t AD741x::UpdateConfigReg(GenBuffer<uint8_t> *buff,
-                                PwrState Mode, FiltState Filt, OneShot Conv) {
+uint8_t AD741x::UpdateConfigReg(uint8_t *buff, PwrState Mode, FiltState Filt, OneShot Conv) {
 /**************************************************************************************************
  * Function will put the new Configuration write request into the input "buffer".
  *
@@ -205,7 +204,8 @@ uint8_t AD741x::UpdateConfigReg(GenBuffer<uint8_t> *buff,
         newreg |= AD741x_OneShot;       // Set the "OneShot" bit
     }
 
-    buff->InputWrite(newreg);           // Put new Configuration contents into queue
+    buff    += sizeof(uint8_t); // Update pointer
+    *(buff) = newreg;           // Put new Configuration contents into queue
 
     return (2);         // Return number of bytes to be written to I2C
 }
@@ -264,7 +264,7 @@ void AD741x::DecodeTempReg(uint8_t *pData) {
     this->Temp = ((float)this->TempReg) / 4;            // Take value and divide by 4, to get degC
 }
 
-AD741x::DevFlt AD741x::deconstructData(GenBuffer<uint8_t> *readData, uint16_t size) {
+AD741x::DevFlt AD741x::deconstructData(uint8_t *readData, uint16_t size) {
 /**************************************************************************************************
  * Function will go through the entries within "Read Buffer", and decode them.
  *  First will check to see if the "Address Pointer" was to be updated; entry will be queued
@@ -296,7 +296,8 @@ AD741x::DevFlt AD741x::deconstructData(GenBuffer<uint8_t> *readData, uint16_t si
         if      (this->AddressPointer == AD741x_ConfigReg)      {   // If Address is the "Config
                                                                     // Register"
             uint8_t tmp = 0;                    // Generate variable to store register state
-            readData->OutputRead(&tmp);         // Put data into variable
+            tmp = *readData;                    // Put data into variable
+            readData    += sizeof(uint8_t);     // Increment array pointer
 
             this->DecodeConfig(tmp);            // Decode the Configuration register
             size -= 1;
@@ -306,14 +307,8 @@ AD741x::DevFlt AD741x::deconstructData(GenBuffer<uint8_t> *readData, uint16_t si
             if (size < 2) { return(this->Flt = DevFlt::SizeReqst); }    // If size is wrong, set
                                                                         // FAULT
 
-            uint8_t temp[2] = { 0 };            // If size is good, then create temp array
-
-            // Retrieve 2 bytes from queue (and ensure that 2 entries are retrieved)
-            if (readData->QuickRead(&temp[0], 2) != 2) {        // Check buffer size
-                return(this->Flt = DevFlt::SizeReqst);          // If size is wrong, set FAULT
-            }   // If size is wrong, set
-            this->DecodeTempReg(&temp[0]);      // Convert read data into actual values
-
+            this->DecodeTempReg(readData);          // Convert read data into actual values
+            readData    += 2 * (sizeof(uint8_t));   // Increment array pointer (by 2 bytes)
             size -= 2;
         }
         else
@@ -348,8 +343,7 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Configuration Register, and then copy contents into Class.
  *************************************************************************************************/
-    uint8_t rData[4] = { 0 };                   // Array to contain the Temperature values
-    GenBuffer<uint8_t> tempBuff(&rData[0], 4);  // Generate "GenBuffer" wrapper for temp array
+    uint8_t rData[1] = { 0 };                   // Array to contain the Temperature values
 
     uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
@@ -357,7 +351,7 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
         // equal to Configuration register.
         // Then request update to the Address pointer
-        packetsize = this->UpdateAddressPointer(&tempBuff, AD741x_ConfigReg);
+        packetsize = this->UpdateAddressPointer(&rData[0], AD741x_ConfigReg);
             // Request Address Pointer update
 
         // Then transmit the updated request via I2C
@@ -372,16 +366,11 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
     // Ensure it is captured within the queue, and set to READ. Such that the decode will
     // check for any read backs
 
-    tempBuff.QFlush();              // Quickly flush the contents of the Buffer
-
     // Then commence a read of the Temperature Registers
     if ( hal_I2C->poleMasterReceive(this->I2CAddress, &rData[0], 1) != I2CPeriph::DevFlt::None )
         return (this->Flt = DevFlt::Fault);
 
-    tempBuff.input_pointer = 1;             // Update the input queue to indicate that 2 entries
-                                            // have been populated
-
-    return (this->deconstructData(&tempBuff, 1));       // Decode data, and return any faults
+    return (this->deconstructData(&rData[0], 1));       // Decode data, and return any faults
                                                         // generated
 }
 
@@ -391,12 +380,11 @@ AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *hal_I2C,
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Configuration Register, and then copy contents into Class.
  *************************************************************************************************/
-    uint8_t rData[4] = { 0 };                   // Array to contain the Temperature values
-    GenBuffer<uint8_t> tempBuff(&rData[0], 4);  // Generate "GenBuffer" wrapper for temp array
+    uint8_t rData[2] = { 0 };                   // Array to contain the Temperature values
 
     uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
-    packetsize = this->UpdateConfigReg(&tempBuff, Mode, Filt, Conv);
+    packetsize = this->UpdateConfigReg(&rData[0], Mode, Filt, Conv);
         // Request a write of the Configuration register
 
     // Then transmit the updated request via I2C
@@ -412,8 +400,7 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Temperature Register, and then calculate the actual reading.
  *************************************************************************************************/
-    uint8_t rData[4] = { 0 };                   // Array to contain the Temperature values
-    GenBuffer<uint8_t> tempBuff(&rData[0], 4);  // Generate "GenBuffer" wrapper for temp array
+    uint8_t rData[2] = { 0 };           // Array to contain the Temperature values
 
     uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
@@ -421,7 +408,7 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
         // equal to Temperature register.
         // Then request update to the Address pointer
-        packetsize = this->UpdateAddressPointer(&tempBuff, AD741x_TemperatureReg);
+        packetsize = this->UpdateAddressPointer(&rData[0], AD741x_TemperatureReg);
             // Request Address Pointer update
 
         // Then transmit the updated request via I2C
@@ -436,16 +423,11 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
     // Ensure it is captured within the queue, and set to READ. Such that the decode will
     // check for any read backs
 
-    tempBuff.QFlush();              // Quickly flush the contents of the Buffer
-
     // Then commence a read of the Temperature Registers
     if ( hal_I2C->poleMasterReceive(this->I2CAddress, &rData[0], 2) != I2CPeriph::DevFlt::None )
         return (this->Flt = DevFlt::Fault);
 
-    tempBuff.input_pointer = 2;             // Update the input queue to indicate that 2 entries
-                                            // have been populated
-
-    return (this->deconstructData(&tempBuff, 2));       // Decode data, and return any faults
+    return (this->deconstructData(&rData[0], 2));       // Decode data, and return any faults
                                                         // generated
 }
 
@@ -460,8 +442,7 @@ void AD741x::reInitialise(void) {
     this->Flt           = DevFlt::Initialised;      // Set fault to initialised
 }
 
-void AD741x::intConfigRead(I2CPeriph *hal_I2C,
-                           GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff) {
+void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request for the contents of the Configuration Register
  *
@@ -476,11 +457,11 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C,
          * equal to the "Temperature Register".
          * Then need to generate a I2C Form to write a update to the Address pointer
          */
-        tempsize = this->UpdateAddressPointer(wBuff, AD741x_ConfigReg);
+        tempsize = this->UpdateAddressPointer(&wBuff[this->wtcmpTarget], AD741x_ConfigReg);
 
         hal_I2C->intMasterReq(this->I2CAddress,
                               tempsize,
-                              wBuff,
+                              &wBuff[this->wtcmpTarget],
                               I2CPeriph::CommMode::AutoEnd, I2CPeriph::Request::START_WRITE,
                               &(this->I2CWFlt), &(this->wtcmpFlag));
 
@@ -495,7 +476,7 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C,
 
     hal_I2C->intMasterReq(this->I2CAddress,
                           1,
-                          rBuff,
+                          &rBuff[this->rdcmpTarget],
                           I2CPeriph::CommMode::AutoEnd, I2CPeriph::Request::START_READ,
                           &(this->I2CRFlt), &(this->rdcmpFlag));
 
@@ -503,8 +484,7 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C,
 }
 
 void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
-                            PwrState Mode, FiltState Filt, OneShot Conv,
-                            GenBuffer<uint8_t> *wBuff) {
+                            PwrState Mode, FiltState Filt, OneShot Conv, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request for updating the contents of the Configuration Register
  *
@@ -513,19 +493,18 @@ void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
  *************************************************************************************************/
     uint8_t tempsize = 0;           // Variable to store the size of request
 
-    tempsize = this->UpdateConfigReg(wBuff, Mode, Filt, Conv);
+    tempsize = this->UpdateConfigReg(&wBuff[this->wtcmpTarget], Mode, Filt, Conv);
 
     hal_I2C->intMasterReq(this->I2CAddress,
                           tempsize,
-                          wBuff,
+                          &wBuff[this->wtcmpTarget],
                           I2CPeriph::CommMode::AutoEnd, I2CPeriph::Request::START_WRITE,
                           &(this->I2CWFlt), &(this->wtcmpFlag));
 
     this->wtcmpTarget   += tempsize;// Copy expected size to write complete target
 }
 
-void AD741x::intTempRead(I2CPeriph *hal_I2C,
-                         GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff) {
+void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request of temperature read of the AD741x device.
  *
@@ -540,11 +519,11 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C,
          * equal to the "Temperature Register".
          * Then need to generate a I2C Form to write a update to the Address pointer
          */
-        tempsize = this->UpdateAddressPointer(wBuff, AD741x_TemperatureReg);
+        tempsize = this->UpdateAddressPointer(&wBuff[this->wtcmpTarget], AD741x_TemperatureReg);
 
         hal_I2C->intMasterReq(this->I2CAddress,
                               tempsize,
-                              wBuff,
+                              &wBuff[this->wtcmpTarget],
                               I2CPeriph::CommMode::AutoEnd, I2CPeriph::Request::START_WRITE,
                               &(this->I2CWFlt), &(this->wtcmpFlag));
 
@@ -559,14 +538,14 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C,
 
     hal_I2C->intMasterReq(this->I2CAddress,
                           2,
-                          rBuff,
+                          &rBuff[this->rdcmpTarget],
                           I2CPeriph::CommMode::AutoEnd, I2CPeriph::Request::START_READ,
                           &(this->I2CRFlt), &(this->rdcmpFlag));
 
     this->rdcmpTarget   += 2;       // Put expected size of read back into read complete target
 }
 
-void AD741x::intCheckCommStatus(GenBuffer<uint8_t> *rBuff, uint16_t size) {
+void AD741x::intCheckCommStatus(uint8_t *rBuff, uint16_t size) {
 /**************************************************************************************************
  * Function needs to be called periodically, as this is used to check status of the interrupt
  * based communication, and then deconstruct the data if there is any available.

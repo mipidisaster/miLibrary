@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V1.3
- * @date        08 Nov 2018
+ * @version     V2.1
+ * @date        15 Sept 2019
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -649,47 +649,16 @@ void I2CPeriph::FormW8bitArray(I2CPeriph::Form *RequestForm, uint8_t *pData) {
 /**************************************************************************************************
  * Link input 8bit array pointer to the provided I2C Request Form.
  *************************************************************************************************/
-    RequestForm->Buff.ptr8bit   = pData;        // Pass data pointer to I2CForm
-    RequestForm->BuffType       = Form::Array8bit;
+    RequestForm->Buff       = pData;        // Pass data pointer to I2CForm
         // Indicate that data type is 8bit array.
 }
 
-void I2CPeriph::FormWGenBuffer(I2CPeriph::Form *RequestForm, GenBuffer<uint8_t> *genBuff) {
-/**************************************************************************************************
- * Link input GenBuffer pointer to the provided I2C Request Form.
- *************************************************************************************************/
-    RequestForm->Buff.ptrGenBuf = genBuff;      // Pass data pointer to I2CForm
-    RequestForm->BuffType       = Form::GenBuffer8bit;
-        // Indicate that data type is GenBuffer of 8bits
-}
-
-void I2CPeriph::FlushFormWritedData(Form *RequestForm, uint8_t count) {
-/**************************************************************************************************
- * Function will receive in the input request form, as well as the amount of data that has already
- * been written (so if zero, all data has been written).
- * Then depending upon if the source data for the write is of the "GenBuffer" type, it will Erase
- * any remaining data within the write buffer - so as to maintain consistency.
- *************************************************************************************************/
-    if (RequestForm->BuffType == Form::GenBuffer8bit) {     // Check data is "GenBuffer"
-
-        if (this->curReqst == Request::START_WRITE) {       // If this is a write request
-            RequestForm->Buff.ptrGenBuf->ReadErase((RequestForm->size - count));
-        }
-    }
-}
-
-/**************************************************************************************************
- * I2CSpecificRequest is an overloaded function, so has multiple uses.
- *  The first   is the "default", where the input data request type is an 8bit array
- *  The second  is the same as "default", however the datatype provided is the class "GenBuffer"
- *************************************************************************************************/
 void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
                         CommMode mode, Request reqst,
                         volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
- * OVERLOADED function used to populate the internal I2C Form stack, with the input requested
- * communication.
- * This version of the function will receive in the 8bit array version of the data type.
+ * Function used to populate the internal I2C Form stack, with the input requested communication.
+ * Data comes from an array (pointer - pData)
  *************************************************************************************************/
     I2CPeriph::Form RequestForm = this->GenericForm(devAddress, size, mode, reqst,
                                                     fltReturn, cmpFlag);
@@ -700,34 +669,14 @@ void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pDat
     this->FormQueue.InputWrite(RequestForm);    // Put request onto I2C Form Queue
 }
 
-void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
-                        CommMode mode, Request reqst,
-                        volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
-/**************************************************************************************************
- * OVERLOADED function used to populate the internal I2C Form stack, with the input requested
- * communication.
- * This version of the function will receive in the GenBuffer class 8bit buffer.
- *************************************************************************************************/
-    I2CPeriph::Form RequestForm = this->GenericForm(devAddress, size, mode, reqst,
-                                                    fltReturn, cmpFlag);
-
-    this->FormWGenBuffer(&RequestForm, genBuff);
-
-    this->FormQueue.InputWrite(RequestForm);    // Put request onto I2C Form Queue
-}
-
 uint8_t I2CPeriph::GetFormWriteData(Form *RequestForm) {
 /**************************************************************************************************
  * Retrieve the next data point to write to external device from the selected I2C Request form
  *************************************************************************************************/
     uint8_t tempval = 0;        // Temporary variable to store data value
 
-    if      (RequestForm->BuffType == Form::Array8bit) {    // If data type is 8bit array
-        tempval = *(RequestForm->Buff.ptr8bit);             // Retrieve data from array
-        RequestForm->Buff.ptr8bit++;                        // Increment array pointer
-    }
-    else if (RequestForm->BuffType == Form::GenBuffer8bit)  // If data is GenBuffer
-        RequestForm->Buff.ptrGenBuf->OutputRead(&tempval);  // Retrieve data from buffer
+    tempval = *(RequestForm->Buff);             // Retrieve data from array
+    RequestForm->Buff       += sizeof(uint8_t); // Increment array pointer
 
     return (tempval);       // Return value outside of function
 }
@@ -737,12 +686,8 @@ void I2CPeriph::PutFormReadData(Form *RequestForm, uint8_t readdata) {
  * Data read from the I2C external device is copied into the requested source location, as per
  * the I2C Request form
  *************************************************************************************************/
-    if      (RequestForm->BuffType == Form::Array8bit) {    // If data type is 8bit array
-        *(RequestForm->Buff.ptr8bit) = readdata;            // Put data into array
-        RequestForm->Buff.ptr8bit++;                        // Increment array pointer
-    }
-    else if (RequestForm->BuffType == Form::GenBuffer8bit)  // If data is GenBuffer
-        RequestForm->Buff.ptrGenBuf->InputWrite(readdata);  // Put data into buffer
+    *(RequestForm->Buff)    = readdata;         // Put data into array
+    RequestForm->Buff       += sizeof(uint8_t); // Increment array pointer
 }
 
 I2CPeriph::DevFlt I2CPeriph::poleMasterTransmit(uint16_t devAddress, uint8_t *pdata,
@@ -1105,7 +1050,7 @@ void I2CPeriph::configBusErroIT(InterState intr) {
 #endif
 }
 
-void I2CPeriph::intMasterReq(uint16_t devAddress, uint8_t size, GenBuffer<uint8_t> *genBuff,
+void I2CPeriph::intMasterReq(uint16_t devAddress, uint8_t size, uint8_t *Buff,
                              CommMode mode, Request reqst,
                              volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
 /**************************************************************************************************
@@ -1116,7 +1061,7 @@ void I2CPeriph::intMasterReq(uint16_t devAddress, uint8_t size, GenBuffer<uint8_
     // Put request into Form Queue
     this->specificRequest(devAddress,
                           size,
-                          genBuff,
+                          Buff,
                           mode, reqst,
                           fltReturn, cmpFlag
                          );
@@ -1137,11 +1082,6 @@ void I2CPeriph::I2CInterruptStart(void) {
         // Check current form to see if a fault has already been detected - therefore any new
         // request is no longer valid
         while (  *(this->curForm.Flt) != I2CPeriph::DevFlt::None  ) {
-            // Flush the contents of the write buffer
-            //this->FlushFormWritedData( &(this->curForm) , this->curCount );
-
-            FlushWriteForm( this->curForm , this->curReqst , this->curCount );
-
             // If there is a fault in request form, check to see if there is a new request
             if ( this->FormQueue.State() == GenBuffer_Empty ) { // If buffer is empty, break out
                 //this->Disable();
@@ -1293,10 +1233,6 @@ void I2CPeriph:: IRQEventHandle(void) {
     if ( (this->BusNACKChk() & this->BusNACKITChk()) == 0x01) {     // If I2C NACK received
         this->ClearNACK();                                          // Clear the NACK status
         *(this->curForm.Flt)    = DevFlt::NACK;                     // Set requested fault flag
-
-        // Flush the contents of the write buffer
-        //this->FlushFormWritedData( &(this->curForm) , this->curCount );
-        FlushWriteForm( this->curForm , this->curReqst , this->curCount );
 
         // Flush the contents of the Transmit buffer
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

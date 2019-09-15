@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V2.1
- * @date        09 Mar 2019
+ * @version     V3.1
+ * @date        15 Sept 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -300,18 +300,17 @@ protected:  /*******************************************************************
     void GetAddress(void);          // Determine the Address from provided device number
     Form AddressForm(uint8_t newAdd, Form::Dir Direction);
 
-    uint8_t UpdateAddressPointer(GenBuffer<uint8_t> *buff, uint8_t newval);
+    uint8_t UpdateAddressPointer(uint8_t *buff, uint8_t newval);
     // Generate write request to update Address Pointer in AD741x device
     uint8_t LastAddresPointRqst(void);              // Retrieve the last Address Pointer request
 
-    uint8_t UpdateConfigReg(GenBuffer<uint8_t> *buff,
-                            PwrState Mode, FiltState Filt, OneShot Conv);
+    uint8_t UpdateConfigReg(uint8_t *buff, PwrState Mode, FiltState Filt, OneShot Conv);
     // Generate write request to update the Configuration Register
 
     void DecodeConfig(uint8_t data);                // Decode the Configuration Register
     void DecodeTempReg(uint8_t *pData);             // Decode the Temperature Registers
 
-    DevFlt deconstructData(GenBuffer<uint8_t> *readData, uint16_t size);
+    DevFlt deconstructData(uint8_t *readData, uint16_t size);
             // Go through input "GenBuffer" read data, and only deconstruct "size" entries.
 
 public:     /**************************************************************************************
@@ -339,19 +338,17 @@ public:     /*******************************************************************
              *************************************************************************************/
     void reInitialise(void);                                // Initialise the internal Address
                                                             // Pointer, etc.
-    void intConfigRead(I2CPeriph *hal_I2C,
-                       GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
+    void intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff);
         // Request read of Configuration Register
 
     void intConfigWrite(I2CPeriph *hal_I2C,
-                        PwrState Mode, FiltState Filt, OneShot Conv,
-                        GenBuffer<uint8_t> *wBuff);
+                        PwrState Mode, FiltState Filt, OneShot Conv, uint8_t *wBuff);
         // Request write to update contents of the Configuration Register
 
-    void intTempRead(I2CPeriph *hal_I2C, GenBuffer<uint8_t> *rBuff, GenBuffer<uint8_t> *wBuff);
+    void intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff);
         // Request temperature read
 
-    void intCheckCommStatus(GenBuffer<uint8_t> *rBuff, uint16_t size);
+    void intCheckCommStatus(uint8_t *rBuff, uint16_t size);
     // Will take the input parameters and decode the specified number of entries
 
     virtual ~AD741x();
