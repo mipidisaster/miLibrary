@@ -12,9 +12,6 @@
  *************************************************************************************************/
 #include "Dynamixel/Dynamixel.h"
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
 Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, uint16_t size,
@@ -91,91 +88,6 @@ Dynamixel::Dynamixel(const char *deviceloc, int baud, uint16_t size,
 #error "Unrecognised target device"
 
 #endif
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint16_t size)
-/**************************************************************************************************
- * Create Dynamixel UART class handler. This class is based upon the UARTDevice class, but adds
- * additional functions specific to communicating with the Dynamixel devices - XL-320 for example.
- *
- * The constructor will pass the input argument to the UARTDevice constructor, along with double
- * the requested size of the array.
- * <<NOTE>>
- * The input size will only be applied to the size of the "CommsBoard", the UARTDevice arrays -
- * "Transmit" and "Receive" will be set to DOUBLE the defined size - To ensure that these arrays
- * contain sufficient size to contain double the maximum size that can be communicated via single
- * wire UART.
- *
- * After the UARTDevice constructor, the specific constructor for Dynamixel will be called, this
- * will initialise all the states and arrays specific for communicating via the Dynamixel protocol.
- *************************************************************************************************/
-    : UARTDevice(UART_Handle, (2*size)) {       // Call UARTDevice constructor
-                                                //  (STM3232Fx Configuration)
-    this->State     = Dynm_Idle;                // Set initial state to "Idle"
-    this->SrcState  = Dynm_Nothing;             // Set search state to "Nothing"
-
-    this->CommsBoard = new uint8_t[size];       // Create array to store the data communication
-    //this->CommsBoard = new (uint8_t)(size);     // Create array to store the data communication
-
-    this->Length   = size;                      // Setup "Length" variable as per input size
-    this->watermark= size;                      // Set current watermark to input size - such that
-                                                // "CleanBoard()" will initialise full array
-
-    this->maxpoint = 0;                         // Set max point to "0"
-    this->curpoint = 0;                         // Set current point to "0"
-
-    this->CleanBoard();                         // Call CleanBoard function - will clear all
-                                                // entries upto current value of "maxpoint"
-    // Will also set "maxpoint" back to "0"
-
-}
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-Dynamixel::Dynamixel(const char *deviceloc, int baud, uint16_t size)
-/**************************************************************************************************
- * Create Dynamixel UART class handler. This class is based upon the UARTDevice class, but adds
- * additional functions specific to communicating with the Dynamixel devices - XL-320 for example.
- *
- * The constructor will pass the input arguments for device location and baudrate to the UARTDevice
- * constructor, along with double the requested size of the array.
- * <<NOTE>>
- * The input size will only be applied to the size of the "CommsBoard", the UARTDevice arrays -
- * "Transmit" and "Receive" will be set to DOUBLE the defined size - To ensure that these arrays
- * contain sufficient size to contain double the maximum size that can be communicated via single
- * wire UART.
- *
- * After the UARTDevice constructor, the specific constructor for Dynamixel will be called, this
- * will initialise all the states and arrays specific for communicating via the Dynamixel protocol.
- *************************************************************************************************/
-    : UARTDevice(deviceloc, baud, (2*size)) {   // Call UARTDevice constructor
-                                                //  (Raspberry Pi Configuration)
-    this->State     = Dynm_Idle;                // Set initial state to "Idle"
-    this->SrcState  = Dynm_Nothing;             // Set search state to "Nothing"
-
-    this->CommsBoard = new uint8_t[size];       // Create array to store the data communication
-
-    this->Length   = size;                      // Setup "Length" variable as per input size
-    this->watermark= size;                      // Set current watermark to input size - such that
-                                                // "CleanBoard()" will initialise full array
-
-    this->maxpoint = 0;                         // Set max point to "0"
-    this->curpoint = 0;                         // Set current point to "0"
-
-    this->CleanBoard();                         // Call CleanBoard function - will clear all
-                                                // entries upto current value of "maxpoint"
-    // Will also set "maxpoint" back to "0"
-}
-
-#else
-//==================================================================================================
-#error "Unrecognised target device"
-
-#endif
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -757,22 +669,7 @@ void Dynamixel::IRQHandle(void) {
 
 Dynamixel::~Dynamixel()
 {
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    delete [] CommsBoard;           // Delete the array for "CommsBoard"
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 uint16_t Dynamixel::update_crc(uint16_t crc_accum, uint8_t *data_blk_ptr,

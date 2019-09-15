@@ -62,10 +62,6 @@
  *
  *      --type-- can be changed for any type of variable uint8_t, uint16_t, etc. think this also
  *      include structures.
- *
- *  If "__LiteImplement__" has been defined, then the class will not use "use" or "delete" to
- *  minimise the size impact. However a fully defined array will need to be provided to the
- *  constructor call of this.
  *************************************************************************************************/
 #ifndef GENBUFFER_H_
 #define GENBUFFER_H_
@@ -116,21 +112,6 @@ class GenBuffer {
         // As have defined that the "GenBuffer" needs to be "Lite", then use of "new" and "delete"
         // is not required, therefore a fully defined array is to be provided, and used within
         // the class.
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        GenBuffer(uint32_t size);           // Overloaded Constructor of the buffer class, where
-                                            // the size of the buffer is defined
-
-        void SizeUpdate(uint32_t size);     // Update the size of the buffer
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         void Flush(void);                   // Clear the data within the buffer
         void QFlush(void);                  // Clear buffer, by setting pointers to 0

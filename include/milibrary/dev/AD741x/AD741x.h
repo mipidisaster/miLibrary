@@ -21,9 +21,6 @@
  *          Currently both devices are supported, however the additional functionality introduced
  *          within AD7414 has not been captured as of yet.
  *
- *      If in "LiteImplementation" mode, then use of functions like "new"/"delete" are not
- *      supported, therefore the class constructor which supports this is removed from compiler.
- *
  *      Depending upon how the programmer has setup the I2C Device, will change which of the
  *      functions listed below can be used:
  *      For function to wait for new data, or data to be transmitted utilise "poling mode":
@@ -258,27 +255,6 @@ public:
 
         AD741x(void);                           // Basic constructor for AS5x4x class
         AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        AD741x(DevPart DeviceNum, AddrBit ASPin);       // Basic constructor for class, the
-                                                        // internal buffers are set to default
-                                                        // size
-
-        AD741x(DevPart DeviceNum, AddrBit ASPin, uint32_t AddBuffSize, uint32_t CommBuffSize);
-        // Basic constructore for the class, where the sizes of both the internal Address and
-        // communication buffers has been provided. These buffers will be constructed within
-        // this function call
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<

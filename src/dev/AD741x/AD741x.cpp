@@ -74,29 +74,6 @@ AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormS
     this->create(DeviceNum, ASPin, FormArray, FormSize);
 }
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, uint32_t AddBuffSize, uint32_t CommBuffSize) {
-/**************************************************************************************************
- * Default constructor of the AD741x with use of internal buffer construction using the sizes
- * provided as inputs.
- *************************************************************************************************/
-    this->popGenParam(DeviceNum, ASPin);    // Populate generic parameters
-
-    // Configure the internal buffers as per the input specified sizes:
-    this->AdBuff    = new GenBuffer<Form>(AddBuffSize);         // Construct AD741x Form buffer
-}
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 void AD741x::GetAddress(void) {
 /**************************************************************************************************
  * Function will bring in the PartNumber and AddressPin provided to the class, and determine what

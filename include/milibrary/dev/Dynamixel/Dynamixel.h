@@ -56,10 +56,6 @@
  *          ".UpdateWaterMark"      - Update watermark used to determine how much of "CommsBoard"
  *                                    has been used between cleans
  *
- *  If "__LiteImplement__" has been defined, then the class will not use "use" or "delete" to
- *  minimise the size impact. Therefore fully defined "GenBuffers" need to be provided to the
- *  constructors of the Dynamixel class.
- *
  *      There is no other functionality within this class
  *************************************************************************************************/
 #ifndef DYNAMIXEL_DYNAMIXEL_H_
@@ -134,50 +130,19 @@ class Dynamixel : public UARTDevice {
 // Device specific entries
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public:
         Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, uint16_t size,
                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
         // Setup the Dynamixel interface by providing the UART handle provided by cubeMX, along
         // with fully defined arrays and "GenBuffers" for internal data management
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint16_t size);
-        // Setup the Dynamixel interface by providing the UART handle provided by cubeMX, along
-        // the size for the internal buffer arrays
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public:
         Dynamixel(const char *deviceloc, int baud, uint16_t size,
                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)
         // Setup the Dynamixel interface by device location, and desired baudrate. Also requires
         // fully defined arrays and "GenBuffers" for internal data management
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        Dynamixel(const char *deviceloc, int baud, uint16_t size);
-        // Setup the Dynamixel interface by device location, and desired baudrate. Also requires
-        // fully defined arrays and "GenBuffers" for internal data management
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #else
 //==================================================================================================
     public:

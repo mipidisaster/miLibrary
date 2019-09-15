@@ -67,30 +67,6 @@ AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size
     this->create(Device, wtBuff, rdBuff, size);
 }
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-AS5x4x::AS5x4x(_AS5x4xDev Device, uint32_t Buffersize) {
-/**************************************************************************************************
- * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided.
- * The class construction will initialise all the parameters, and set the fault state to
- * initialised.
- *************************************************************************************************/
-    this->popGenParam();                        // Populate generic class parameters
-    this->Device        = Device;               // Store the device
-
-    // Setup buffer pointers:
-    this->wtBuff        = new GenBuffer<uint16_t>(Buffersize);
-    this->rdBuff        = new GenBuffer<uint16_t>(Buffersize);
-}
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 uint8_t AS5x4x::EvenParityCheck(uint16_t packet) {
 /**************************************************************************************************
  * Function will determine if the input data is an even parity
@@ -650,21 +626,5 @@ AS5x4x::~AS5x4x() {
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
  * to avoid "memory leakage"
  *************************************************************************************************/
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    delete [] rdBuff;           // Delete the array for "rdBuff"
-    delete [] wtBuff;           // Delete the array for "wtBuff"
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }

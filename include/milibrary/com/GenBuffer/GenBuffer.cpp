@@ -81,61 +81,6 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
     create(arrayloc, size);
 }
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Typ>
-GenBuffer<Typ>::GenBuffer(uint32_t size) {
-/**************************************************************************************************
- * Overloaded constructor, where the desired "size" of the buffer is provided to the class.
- * The rest of the setup is the same as the default constructor.
- *      It will generate a new array structure of the desired size, and link to the private poiner
- *      "pa"
- *
- * Once done it will call the "Flush" function to write contents, and setup pointers to the start
- * of the buffer.
- *************************************************************************************************/
-    length = size;                  // Setup size of the buffer as per input
-    pa = new Typ[length];           // Generate array
-
-    Flush();                        // Flush the data to default values
-}
-
-template <typename Typ>
-void GenBuffer<Typ>::SizeUpdate(uint32_t size) {
-/**************************************************************************************************
- * Function to increase the size of the buffer.
- *************************************************************************************************/
-    Typ *newpa;                     // Pointer to the new sized buffer
-    newpa = new Typ[size];          // Generate new array
-
-    uint32_t i;                     // Variable used to loop through the entries within the buffer
-    for (i = 0; i != size; i++) {   // Loop through the new array
-        if (i < length) {           // If at a point where the old buffer is still valid
-            newpa[i] = pa[i];       // copy across the data
-        }
-        else
-            newpa[i] = 0;           // Otherwise populate with "0"
-    }
-
-    length = size;                  // Copy across the new size of the buffer
-
-    delete [] pa;                   // Delete the old array
-    pa = newpa;                     // Update class array pointer
-
-
-    input_pointer   = (input_pointer % length);     // Limit the pointers to the new size
-    output_pointer  = (output_pointer % length);    // Limit the pointers to the new size
-}
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 template <typename Typ>
 _GenBufState GenBuffer<Typ>::State(void) {
 /**************************************************************************************************
@@ -367,19 +312,7 @@ GenBuffer<Typ>::~GenBuffer() {
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
  * to avoid "memory leakage"
  *************************************************************************************************/
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifdef __LiteImplement__        // If "__LiteImplement__" has been defined, then need to have array
-                                // fully defined, and provided to the "GenBuffer"
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#else                           // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    delete [] pa;               // Delete the array "pa"
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 #endif
