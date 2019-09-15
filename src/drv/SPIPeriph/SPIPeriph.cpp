@@ -128,7 +128,6 @@ void SPIPeriph::Enable(void) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
     __HAL_SPI_ENABLE(this->SPI_Handle);     // Enable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -152,7 +151,6 @@ void SPIPeriph::Disable(void) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
     __HAL_SPI_DISABLE(this->SPI_Handle);    // Disable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -178,7 +176,6 @@ uint8_t SPIPeriph::DRRead(void) {
 //==================================================================================================
 // STM32L4 uses a RXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
-
     return( (uint8_t) this->SPI_Handle->Instance->DR );
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -208,7 +205,6 @@ void SPIPeriph::DRWrite(uint8_t data) {
 // been configured to allow a read of only 8bits (or less)
 // To ensure only 8bits is transmitted, need to ensure that we cast the Data Register (DR) to
 // unsigned 8bits, hence the initial casing
-
     *(uint8_t *)&this->SPI_Handle->Instance->DR = data;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -230,14 +226,14 @@ uint8_t SPIPeriph::TransmitEmptyChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -261,14 +257,14 @@ uint8_t SPIPeriph::ReceiveToReadChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -292,14 +288,14 @@ uint8_t SPIPeriph::BusBusyChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
@@ -323,14 +319,14 @@ uint8_t SPIPeriph::BusOverRunChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
@@ -383,7 +379,7 @@ uint8_t SPIPeriph::BusModeFltChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_MODF) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_MODF) != 0 )
         return (1);
     else
         return (0);
@@ -442,14 +438,14 @@ uint8_t SPIPeriph::TransmitEmptyITChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -473,14 +469,14 @@ uint8_t SPIPeriph::ReceiveToReadITChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -503,14 +499,14 @@ uint8_t SPIPeriph::BusErrorITChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) == SET )
+    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);

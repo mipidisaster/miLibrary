@@ -126,8 +126,8 @@ uint8_t I2CPeriph::TransmitEmptyChk(void) {
 //     TXIE is used to trigger the interrupt
 //  Both are used within this function call.
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXE)  == SET) || \
-         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXIS) == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXE)  != 0 ) || \
+         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXIS) != 0 ) )
         return (1);
     else
         return (0);
@@ -156,8 +156,8 @@ uint8_t I2CPeriph::TransmitComptChk(void) {
 // I2C communication for STM32L has two "Transmission Complete" flags, one is generic, the other
 // is used for Complete transmission for I2C Reload
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TC)   == SET) || \
-         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TCR)  == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TC)   != 0 ) || \
+         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TCR)  != 0 ) )
         return (1);
     else
         return (0);
@@ -184,7 +184,7 @@ uint8_t I2CPeriph::ReceiveToReadChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_RXNE) == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_RXNE) != 0 ) )
         return (1);
     else
         return (0);
@@ -211,7 +211,7 @@ uint8_t I2CPeriph::BusNACKChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_AF)   == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_AF)   != 0 ) )
         return (1);
     else
         return (0);
@@ -262,7 +262,7 @@ uint8_t I2CPeriph::BusSTOPChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_STOPF) == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_STOPF) != 0 ) )
         return (1);
     else
         return (0);
@@ -313,7 +313,7 @@ uint8_t I2CPeriph::BusBusyChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BUSY) == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BUSY) != 0 ) )
         return (1);
     else
         return (0);
@@ -340,7 +340,7 @@ uint8_t I2CPeriph::BusErroChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BERR) == SET) )
+    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BERR) != 0 ) )
         return (1);
     else
         return (0);
@@ -391,7 +391,7 @@ uint8_t I2CPeriph::TransmitEmptyITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TXI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TXI) != 0 )
         return (1);
     else
         return (0);
@@ -418,7 +418,7 @@ uint8_t I2CPeriph::TransmitComptITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TCI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TCI) != 0 )
         return (1);
     else
         return (0);
@@ -446,7 +446,7 @@ uint8_t I2CPeriph::ReceiveToReadITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_RXI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_RXI) != 0 )
         return (1);
     else
         return (0);
@@ -474,7 +474,7 @@ uint8_t I2CPeriph::BusNACKITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_NACKI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_NACKI) != 0 )
         return (1);
     else
         return (0);
@@ -501,7 +501,7 @@ uint8_t I2CPeriph::BusSTOPITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_STOPI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_STOPI) != 0 )
         return (1);
     else
         return (0);
@@ -528,7 +528,7 @@ uint8_t I2CPeriph::BusErrorITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_ERRI) == SET)
+    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_ERRI) != 0 )
         return (1);
     else
         return (0);
