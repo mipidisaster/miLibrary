@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V3.1
- * @date        15 Sept 2019
+ * @version     V3.2
+ * @date        18 Sept 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -251,10 +251,10 @@ public:
                                                                 // class generation
 
     public:
-        void create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
+        void create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
 
         AD741x(void);                           // Basic constructor for AS5x4x class
-        AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize);
+        AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.h
  * @author      Thomas
- * @version     V3.1
- * @date        14 Sept 2019
+ * @version     V3.2
+ * @date        18 Sept 2019
  * @brief       Header file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -233,10 +233,10 @@ public:
  *      of different devices.
  *************************************************************************************************/
 public:
-    void create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size);
+    void create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size);
 
     AS5x4x(void);                           // Basic constructor for AS5x4x class
-    AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size);
+    AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size);
     // Setup the AS5x4x device, by providing the device type, as well as array pointer(s) to be
     // used as the internal write and read buffers.
 

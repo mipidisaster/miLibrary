@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.h
  * @author      Thomas
- * @version     V1.3
- * @date        11 Nov 2018
+ * @version     V2.1
+ * @date        18 Sept 2019
  * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -97,18 +97,18 @@ template <typename Typ>
 class GenBuffer {
     // Declarations which are generic, and will be used in ALL devices
     public:
-        uint32_t        input_pointer;      // Pointer to where the current input point is
-        uint32_t        output_pointer;     // Pointer to where the current output point is
+        uint16_t        input_pointer;      // Pointer to where the current input point is
+        uint16_t        output_pointer;     // Pointer to where the current output point is
 
-        uint32_t        length;             // Size of the buffer
+        uint16_t        length;             // Size of the buffer
 
         Typ             *pa;                // Points to the array (Buffer)
 
     public:
-        void create(Typ *arrayloc, uint32_t size);
+        void create(Typ *arrayloc, uint16_t size);
 
         GenBuffer(void);
-        GenBuffer(Typ *arrayloc, uint32_t size);
+        GenBuffer(Typ *arrayloc, uint16_t size);
         // As have defined that the "GenBuffer" needs to be "Lite", then use of "new" and "delete"
         // is not required, therefore a fully defined array is to be provided, and used within
         // the class.
@@ -123,25 +123,25 @@ class GenBuffer {
                                             // override oldest points (maintaining defined size)
         _GenBufState OutputRead(Typ *readdata); // Read next data entry in buffer (if data is
                                                 // present)
-        Typ ReadBuffer(uint32_t position);      // Read specific entry from buffer
+        Typ ReadBuffer(uint16_t position);      // Read specific entry from buffer
 
-        uint32_t SpaceRemaining(void);          // Return number of entries in buffer before, FULL
-        uint32_t SpaceTilArrayEnd(void);        // Return number of entries left till end of array
+        uint16_t SpaceRemaining(void);          // Return number of entries in buffer before, FULL
+        uint16_t SpaceTilArrayEnd(void);        // Return number of entries left till end of array
 
-        uint32_t UnreadCount(void);             // Return the number of un-read entries within
+        uint16_t UnreadCount(void);             // Return the number of un-read entries within
                                                 // Buffer
 
-        void QuickWrite(Typ *newdata, uint32_t size);   // Take input array, and populate "size"
+        void QuickWrite(Typ *newdata, uint16_t size);   // Take input array, and populate "size"
                                                         // into Buffer
-        uint32_t QuickRead(Typ *backdata, uint32_t size);
+        uint16_t QuickRead(Typ *backdata, uint16_t size);
         // Provide array to retain read back data from buffer. Input size, limits the number of
         // entries returned. Returned value is the number of entries actually populated (to cater
         // for the buffer being empty; therefore output will not equal size).
 
-        void WriteErase(uint32_t size);         // Erase "size" number of data points from the
+        void WriteErase(uint16_t size);         // Erase "size" number of data points from the
                                                 // current position for the write/input buffer
                                                 // "input_pointer"
-        void ReadErase(uint32_t size);          // Erase "size" number of data points from the
+        void ReadErase(uint16_t size);          // Erase "size" number of data points from the
                                                 // current position for the read/output buffer
                                                 // "output_pointer"
         // For both of these functions, if the size specified, brings the buffer past "FULL". Then

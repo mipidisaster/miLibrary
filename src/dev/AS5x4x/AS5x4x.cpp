@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        14 Sept 2019
+ * @version     V2.2
+ * @date        18 Sept 2019
  * @brief       Source file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -36,7 +36,7 @@ AS5x4x::AS5x4x(void) {
     this->popGenParam();                        // Populate generic class parameters
 }
 
-void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size) {
+void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
 /**************************************************************************************************
  * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
  * along with a pointer to the Write and Read buffers, which will be used internally to the class
@@ -56,7 +56,7 @@ void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t
     this->rdBuff.QFlush();                      // Flush data
 }
 
-AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint32_t size) {
+AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
 /**************************************************************************************************
  * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
  * along with a pointer to the Write and Read buffers, which will be used internally to the class
@@ -419,7 +419,7 @@ void AS5x4x::readDataPacket(void) {
  * Depending upon which device the AS5x4x class has been configured for, this function will call
  * another sub-function to complete the deconstruction of the data.
  *************************************************************************************************/
-    uint32_t sentpacket = 0;            // Variable to store the data/command sent to the AS5x4x
+    uint16_t sentpacket = 0;            // Variable to store the data/command sent to the AS5x4x
                                         // for which the read data is linked (off by 1)
     uint16_t tempreq = 0;               // Variable to store the 16bit temporarily (Request)
     uint16_t tempread = 0;              // Variable to store the 16bit temporarily (Read back)

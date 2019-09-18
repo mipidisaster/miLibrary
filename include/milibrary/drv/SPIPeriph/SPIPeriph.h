@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.h
  * @author      Thomas
- * @version     V3.1
- * @date        14 Sept 2018
+ * @version     V3.2
+ * @date        17 Sept 2018
  * @brief       Header file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -36,7 +36,7 @@
  *
  *          ".intMasterTransfer"    - OVERLOADED function for SPI communication in interrupt mode
  *                                    (utilises the SPI form system, see below), expects to
- *                                    receive GenBuffer data location.
+ *                                    receive an array data location.
  *                                    (input varies for GPIO or hardware managed Chip Select)
  *
  *          ".SPIInterruptStart"    - Check to see if the SPI bus is free, and a new request form
@@ -187,7 +187,7 @@ public:
         uint8_t                 *RxBuff;    // Pointer to data to be read back
 
 
-        volatile uint8_t         *Cmplt;    // Provide a pointer to a "Complete" flag (will be
+        volatile uint16_t        *Cmplt;    // Provide a pointer to a "Complete" flag (will be
                                             // incremented) - to be cleared by source function
         volatile DevFlt          *Flt;      // Provide a pointer to a SPIPeriph::DevFlt for the
                                             // SPI fault status to be provided to source
@@ -232,10 +232,10 @@ public:
         SPI_HandleTypeDef   *SPI_Handle;    // Store the Handle for the SPI Device, from cubeMX
 
     public:
-        void create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize);
+        void create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize);
 
         SPIPeriph(void);                    // Basic constructor for SPI class
-        SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize);
+        SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize);
         // Setup the SPI class, for STM32 by providing the SPI Request Form array pointer, as well
         // as the size.
         // Class will then generate a GenBuffer item internally.
@@ -307,8 +307,8 @@ protected:  /*******************************************************************
 
     // SPI Communication Request Form handling
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    static Form GenericForm(CSHandle devLoc, uint8_t size,
-                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+    static Form GenericForm(CSHandle devLoc, uint16_t size,
+                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData);
 
@@ -342,10 +342,10 @@ public:     /*******************************************************************
     void configBusErroIT(InterState intr);      // Configure the BUS Error interrupt
 
     void intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
-                           volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+                           volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     void intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
-                           volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+                           volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
     // Above OVERLOADED function "intMasterTransfer" takes the input parameters and uses this to
     // populate a SPI Request Form, and then add this to the Device Queue.
 

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.h
  * @author      Thomas
- * @version     V2.1
- * @date        15 Sept 2019
+ * @version     V2.2
+ * @date        17 Sept 2019
  * @brief       Header file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -40,7 +40,7 @@
  *
  *          ".intMasterReq"         - Put a request for an interrupt based communication on the
  *                                    selected I2C device (utilises the I2C form system, see below)
- *                                    expects to receive a GenBuffer data location
+ *                                    expects to receive an array data location
  *
  *          ".I2CInterruptStart"    - Check to see if the I2C bus is free, and a new request form
  *                                    is available. Then trigger a communication run (enables
@@ -105,7 +105,7 @@
  *          ".GenericForm"          - Populate generic entries of the I2C Form (outputs structure)
  *          ".FormW8bitArray"       - Link form to a 8bit array location
  *          ".specificRequest"      - OVERLOADED function, for putting a request onto the target
- *                                    I2C's form queue (handles both 8bit, and GenBuffer inputs)
+ *                                    I2C's form queue
  *
  *          ".GetFormWriteData"     - Retrieve data from I2C Form's requested location
  *          ".PutFormReadData"      - Write data to location specified by current I2C Form
@@ -191,7 +191,7 @@ public:
         Request                 Reqst;      // State the Request type
         CommMode                Mode;       // State the Mode
 
-        volatile uint8_t        *Cmplt;     // Provide a pointer to a "Complete" flag (will be
+        volatile uint16_t       *Cmplt;     // Provide a pointer to a "Complete" flag (will be
                                             // incremented) - to be cleared by source function
         volatile DevFlt         *Flt;       // Provide a pointer to a I2CPeriph::DevFlt for the
                                             // I2C fault status to be provided to source
@@ -209,7 +209,7 @@ public:
                                             // Functions will add request forms to this buffer,
                                             // and interrupt then goes through them sequentially.
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        uint8_t         curCount;       // Current communication packet count
+        uint16_t        curCount;       // Current communication packet count
         Request         curReqst;       // Current request for communication (ignores "Nothing")
         Form            curForm;        // Current I2C request form
 
@@ -234,10 +234,10 @@ public:
         I2C_HandleTypeDef  *I2C_Handle;     // Store the I2C handle
 
     public:
-        void create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize);
+        void create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize);
 
         I2CPeriph(void);                    // Basic constructor for I2C class
-        I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize);
+        I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize);
         // Setup the I2C class, for STM32 by providing the I2C Request Form array pointer, as well
         // as the size.
         // Class will then generate a GenBuffer item internally.
@@ -308,14 +308,14 @@ protected:  /*******************************************************************
         // devAddress needs to be full, i.e. 7bit address needs to be provided as 8bits. The
         // R/~W will be ignored and populated as required
 
-    static Form GenericForm(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst,
-                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+    static Form GenericForm(uint16_t devAddress, uint16_t size, CommMode mode, Request reqst,
+                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     static void FormW8bitArray(Form *RequestForm, uint8_t *pData);
 
-    void specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
+    void specificRequest(uint16_t devAddress, uint16_t size, uint8_t *pData,
                             CommMode mode, Request reqst,
-                            volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     static uint8_t GetFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
@@ -348,9 +348,9 @@ public:     /*******************************************************************
     void configBusSTOPIT(InterState intr);      // Configure the BUS Stop interrupt
     void configBusErroIT(InterState intr);      // Configure the BUS Error interrupt
 
-    void intMasterReq(uint16_t devAddress, uint8_t size, uint8_t *Buff,
+    void intMasterReq(uint16_t devAddress, uint16_t size, uint8_t *Buff,
                       CommMode mode, Request reqst,
-                      volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag);
+                      volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     void I2CInterruptStart(void);           // Enable communication if bus is free, otherwise
                                             // wait (doesn't actually wait)
@@ -358,17 +358,7 @@ public:     /*******************************************************************
     void IRQEventHandle(void);              // Interrupt I2C Event handler
     void IRQErrorHandle(void);              // Interrupt I2C Error handler
 
-public:     /**************************************************************************************
-             * ==  PUBLIC   == >>>    DMA FUNCTIONS FOR DATA TRANSFER    <<<
-             *   -----------
-             *  Visible functions used to transfer data via DMA I2C - all handling of data to the
-             *  I2C hardware is managed outside of processor, and managed by dedicated hardware.
-             *************************************************************************************/
-    //void I2CDMAStart(void);                 // Enable communication if bus is free, via DMA
-    // dmaMasterTransmit    (GenBuffer)
-    // dmaMasterReceive     (GenBuffer)
-
-    virtual ~I2CPeriph();
+        virtual ~I2CPeriph();
 };
 
 #endif /* I2CPeriph_H_ */

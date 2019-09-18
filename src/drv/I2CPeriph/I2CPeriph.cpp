@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        15 Sept 2019
+ * @version     V2.2
+ * @date        17 Sept 2019
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -38,7 +38,7 @@ I2CPeriph::I2CPeriph(void) {
     this->I2C_Handle    = __null;           // Point to NULL
 }
 
-void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
+void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Creates a I2C class specific for the STM32 device.
  *
@@ -53,7 +53,7 @@ void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t 
     this->FormQueue.create(FormArray, FormSize);
 }
 
-I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint32_t FormSize) {
+I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Creates a I2C class specific for the STM32 device.
  *
@@ -653,9 +653,9 @@ void I2CPeriph::FormW8bitArray(I2CPeriph::Form *RequestForm, uint8_t *pData) {
         // Indicate that data type is 8bit array.
 }
 
-void I2CPeriph::specificRequest(uint16_t devAddress, uint8_t size, uint8_t *pData,
+void I2CPeriph::specificRequest(uint16_t devAddress, uint16_t size, uint8_t *pData,
                         CommMode mode, Request reqst,
-                        volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+                        volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Function used to populate the internal I2C Form stack, with the input requested communication.
  * Data comes from an array (pointer - pData)
@@ -1050,9 +1050,9 @@ void I2CPeriph::configBusErroIT(InterState intr) {
 #endif
 }
 
-void I2CPeriph::intMasterReq(uint16_t devAddress, uint8_t size, uint8_t *Buff,
+void I2CPeriph::intMasterReq(uint16_t devAddress, uint16_t size, uint8_t *Buff,
                              CommMode mode, Request reqst,
-                             volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+                             volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new I2C communication.
  * This version of the I2C Form update functions, is expected to be only used for "Interrupt"
@@ -1096,7 +1096,7 @@ void I2CPeriph::I2CInterruptStart(void) {
         //this->Enable();
 
         this->RequestTransfer(  this->curForm.devAddress,
-                                this->curForm.size,
+                                (uint8_t) this->curForm.size,
                                 this->curForm.Mode,
                                 this->curForm.Reqst
                              );

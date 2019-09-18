@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.cpp
  * @author      Thomas
- * @version     V3.1
- * @date        14 Sept 2018
+ * @version     V3.2
+ * @date        17 Sept 2018
  * @brief       Source file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -41,7 +41,7 @@ SPIPeriph::SPIPeriph(void) {
     this->popGenParam();                    // Populate generic class parameters
 }
 
-void SPIPeriph::create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize) {
+void SPIPeriph::create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for the STM32 device
  * Receives the address of the SPI Handle of device - generated from cubeMX
@@ -69,7 +69,7 @@ void SPIPeriph::create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t F
     this->Enable();                     // Enable the SPI device
 }
 
-SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint32_t FormSize) {
+SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for the STM32 device
  * Receives the address of the SPI Handle of device - generated from cubeMX
@@ -564,8 +564,8 @@ void SPIPeriph::ChipSelectHandle(CSHandle selection, CSSelection Mode) {
     // is selected.
 }
 
-SPIPeriph::Form SPIPeriph::GenericForm(CSHandle devLoc, uint8_t size,
-                                       volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+SPIPeriph::Form SPIPeriph::GenericForm(CSHandle devLoc, uint16_t size,
+                                       volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a SPIForm request, based upon the generic information provided as input.
  *************************************************************************************************/
@@ -844,7 +844,7 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 }
 
 void SPIPeriph::intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
-                                  volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+                                  volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
  * Two arrays are provided which will contain the data to transmit, and the location to store
@@ -866,7 +866,7 @@ void SPIPeriph::intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuf
 }
 
 void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
-                                  volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+                                  volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication.
  * Two arrays are provided which will contain the data to transmit, and the location to store

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GenBuffer.cpp
  * @author      Thomas
- * @version     V1.3
- * @date        11 Nov 2018
+ * @version     V2.1
+ * @date        18 Sept 2019
  * @brief       Source file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
@@ -22,7 +22,7 @@ void GenBuffer<Typ>::Flush(void) {
  * Function goes through the contents of the buffer, and writes everything to "0", and then
  * returns the input/output pointers back to the start of the buffer - ready for new data
  *************************************************************************************************/
-    uint32_t i;                     // Variable used to loop through the entries within the buffer
+    uint16_t i;                     // Variable used to loop through the entries within the buffer
 
     for (i = 0; i != length; i++) { // Start looping through buffer
         pa[i] = 0;                  // Write the data back to "0"
@@ -53,7 +53,7 @@ GenBuffer<Typ>::GenBuffer() {
 }
 
 template <typename Typ>
-void GenBuffer<Typ>::create(Typ *arrayloc, uint32_t size) {
+void GenBuffer<Typ>::create(Typ *arrayloc, uint16_t size) {
 /**************************************************************************************************
  * "Lite" function for GenBuffer.
  * Where the fully defined array is provided as input to constructor. This will then be linked to
@@ -69,7 +69,7 @@ void GenBuffer<Typ>::create(Typ *arrayloc, uint32_t size) {
 }
 
 template <typename Typ>
-GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint32_t size) {
+GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint16_t size) {
 /**************************************************************************************************
  * "Lite" function for GenBuffer.
  * Where the fully defined array is provided as input to constructor. This will then be linked to
@@ -184,7 +184,7 @@ _GenBufState GenBuffer<Typ>::OutputRead(Typ *readdata) {
 }
 
 template <typename Typ>
-Typ GenBuffer<Typ>::ReadBuffer(uint32_t position) {
+Typ GenBuffer<Typ>::ReadBuffer(uint16_t position) {
 /**************************************************************************************************
  * Simple function to just read a specific entry within the buffer, whilst limiting it to the size
  * of the buffer.
@@ -195,7 +195,7 @@ Typ GenBuffer<Typ>::ReadBuffer(uint32_t position) {
 }
 
 template <typename Typ>
-uint32_t GenBuffer<Typ>::SpaceRemaining(void) {
+uint16_t GenBuffer<Typ>::SpaceRemaining(void) {
 /**************************************************************************************************
  * Calculates the number of entries the buffer can take, before Buffer is FULL.
  *  Whereas the "InputWrite" will ensure that even if the buffer is full, it populates the latest
@@ -206,13 +206,13 @@ uint32_t GenBuffer<Typ>::SpaceRemaining(void) {
     if (State() == GenBuffer_Empty) {
         return (length - 1);
     }
-    else { return((uint32_t)( output_pointer - input_pointer + length - 1 ) % length); }
+    else { return((uint16_t)( output_pointer - input_pointer + length - 1 ) % length); }
         // Difference between the output and input pointers (note input is likely to be larger
         // than the output), take this difference and add to the length
 }
 
 template <typename Typ>
-uint32_t GenBuffer<Typ>::SpaceTilArrayEnd(void) {
+uint16_t GenBuffer<Typ>::SpaceTilArrayEnd(void) {
 /**************************************************************************************************
  * Calculates the number of entries remaining within the source array, till the bottom is reached.
  *  At which point the GenBuffer will loop.
@@ -221,7 +221,7 @@ uint32_t GenBuffer<Typ>::SpaceTilArrayEnd(void) {
 }
 
 template <typename Typ>
-uint32_t GenBuffer<Typ>::UnreadCount(void) {
+uint16_t GenBuffer<Typ>::UnreadCount(void) {
 /**************************************************************************************************
  * Calculates the number of entries within the buffer which have not been read yet.
  * If the buffer is already full, then it will return the full buffer size.
@@ -229,11 +229,11 @@ uint32_t GenBuffer<Typ>::UnreadCount(void) {
     if (State() == GenBuffer_FULL) {
         return (length - 1);
     }
-    else { return((uint32_t)( length + input_pointer - output_pointer ) % length); }
+    else { return((uint16_t)( length + input_pointer - output_pointer ) % length); }
 }
 
 template <typename Typ>
-void GenBuffer<Typ>::QuickWrite(Typ *newdata, uint32_t size) {
+void GenBuffer<Typ>::QuickWrite(Typ *newdata, uint16_t size) {
 /**************************************************************************************************
  * Populates the entries from "newdata" and puts into the GenBuffer. Only "size" entries are
  * copied.
@@ -247,7 +247,7 @@ void GenBuffer<Typ>::QuickWrite(Typ *newdata, uint32_t size) {
 }
 
 template <typename Typ>
-uint32_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint32_t size) {
+uint16_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint16_t size) {
 /**************************************************************************************************
  * Goes through the contents of the Buffer, and returns the data into the return array "backdata".
  * Will only cycle through "size" number of entries, actual entries returned is captured within
@@ -257,7 +257,7 @@ uint32_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint32_t size) {
  * copied.
  *  Relies upon the function "InputWrite"
  *************************************************************************************************/
-    uint32_t returnsize = 0;    // Initialise a count of the entries returned.
+    uint16_t returnsize = 0;    // Initialise a count of the entries returned.
     Typ BufEntry = 0;           // Data variable to retain buffer entry
 
     while(size != 0) {          // Cycle through the number of data points to return
@@ -275,7 +275,7 @@ uint32_t GenBuffer<Typ>::QuickRead(Typ *backdata, uint32_t size) {
 }
 
 template <typename Typ>
-void GenBuffer<Typ>::WriteErase(uint32_t size) {
+void GenBuffer<Typ>::WriteErase(uint16_t size) {
 /**************************************************************************************************
  * Bring the input_pointer forward by "size" number of entries - erasing "size" number of buffer
  * entries from being written too.
@@ -291,7 +291,7 @@ void GenBuffer<Typ>::WriteErase(uint32_t size) {
 }
 
 template <typename Typ>
-void GenBuffer<Typ>::ReadErase(uint32_t size) {
+void GenBuffer<Typ>::ReadErase(uint16_t size) {
 /**************************************************************************************************
  * Bring the output_pointer forward by "size" number of entries - erasing "size" number of buffer
  * entries from being read from.

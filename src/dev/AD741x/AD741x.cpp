@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        15 Sept 2019
+ * @version     V2.2
+ * @date        18 Sept 2019
  * @brief       Source file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -52,7 +52,7 @@ AD741x::AD741x(void) {
     this->popGenParam(DevPart::AD7414_0, AddrBit::Float);   // Populate generic parameters
 }
 
-void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize) {
+void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
  * "write".
@@ -65,7 +65,7 @@ void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t 
     this->reInitialise();       // Ensure that the internal mechanics of the class have been reset
 }
 
-AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint32_t FormSize) {
+AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
  * "write".
@@ -192,7 +192,7 @@ uint8_t AD741x::LastAddresPointRqst(void) {
  * Retrieve the last requested update of the Address Pointer.
  *  This is to be used so as to sequence data requests.
  *************************************************************************************************/
-    uint32_t lastentry = 0;                 // Variable to retain pointer
+    uint16_t lastentry = 0;                 // Variable to retain pointer
 
     if (this->AdBuff.input_pointer == 0)        // If last entry, then previous entry is
         lastentry = this->AdBuff.length - 1;    // update variable to bottom of Buffer array
@@ -322,7 +322,7 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
  *************************************************************************************************/
     uint8_t rData[1] = { 0 };                   // Array to contain the Temperature values
 
-    uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
+    uint16_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
     if ( (this->Flt == DevFlt::Initialised) || (this->AddressPointer != AD741x_ConfigReg) ) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
@@ -359,7 +359,7 @@ AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *hal_I2C,
  *************************************************************************************************/
     uint8_t rData[2] = { 0 };                   // Array to contain the Temperature values
 
-    uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
+    uint16_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
     packetsize = this->UpdateConfigReg(&rData[0], Mode, Filt, Conv);
         // Request a write of the Configuration register
@@ -379,7 +379,7 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
  *************************************************************************************************/
     uint8_t rData[2] = { 0 };           // Array to contain the Temperature values
 
-    uint32_t packetsize = 0;            // Variable to store the number of bytes to read/write
+    uint16_t packetsize = 0;            // Variable to store the number of bytes to read/write
 
     if ( (this->Flt == DevFlt::Initialised) || (this->AddressPointer != AD741x_TemperatureReg) ) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
@@ -426,7 +426,7 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
  * Note, that the I2C device will handle the communication - this requires the use of the I2C
  * form type (scoped from the I2CPeriph class)
  *************************************************************************************************/
-    uint8_t tempsize = 0;           // Variable to store the size of request
+    uint16_t tempsize = 0;          // Variable to store the size of request
 
     if ( (this->Flt == DevFlt::Initialised) ||
          (this->LastAddresPointRqst() != AD741x_ConfigReg) ) {
@@ -468,7 +468,7 @@ void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
  * Note, that the I2C device will handle the communication - this requires the use of the I2C
  * form type (scoped from the I2CPeriph class)
  *************************************************************************************************/
-    uint8_t tempsize = 0;           // Variable to store the size of request
+    uint16_t tempsize = 0;          // Variable to store the size of request
 
     tempsize = this->UpdateConfigReg(&wBuff[this->wtcmpTarget], Mode, Filt, Conv);
 
@@ -488,7 +488,7 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
  * Note, that the I2C device will handle the communication - this requires the use of the I2C
  * form type (scoped from the I2CPeriph class)
  *************************************************************************************************/
-    uint8_t tempsize = 0;           // Variable to store the size of request
+    uint16_t tempsize = 0;          // Variable to store the size of request
 
     if ( (this->Flt == DevFlt::Initialised) ||
          (this->LastAddresPointRqst() != AD741x_TemperatureReg) ) {
