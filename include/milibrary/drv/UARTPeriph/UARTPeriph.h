@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V2.2
- * @date        21 Oct 2018
+ * @version     V3.1
+ * @date        15 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -20,46 +20,86 @@
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
  *          For STM32L devices, providing the address of the UART handler - from cubeMX
  *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
+ *          #### UPDATE TO THE FORM SYSTEM HAS NOT BEEN TESTED WITHIN RASPBERRY PI YET!
+ *
  *
  *          Additional to this the size of the UART buffer array is required.
  *
  *      Depending upon how the programmer wants to use the UART device, will change which functions
  *      are utilised.
  *      For functions to wait for new data, or data to be transmitted use:
- *          ".PoleSingleRead"       - Wait for new data to be read via UART
- *          ".PoleSingleTransmit"   - Wait for data to be transmitted via UART
- *          ".PoleTransmit"         - As above, however can transmit multiple data (array)
+ *          ".poleSingleRead"       - Wait for new data to be read via UART
+ *          ".poleSingleTransmit"   - Wait for data to be transmitted via UART
+ *          ".poleTransmit"         - As above, however can transmit multiple data (array)
  *
  *      If interrupts are to be used, then will first need to be configured within the NVIC (which
- *      is not part of this class), then the following can be used
- *          ".ReceiveIT(<intr>)"    - To enable/disable Read data register is empty
- *          ".TransmtIT(<intr>)"    - To enable/disable Transmit data register is empty
- *          ".TransCmIT(<intr>)"    - To enable/disable Transmission Complete register interrupt
+ *      is not part of this class), then the following can be used:
+ *          ".configTransmtIT"      - Enable/Disable Transmit Empty interrupt
+ *          ".configTransCmIT"      - Enable/Disable Transmission complete interrupt
+ *          ".configReceiveIT"      - Enable/Disable Receive buffer full interrupt
  *
- *          ".SingleTransmit_IT"    - Put data onto "Transmit" buffer to be set via UART (will
- *                                    enable the transmit buffer empty flag)
- *          ".SingleRead_IT"        - Pulls any new data from the "Receive" buffer
+ *          ".intWrtePacket"        - Puts a request for a write of data (out of STM) via UART,
+ *                                    (utilises the UART form system, see below), expects to
+ *                                    receive an array data location
  *
- *          ".IRQHandle"            - Interrupt handler, to be called in Interrupt Routine
- *                                      -> How to do this is detailed in the source file for this
- *                                         function
+ *          ".intReadPacket"        - Puts a request to read back data (in to STM) via UART,
+ *                                    (again utilises the UART form system, see below), expects to
+ *                                    receive an array data location
+ *
+ *          ".UARTInterruptStart"   - Check to see if the UART bus is free, and a new request form
+ *                                    (either read or write) is available. Then trigger a
+ *                                    communication run (Enables Transmit Empty/Receive interrupts)
+ *          ".intWrteFormCmplt"     - Function will go through tidy up procedure for the current
+ *                                    Request form - Write buffer
+ *          ".intReadFormCmplt"     - Same as above however for the Read buffer
+ *          ".IRQHandle"            - Functions to be placed within the relevant Interrupt Vector
+ *                                    call, so as to handle the UART interrupt
+ *
+ *          ".Read_GenBufferLock"   - Specific function for the read buffer, will essential lock
+ *                                    the read buffer to a single array (based upon input
+ *                                    GenBuffer), ensure that pointer aligns with any new reads,
+ *                                    and if the buffer has been filled (i.e. will therefore no
+ *                                    longer reading data back into the array), will put a new
+ *                                    read request back into the system.
+ *                                    (Intended for Interrupt based communication only - DMA
+ *                                     will have own specific version)
  *
  *      Following functions are protected, so will only work for classes which inherit from this
  *      one, and not visible external to class:
  *          ".DRRead"               - Will take data straight from the hardware
  *          ".DRWrite"              - Will put data straight onto the hardware
- *          ".TransmitEmptyITCheck" - Check state of the Transmit hardware interrupt, if data can
- *                                    be added to hardware queue output will be 0x01, otherwise
- *                                    0x00.
- *          ".ReceiveDataToReadChk" - Check state of the Receive hardware interrupt, if data is
- *                                    ready to be read from hardware output will be 0x01, otherwise
- *                                    0x00.
- *          ".TransmitComptITCheck" - Check state of the Transmission Complete hardware interrupt,
- *                                    if data has been transmitted then 0x01, otherwise 0x00.
  *
- *  If "__LiteImplement__" has been defined, then the class will not use "use" or "delete" to
- *  minimise the size impact. Therefore fully defined "GenBuffers" need to be provided to the
- *  constructors of the UARTPeriph class.
+ *          ".TransmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
+ *          ".TransmitComptChk"     - Check to see if Transmission is complete
+ *          ".ReceiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
+ *
+ *          ".TransmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
+ *                                    enabled
+ *          ".TransmitComptITChk"   - Indicates if the interrupt for Transmit Complete has been
+ *                                    enabled
+ *          ".ReceiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
+ *                                    enabled
+ *
+ *  [#] UART Request Form System
+ *      ~~~~~~~~~~~~~~~~~~~~~~~~
+ *      Whilst utilising minimised CPU loaded communication, the UART Device will utilise a UART
+ *      Request Form system, so as to ensure that each of the multiple source functions wanting to
+ *      communication via UART, is done correctly and effectively.
+ *      Each of the source functions will generate a Request Form, which will then be placed into
+ *      the target UART device Form queue (for reading and writing), such that the UART device can
+ *      go through each of these forms in seqeuence; each form will contain the following:
+ *          Number of packets to transmit/write (8bits x N)
+ *          Location for where the data is to be taken/stored
+ *          Communication complete return flag      (will be updated with the amount of packets
+ *                                                   transmitted successfully)
+ *          UART communication fault return flag
+ *
+  *      Function list (all are protected):
+ *          ".GenericForm"          - Populate generic entries of the UART Form (outputs structure)
+ *          ".FormW8bitArray"       - Link form to a 8bit array location
+ *
+ *          ".GetFormWriteData"     - Retrieve data from UART Form's requested location
+ *          ".PutFormReadData"      - Write data to location specified by current UART Form
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
@@ -114,28 +154,74 @@
 #endif
 
 // Types used within this class
-typedef enum {
-    UART_NoFault        = 0,
-    UART_DataError      = 1,
-    UART_Parity         = 2,
-
-    UART_Initialised    = -1
-} _UARTDevFlt;
-
-typedef enum {
-    UART_Enable = 0,
-    UART_Disable = 1
-} _UARTITState;
+// Defined within the class, to ensure are contained within the correct scope
 
 class UARTPeriph {
-    // Declarations which are generic, and will be used in ALL devices
-    protected:
-        GenBuffer<uint8_t>  *Receive;       // Pointer to GenBuffer class used for data "Receive"d
-                                            // via UART
-        GenBuffer<uint8_t>  *Transmit;      // Pointer to GenBuffer class used for data to be
-                                            // "Transmit"ted via UART
+/**************************************************************************************************
+* ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+*   -----------
+*  Following types are generated within this class. If needed outside of the class, need to
+*  state "UARTPeriph::" followed by the type.
+**************************************************************************************************/
+public:
+     enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
+         None            = 0x00,     // Normal Operation
+         DataError       = 0x01,     // Data Error
+         Parity          = 0x02,     // Parity Fault
 
-// Device specific entries
+         Initialised     = 0xFF      // Just initialised
+     };
+
+     enum InterState : uint8_t {ITEnable, ITDisable};// Enumerate state for enabling/disabling
+                                                     // interrupts
+     enum CommLock : uint8_t {Communicating, Free};  // Enumerate state for indicating if device is
+                                                     // communicating
+
+     typedef struct {           // UART Form structure, used to manage UART Communication
+                                // interrupts
+         uint16_t               size;       // State the amount of data to be transferred
+
+         uint8_t                *Buff;      // Pointer to array to contain data
+
+         volatile uint16_t       *Cmplt;     // Provide a pointer to a "Complete" flag (will be
+                                             // incremented) - to be cleared by source function
+         volatile DevFlt         *Flt;       // Provide a pointer to a UARTPeriph::DevFlt for the
+                                             // I2C fault status to be provided to source
+                                             // function
+     }   Form;
+
+/**************************************************************************************************
+* == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
+*   -----------
+*  Parameters required for the class to function.
+*************************************************************************************************/
+    protected:
+        GenBuffer<Form>     FormWrteQ;      // Pointer to the class internal UARTForm buffer, which
+        GenBuffer<Form>     FormReadQ;      // is used to manage interrupt based communication.
+                                            // Functions will add request forms to this buffer,
+                                            // and interrupt then goes through them sequentially.
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Form            curWrteForm;    // Current UART Read form
+        uint16_t        curWrteCount;   // Current communication packet count (Write)
+
+        Form            curReadForm;    // Current UART Read form
+        uint16_t        curReadCount;   // Current communication packet count (Read)
+
+    public:
+        DevFlt      Flt;                // Fault state of the UART Device
+        CommLock    WrteCommState;      // Status of the Communication (Write)
+        CommLock    ReadCommState;      // Status of the Communication (Read)
+
+/**************************************************************************************************
+ * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
+ *   -----------
+ *  Following are functions and parameters which are specific for the embedded device selected.
+ *  The initialisation function for the class is also within this section, which again will be
+ *  different depending upon the embedded device selected.
+ *************************************************************************************************/
+    protected:
+        void popGenParam(void);         // Populate generic parameters for the class
+
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
@@ -143,31 +229,15 @@ class UARTPeriph {
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
 
     public:
-        void create(UART_HandleTypeDef *UART_Handle,
-                    GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
+        void create(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
+                Form *ReadForm, uint16_t ReadFormSize);
 
         UARTPeriph(void);                       // Basic constructor for UART class
-        UARTPeriph(UART_HandleTypeDef *UART_Handle,
-                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
-        // Setup the UART class, for STM32 by providing the UART type define handle, as well the
-        // "GenBuffer" needing to be provided to the function, to be fully defined outside of class
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        UARTPeriph(UART_HandleTypeDef *UART_Handle, uint32_t Buffersize);
-        // Setup the UART class, for STM32Fxx by providing the UART type define handle, as well as
-        // a defined value for the depth of the UART buffers
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        UARTPeriph(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
+                Form *ReadForm, uint16_t ReadFormSize);
+        // Setup the UART class, for STM32 by providing the UART Request Form array pointer, as
+        // well as the size.
+        // Class will then generate a GenBuffer item internally.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -181,27 +251,11 @@ class UARTPeriph {
         int  AnySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
 
-        UARTPeriph(const char *deviceloc, int baud,
-                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
+        UARTPeriph(const char *deviceloc, int baud, Form *WrteForm, uint16_t WrteFormSize,
+                                                    Form *ReadForm, uint16_t ReadFormSize);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
         // as well the "GenBuffer" needing to be provided to the function, to be fully defined
         // outside of class
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#ifndef __LiteImplement__       // If "__LiteImplement__" has not been defined, then allow use of
-                                // "new" and "delete" for defining internal arrays
-                                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public:
-        UARTPeriph(const char *deviceloc, int baud, uint32_t Buffersize);
-        // Setup the UART class, by providing the folder location of serial interface, and baudrate
-        // and define the required Buffersize
-
-#endif                          //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #else
 //==================================================================================================
@@ -210,40 +264,93 @@ class UARTPeriph {
 
 #endif
 
-public:
-    //0> Hardware reading
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t DRRead(void);                       // Function to read direct from the hardware
-    void DRWrite(uint8_t data);                 // Function to write direct to the hardware
+/**************************************************************************************************
+ * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
+ *   -----------
+ *  The following are functions scoped within the "UARTPeriph" class, which are generic; this means
+ *  are used by ANY of the embedded devices supported by this class.
+ *  The internals of the class, will then determine how it will be managed between the multiple
+ *  embedded devices.
+ *************************************************************************************************/
+protected:  /**************************************************************************************
+             * == PROTECTED == >>>     DIRECT HARDWARE READING FUNCTIONS     <<<
+             *   -----------
+             *  Functions allow direct access to the hardware/base functions of this class. Are
+             *  not visible unless "friend" or "child"/inherited
+             *************************************************************************************/
+    //void Enable(void);                      // Enable the UART device
+    //void Disable(void);                     // Disable the UART device
 
-    uint8_t TransmitEmptyITCheck(void);         // Check state of transmission hardware buffer
-    uint8_t TransmitComptITCheck(void);         // Check state of transmission complete hardware
-    uint8_t ReceiveDataToReadChk(void);         // Check state of receive data from hardware
+    uint8_t DRRead(void);                   // Function to read direct from the hardware
+    void DRWrite(uint8_t data);             // Function to write direct to the hardware
 
-public:
-    _UARTDevFlt    Flt;                 // Fault state of the class
+    // UART Event status checks
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~
+    uint8_t TransmitEmptyChk(void);         // Check state of transmission register (1 = empty)
+    uint8_t TransmitComptChk(void);         // Check state of transmission complete (1 = cmplt)
+    uint8_t ReceiveToReadChk(void);         // Check state of receive data register (1 =  read)
 
-    // 1> Following functions will WAIT for actions to complete before finishing
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t PoleSingleRead(void);           // Will wait until there is new data to be read
-    void PoleSingleTransmit(uint8_t data);  // Will wait until it can transfer data via UART
-    _UARTDevFlt PoleTransmit(uint8_t *pData, uint16_t size);// Will wait until it can transfer data
-                                                            // via UART, multiple entries
+    // UART Error status checks
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // None - as of yet
 
-    // 2> Interrupt functions
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    void ReceiveIT(_UARTITState intr);          // Controller for enabling/disabling Receive IT
-    void TransmtIT(_UARTITState intr);          // Controller for enabling/disabling Transmit IT
-    void TransCmIT(_UARTITState intr);          // Controller for enabling/disabling Transmit
-                                                // Complete IT
+    // UART Interrupt status checks
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    uint8_t TransmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t TransmitComptITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t ReceiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
 
-    void SingleTransmit_IT(uint8_t data);       // Add data to be transmitted via UART
-    _GenBufState SingleRead_IT(uint8_t *pData); // Take data from received buffer if data is
-                                                // available
+    // UART Communication Request Form handling
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    static Form GenericForm(uint8_t *data, uint16_t size,
+                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+
+    static uint8_t GetFormWriteData(Form *RequestForm);
+    // Function will retrieve the next data entry from the source data specified within the
+    // UART "RequestForm"
+
+    static void PutFormReadData(Form *RequestForm, uint8_t readdata);
+    // Function will take the data read from the UART Hardware, and put into the requested data
+    // location specified within the "RequestForm" input (will be curForm)
+
+public:     /**************************************************************************************
+             * ==  PUBLIC   == >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<
+             *   -----------
+             *  Visible functions used to transfer data via SPI - will wait for any registers to
+             *  be in correct state before progressing.
+             *************************************************************************************/
+    uint8_t poleSingleRead(void);               // Will wait until there is new data to be read
+    void    poleSingleTransmit(uint8_t data);   // Will wait until it can transfer data via UART
+    DevFlt  poleTransmit(uint8_t *pData, uint16_t size);    // Will wait until it can transfer
+                                                            // data via UART, multiple entries
+
+public:     /**************************************************************************************
+             * ==  PUBLIC   == >>>   INTERRUPT FUNCTIONS FOR DATA TRANSFER   <<<
+             *
+             *  Visible functions used to transfer data via SPI - in Interrupt mode, so allows
+             *  other functions to run, whilst hardware "does its thing!"
+             *************************************************************************************/
+    void configTransmtIT(InterState intr);      // Configure the Transmit Empty interrupt
+    void configTransCmIT(InterState intr);      // Configure the Transmit Complete interrupt
+    void configReceiveIT(InterState intr);      // Configure the Receive full interrupt
+
+    void intWrtePacket(uint8_t *wData, uint16_t size,
+                       volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+
+    void intReadPacket(uint8_t *rData, uint16_t size,
+                       volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+
+    void UARTInterruptStart(void);              // Enable communication is bus is free, otherwise
+                                                // wait (doesn't actually pause at this point)
+    void intWrteFormCmplt(void);                // Closes out the input Request Form (Write)
+    void intReadFormCmplt(void);                // Closes out the input Request Form (Read)
+
+    void Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
+                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     virtual void IRQHandle(void);               // Interrupt handler
 
-    virtual ~UARTPeriph();
+        virtual ~UARTPeriph();
 };
 
 #endif /* UART_UART_H_ */
