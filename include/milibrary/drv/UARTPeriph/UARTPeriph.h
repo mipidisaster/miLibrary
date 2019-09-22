@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V3.1
- * @date        15 Sept 2019
+ * @version     V3.2
+ * @date        22 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -316,7 +316,7 @@ protected:  /*******************************************************************
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<
              *   -----------
-             *  Visible functions used to transfer data via SPI - will wait for any registers to
+             *  Visible functions used to transfer data via USART - will wait for any registers to
              *  be in correct state before progressing.
              *************************************************************************************/
     uint8_t poleSingleRead(void);               // Will wait until there is new data to be read
@@ -327,7 +327,7 @@ public:     /*******************************************************************
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>   INTERRUPT FUNCTIONS FOR DATA TRANSFER   <<<
              *
-             *  Visible functions used to transfer data via SPI - in Interrupt mode, so allows
+             *  Visible functions used to transfer data via USART - in Interrupt mode, so allows
              *  other functions to run, whilst hardware "does its thing!"
              *************************************************************************************/
     void configTransmtIT(InterState intr);      // Configure the Transmit Empty interrupt
