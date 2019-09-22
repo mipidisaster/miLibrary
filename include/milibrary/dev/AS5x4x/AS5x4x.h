@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.h
  * @author      Thomas
- * @version     V3.2
- * @date        18 Sept 2019
+ * @version     V3.3
+ * @date        22 Sept 2019
  * @brief       Header file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -193,9 +193,9 @@ public:
 
         volatile SPIPeriph::DevFlt  Flt;    // Pointer to fault flag for interrupt based
                                             // communication
-        volatile uint8_t            Cmplt;  // Pointer to completed flag for interrupt based
+        volatile uint16_t           Cmplt;  // Pointer to completed flag for interrupt based
                                             // communication
-        uint8_t                     Trgt;   // SPI target number of bytes to be requested to be
+        uint16_t                    Trgt;   // SPI target number of bytes to be requested to be
                                             // transfered.
     }   Daisy;
 
@@ -313,8 +313,8 @@ public:     /*******************************************************************
     void reInitialise(void);                                // Initialise the write/read internal
                                                             // request buffers
     void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uint8_t *wBuff,
-                           volatile SPIPeriph::DevFlt *fltReturn, volatile uint8_t *cmpFlag,
-                           uint8_t *cmpTarget);
+                           volatile SPIPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag,
+                           uint16_t *cmpTarget);
 
     static void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, Daisy *chain,
                                   uint8_t *rBuff, uint8_t *wBuff);

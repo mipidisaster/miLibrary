@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V3.2
- * @date        18 Sept 2019
+ * @version     V3.3
+ * @date        22 Sept 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -79,6 +79,7 @@
 #define AD741X_H_
 
 #include "FileIndex.h"
+#include <stdint.h>
 
 #include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
 #include FilInd_I2CPe__HD               // Include class for I2C Peripheral
@@ -226,13 +227,13 @@ public:
 
         // Parameters used for interrupt based I2C communication
         volatile I2CPeriph::DevFlt   I2CWFlt;// Fault status of the I2C write Communication
-        volatile uint8_t     wtcmpFlag;      // I2C write communication complete flag
-        uint8_t     wtcmpTarget;    // I2C write communication number of bytes to have been
+        volatile uint16_t    wtcmpFlag;      // I2C write communication complete flag
+        uint16_t    wtcmpTarget;    // I2C write communication number of bytes to have been
                                     // transmitted
 
         volatile I2CPeriph::DevFlt   I2CRFlt;// Fault status of the I2C read Communication
-        volatile uint8_t     rdcmpFlag;      // I2C read communication complete flag
-        uint8_t     rdcmpTarget;    // I2C read communication number of bytes to have been
+        volatile uint16_t    rdcmpFlag;      // I2C read communication complete flag
+        uint16_t    rdcmpTarget;    // I2C read communication number of bytes to have been
                                     // received
 
 /**************************************************************************************************

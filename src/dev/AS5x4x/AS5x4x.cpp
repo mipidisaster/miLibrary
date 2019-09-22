@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AS5x4x.cpp
  * @author      Thomas
- * @version     V2.2
- * @date        18 Sept 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Source file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -576,8 +576,8 @@ void AS5x4x::reInitialise(void) {
 }
 
 void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uint8_t *wBuff,
-                               volatile SPIPeriph::DevFlt *fltReturn, volatile uint8_t *cmpFlag,
-                               uint8_t *cmpTarget) {
+                               volatile SPIPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag,
+                               uint16_t *cmpTarget) {
 /**************************************************************************************************
  * Interrupt based request for transmission of data to the "own" AS5x4x device.
  *
