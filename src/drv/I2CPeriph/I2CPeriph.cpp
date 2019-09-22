@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V2.2
- * @date        17 Sept 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -624,9 +624,9 @@ void I2CPeriph::RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
 
 }
 
-I2CPeriph::Form I2CPeriph::GenericForm(uint16_t devAddress, uint8_t size, CommMode mode,
-                                          Request reqst,
-                                          volatile DevFlt *fltReturn, volatile uint8_t *cmpFlag) {
+I2CPeriph::Form I2CPeriph::GenericForm(uint16_t devAddress, uint16_t size, CommMode mode,
+                                       Request reqst,
+                                       volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a I2CForm request, based upon the generic information provided as input.
  *************************************************************************************************/

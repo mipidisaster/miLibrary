@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        15 Sept 2019
+ * @version     V2.2
+ * @date        22 Sept 2019
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -403,7 +403,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
 
         // Check to see if there is data to be read, done by checking the Read Data Register not
         // empty flag (RXNE), if this is TRUE then there is data to be read.
-    while (this->ReceiveToReadChk != 1) {}
+    while (this->ReceiveToReadChk() != 1) {}
 
     return (this->DRRead());  // Retrieve the read data, and pass out of function
 
@@ -786,6 +786,9 @@ void UARTPeriph::Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
  *
  *************************************************************************************************/
     if (this->ReadCommState == CommLock::Free) {
+        *fltReturn = DevFlt::None;
+        cmpFlag = 0;
+
         this->intReadPacket( ReadArray->pa, ReadArray->length, fltReturn, cmpFlag);
     }
 
