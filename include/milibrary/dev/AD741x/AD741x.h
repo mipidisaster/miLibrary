@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V3.3
+ * @version     V3.4
  * @date        22 Sept 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
@@ -252,9 +252,6 @@ public:
                                                                 // class generation
 
     public:
-        void create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
-
-        AD741x(void);                           // Basic constructor for AS5x4x class
         AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
 
 /**************************************************************************************************

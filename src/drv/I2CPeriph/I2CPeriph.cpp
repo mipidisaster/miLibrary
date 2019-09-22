@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V2.3
+ * @version     V2.4
  * @date        22 Sept 2019
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
@@ -29,16 +29,7 @@ void I2CPeriph::popGenParam(void) {
     this->curReqst      = Request::Nothing; // Initialise the current request state to 0
 }
 
-I2CPeriph::I2CPeriph(void) {
-/**************************************************************************************************
- * Basic construction of I2C Periph Device
- *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
-
-    this->I2C_Handle    = __null;           // Point to NULL
-}
-
-void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
+I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Creates a I2C class specific for the STM32 device.
  *
@@ -51,17 +42,6 @@ void I2CPeriph::create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t 
     this->I2C_Handle    = I2C_Handle;       // Link input I2C handler to class.
 
     this->FormQueue.create(FormArray, FormSize);
-}
-
-I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
-/**************************************************************************************************
- * Creates a I2C class specific for the STM32 device.
- *
- * As the STM32CubeMX already pre-generates the setting up and configuring of the desired I2C
- * device, there is no need to define that within this function. Simply providing the handle is
- * required.
- *************************************************************************************************/
-    this->create(I2C_Handle, FormArray, FormSize);
 }
 
 uint8_t I2CPeriph::DRRead(void) {

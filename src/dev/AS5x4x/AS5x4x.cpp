@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        AS5x4x.cpp
  * @author      Thomas
- * @version     V2.3
+ * @version     V2.4
  * @date        22 Sept 2019
  * @brief       Source file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
@@ -29,14 +29,7 @@ void AS5x4x::popGenParam(void) {
     this->Device        = DevPart::AS5048A;     // Default is "AS5048A"
 }
 
-AS5x4x::AS5x4x(void) {
-/**************************************************************************************************
- * Basic construction of AS5x4x Device
- *************************************************************************************************/
-    this->popGenParam();                        // Populate generic class parameters
-}
-
-void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
+AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
 /**************************************************************************************************
  * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
  * along with a pointer to the Write and Read buffers, which will be used internally to the class
@@ -54,17 +47,6 @@ void AS5x4x::create(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t
 
     this->wtBuff.QFlush();                      // Flush data
     this->rdBuff.QFlush();                      // Flush data
-}
-
-AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
-/**************************************************************************************************
- * Create a AS5x4x class. For construction the of the class, the Device type needs to be provided,
- * along with a pointer to the Write and Read buffers, which will be used internally to the class
- * to manage the data that is transfered to the attached device.
- * The class construction will initialise all the parameters, and set the fault state to
- * initialised.
- *************************************************************************************************/
-    this->create(Device, wtBuff, rdBuff, size);
 }
 
 uint8_t AS5x4x::EvenParityCheck(uint16_t packet) {

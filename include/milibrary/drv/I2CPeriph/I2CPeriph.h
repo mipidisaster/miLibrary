@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        I2CPeriph.h
  * @author      Thomas
- * @version     V2.2
- * @date        17 Sept 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Header file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -234,9 +234,6 @@ public:
         I2C_HandleTypeDef  *I2C_Handle;     // Store the I2C handle
 
     public:
-        void create(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize);
-
-        I2CPeriph(void);                    // Basic constructor for I2C class
         I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize);
         // Setup the I2C class, for STM32 by providing the I2C Request Form array pointer, as well
         // as the size.

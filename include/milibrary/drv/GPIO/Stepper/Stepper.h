@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.h
  * @author      Thomas
- * @version     V2.2
- * @date        23 Aug 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Header file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -273,8 +273,6 @@ public:
     protected:
         void popGenParam(void);         // Populate generic parameters for the class
 
-    public:
-        Stepper(void);                  // Basic constructor for Stepper class
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
@@ -290,10 +288,6 @@ public:
         HrdSetup    HrdwreCfg;          // Defined at class construction time
 
     public:
-        void create(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
-                    uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
-                    int32_t FullRev, HrdSetup Config);
-
         Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
                 int32_t FullRev, HrdSetup Config);

@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V3.3
+ * @version     V3.4
  * @date        22 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
@@ -229,10 +229,6 @@ public:
         UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
 
     public:
-        void create(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
-                    Form *ReadForm, uint16_t ReadFormSize);
-
-        UARTPeriph(void);                       // Basic constructor for UART class
         UARTPeriph(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
                    Form *ReadForm, uint16_t ReadFormSize);
         // Setup the UART class, for STM32 by providing the UART Request Form array pointer, as

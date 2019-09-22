@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        AD741x.cpp
  * @author      Thomas
- * @version     V2.2
- * @date        18 Sept 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Source file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -45,14 +45,7 @@ void AD741x::popGenParam(DevPart DeviceNum, AddrBit ASPin) {
     this->TempReg       = 0;                    // Default to "0"
 }
 
-AD741x::AD741x(void) {
-/**************************************************************************************************
- * Basic construction of AD741x Device
- *************************************************************************************************/
-    this->popGenParam(DevPart::AD7414_0, AddrBit::Float);   // Populate generic parameters
-}
-
-void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize) {
+AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
  * "write".
@@ -63,15 +56,6 @@ void AD741x::create(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t 
     this->AdBuff.create(FormArray, FormSize);   // Create GenBuffer for internal Address Pointer
                                                 // queue
     this->reInitialise();       // Ensure that the internal mechanics of the class have been reset
-}
-
-AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize) {
-/**************************************************************************************************
- * "Lite" class constructor, which requires the GenBuffer pointers for "Address", "read" and
- * "write".
- * Which will then be linked to the class parameters.
- *************************************************************************************************/
-    this->create(DeviceNum, ASPin, FormArray, FormSize);
 }
 
 void AD741x::GetAddress(void) {

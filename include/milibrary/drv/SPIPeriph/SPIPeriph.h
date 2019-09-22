@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.h
  * @author      Thomas
- * @version     V3.2
- * @date        17 Sept 2018
+ * @version     V3.3
+ * @date        22 Sept 2018
  * @brief       Header file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -232,9 +232,6 @@ public:
         SPI_HandleTypeDef   *SPI_Handle;    // Store the Handle for the SPI Device, from cubeMX
 
     public:
-        void create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize);
-
-        SPIPeriph(void);                    // Basic constructor for SPI class
         SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize);
         // Setup the SPI class, for STM32 by providing the SPI Request Form array pointer, as well
         // as the size.
@@ -246,8 +243,6 @@ public:
         int SPIChannel;                         // Store the channel used for SPI
 
     public:
-        void create(int channel, int speed, _SPIMode Mode);
-
         SPIPeriph(int channel, int speed, _SPIMode Mode);
 
 #else

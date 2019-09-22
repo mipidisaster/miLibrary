@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        SPIPeriph.cpp
  * @author      Thomas
- * @version     V3.2
- * @date        17 Sept 2018
+ * @version     V3.3
+ * @date        22 Sept 2018
  * @brief       Source file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -31,17 +31,7 @@ void SPIPeriph::popGenParam(void) {
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-SPIPeriph::SPIPeriph(void) {
-/**************************************************************************************************
- * Basic construction of SPI Periph Device
- *************************************************************************************************/
-    this->SPI_Handle    = __null;           // Point to NULL
-    this->Mode          = MODE0;            // Initialise to MODE0
-
-    this->popGenParam();                    // Populate generic class parameters
-}
-
-void SPIPeriph::create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
+SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for the STM32 device
  * Receives the address of the SPI Handle of device - generated from cubeMX
@@ -68,18 +58,9 @@ void SPIPeriph::create(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t F
 
     this->Enable();                     // Enable the SPI device
 }
-
-SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
-/**************************************************************************************************
- * Create a SPIPeriph class specific for the STM32 device
- * Receives the address of the SPI Handle of device - generated from cubeMX
- * Will then determine which mode has been selected, based upon the states of the registers
- *************************************************************************************************/
-    this->create(SPIHandle, FormArray, FormSize);
-}
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-void SPIPeriph::create(int channel, int speed, _SPIMode Mode) {
+SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi
  * Receives the desired channel, speed and Mode
@@ -101,15 +82,6 @@ void SPIPeriph::create(int channel, int speed, _SPIMode Mode) {
 
     wiringPiSPISetupMode(this->SPIChannel, speed, tempMode);
         // Enable SPI interface for selected SPI channel, speed and mode
-}
-
-
-SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
-/**************************************************************************************************
- * Create a SPIPeriph class specific for RaspberryPi
- * Receives the desired channel, speed and Mode
- *************************************************************************************************/
-    this->create(channel, speed, Mode);
 }
 #else
 //==================================================================================================

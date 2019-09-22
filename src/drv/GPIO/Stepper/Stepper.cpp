@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        Stepper.cpp
  * @author      Thomas
- * @version     V2.2
- * @date        16 Jun 2019
+ * @version     V2.3
+ * @date        22 Sept 2019
  * @brief       Source file for the Stepper Driver Class handle
  **************************************************************************************************
  @ attention
@@ -54,17 +54,9 @@ void Stepper::popGenParam(void) {
     this->calcPos       = 0;                // Initialise pole Position calculation to zero
 }
 
-Stepper::Stepper() {
-/**************************************************************************************************
- * Basic construction of Stepper class
- *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
-
-}
-
-void Stepper::create(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
-                     uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
-                     int32_t FullRev, HrdSetup Config) {
+Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
+                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
+                 int32_t FullRev, HrdSetup Config) {
 /**************************************************************************************************
  * Creates a Stepper class specific for the STM32F device.
  *  Inputs include the TIMER handle which will be used primarily to control the stepper motor
@@ -150,33 +142,6 @@ void Stepper::create(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, u
     }
 
     __HAL_TIM_ENABLE(this->STEP);
-}
-
-Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
-                 uint32_t CountChannel, GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
-                 int32_t FullRev, HrdSetup Config) {
-/**************************************************************************************************
- * Creates a Stepper class specific for the STM32F device.
- *  Inputs include the TIMER handle which will be used primarily to control the stepper motor
- *   >>> Doesn't support another other outputs as of yet...  <<<
- *  Along with the Output Compare channel (which is the channel state shifted up by the channel)
- *        + channel for the output compare interrupt - used to count number of steps done
- *  The linked DMA is also required, to provide to the Output Compare output (alias "STEP") with
- *  the required sequence to generate the STEP pulse.
- *
- *  Then all the auxillary GPIO pins - Reset, and Microstep(s) < last one needs to also include
- *                                                               the number of pins for this
- *  The number of steps per revolution of the Stepper need to be provided in the format of
- *  hardware number of steps multiplied by the smallest step size:
- *      i.e. motor has 200 poles, but driver can provide a step of 1/16
- *           "FullRev"  = 200 x 16 = 3,200 steps
- *
- *  Lastly the Hardware Setup structure is required. This should be configured for the specific
- *  embedded device (limited to STM32 devices currently). Including the bit positions and address
- *  to manage interrupts and the DMA.
- *************************************************************************************************/
-    this->create(STEP_TIM, STEP_DMA, OCChannel, CountChannel,
-                 nReset, DIR, MicStp, McrStp, FullRev, Config);
 }
 
 void Stepper::SetShadowGPIO(void) {

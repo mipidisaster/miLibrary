@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.h
  * @author      Thomas
- * @version     V2.1
- * @date        21 Dec 2018
+ * @version     V2.2
+ * @date        22 Sept 2019
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -85,9 +85,6 @@ public:
         GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
 
     public:
-        void create(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
-
-        GPIO(void);                             // Basic constructor for AS5x4x class
         GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then

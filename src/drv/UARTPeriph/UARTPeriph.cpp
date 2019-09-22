@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V2.2
+ * @version     V2.3
  * @date        22 Sept 2019
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
@@ -33,9 +33,9 @@ void UARTPeriph::popGenParam(void) {
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
-void UARTPeriph::create(UART_HandleTypeDef *UART_Handle,
-                        Form *WrteForm, uint16_t WrteFormSize,
-                        Form *ReadForm, uint16_t ReadFormSize) {
+UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
+                       Form *WrteForm, uint16_t WrteFormSize,
+                       Form *ReadForm, uint16_t ReadFormSize) {
 /**************************************************************************************************
  * Create a UARTPeriph class specific for the STM32 device
  * Receives the address of the UART Handle of device - generated from cubeMX
@@ -49,27 +49,6 @@ void UARTPeriph::create(UART_HandleTypeDef *UART_Handle,
 
     this->FormWrteQ.create(WrteForm, WrteFormSize);
     this->FormReadQ.create(ReadForm, ReadFormSize);
-}
-
-UARTPeriph::UARTPeriph(void) {
-/**************************************************************************************************
- * Basic construction of UART Periph Device
- *************************************************************************************************/
-    this->UART_Handle   = __null;           // Point to NULL
-}
-
-
-UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
-                       Form *WrteForm, uint16_t WrteFormSize,
-                       Form *ReadForm, uint16_t ReadFormSize) {
-/**************************************************************************************************
- * Creates a UART class specific for the STM32 device.
- *
- * As the STM32CubeMX already pre-generates the setting up and configuring of the desired UART
- * device, there is no need to define that within this function. Simply providing the handle is
- * required.
- *************************************************************************************************/
-    this->create(UART_Handle, WrteForm, WrteFormSize, ReadForm, ReadFormSize);
 }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then

@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        GPIO.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        21 Dec 2018
+ * @version     V2.2
+ * @date        22 Sept 2019
  * @brief       Source file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -16,16 +16,7 @@
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-GPIO::GPIO(void) {
-/**************************************************************************************************
- * Basic construction of GPIO Device
- *************************************************************************************************/
-    this->pinnumber     = 0;                    // Initialise everything to "0"
-    this->PortAddress   = __null;               //
-    this->pindirection  = GPIO::Dir::OUTPUT;    //
-}
-
-void GPIO::create(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
+GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
 /**************************************************************************************************
  * Create a GPIO class specific for the STM32F device
  * Receives the PortAddress pointer, and pin number - all comes from the cubeMX output
@@ -35,16 +26,6 @@ void GPIO::create(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) 
     this->pinnumber     = pinnumber;    // copy data into class
     this->PortAddress   = PortAddress;  //
     this->pindirection  = direction;    //
-}
-
-GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
-/**************************************************************************************************
- * Create a GPIO class specific for the STM32F device
- * Receives the PortAddress pointer, and pin number - all comes from the cubeMX output
- * Also requires the direction of the pin - INPUT/OUTPUT
- * Not setup of the port clock or pin, covered by the cubeMX outputs
- *************************************************************************************************/
-    this->create(PortAddress, pinnumber, direction);
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
