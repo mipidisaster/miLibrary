@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V3.2
+ * @version     V3.3
  * @date        22 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
@@ -230,11 +230,11 @@ public:
 
     public:
         void create(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
-                Form *ReadForm, uint16_t ReadFormSize);
+                    Form *ReadForm, uint16_t ReadFormSize);
 
         UARTPeriph(void);                       // Basic constructor for UART class
         UARTPeriph(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
-                Form *ReadForm, uint16_t ReadFormSize);
+                   Form *ReadForm, uint16_t ReadFormSize);
         // Setup the UART class, for STM32 by providing the UART Request Form array pointer, as
         // well as the size.
         // Class will then generate a GenBuffer item internally.
@@ -316,7 +316,7 @@ protected:  /*******************************************************************
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<
              *   -----------
-             *  Visible functions used to transfer data via USART - will wait for any registers to
+             *  Visible functions used to transfer data via UART - will wait for any registers to
              *  be in correct state before progressing.
              *************************************************************************************/
     uint8_t poleSingleRead(void);               // Will wait until there is new data to be read
@@ -327,7 +327,7 @@ public:     /*******************************************************************
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>   INTERRUPT FUNCTIONS FOR DATA TRANSFER   <<<
              *
-             *  Visible functions used to transfer data via USART - in Interrupt mode, so allows
+             *  Visible functions used to transfer data via UART - in Interrupt mode, so allows
              *  other functions to run, whilst hardware "does its thing!"
              *************************************************************************************/
     void configTransmtIT(InterState intr);      // Configure the Transmit Empty interrupt

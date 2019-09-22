@@ -34,6 +34,9 @@
 
 #define FilInd_USART__HD    "milibrary/drv/UARTPeriph/UARTPeriph.h" // File for the USART driver
                                                                     // code
+#define FilIndUSARTDMAHD    "milibrary/drv/UARTPeriph/UARTDMAPeriph.h"
+    // File fur the USART driver with additional support for DMA interfaces
+
 #define FilInd_SPIPe__HD    "milibrary/drv/SPIPeriph/SPIPeriph.h"   // File for the SPI driver code
 #define FilInd_I2CPe__HD    "milibrary/drv/I2CPeriph/I2CPeriph.h"   // File for the I2C driver code
 
