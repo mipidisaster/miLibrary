@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        FileIndex.h
  * @author      Thomas
- * @version     V0.5
- * @date        14 Nov 2018
+ * @version     V1.1
+ * @date        28 Sept 2019
  * @brief       File index for my code and functions
  **************************************************************************************************
   @ attention
@@ -30,15 +30,20 @@
                                                                     // code
 #define FilInd_DeMux__HD    "milibrary/drv/GPIO/DeMux/DeMux.h"      // File for the DeMultiplexor
                                                                     // driver
-#define FilInd_Stppr__HD    "milibrary/drv/GPIO/Stepper/Stepper.h"  // File for the Stepper driver
+#define FilInd_Stppr__HD    "milibrary/drv/Stepper/Stepper.h"       // File for the Stepper driver
+
 
 #define FilInd_USART__HD    "milibrary/drv/UARTPeriph/UARTPeriph.h" // File for the USART driver
                                                                     // code
-#define FilIndUSARTDMAHD    "milibrary/drv/UARTPeriph/UARTDMAPeriph.h"
-    // File fur the USART driver with additional support for DMA interfaces
-
 #define FilInd_SPIPe__HD    "milibrary/drv/SPIPeriph/SPIPeriph.h"   // File for the SPI driver code
 #define FilInd_I2CPe__HD    "milibrary/drv/I2CPeriph/I2CPeriph.h"   // File for the I2C driver code
+
+
+#define FilInd_DMAPe__HD    "milibrary/drv/DMAPeriph/DMAPeriph.h"   // File for the DMA driver code
+// DMA sub-classes
+// ~~~~~~~~~~~~~~~>
+#define FilIndUSARTDMAHD    "milibrary/drv/UARTPeriph/UARTDMAPeriph.h"
+    // File fur the USART driver with additional support for DMA interfaces
 
 /**************************************************************************************************
  * All of the defines below are for "Common" code - examples: Buffers, Math, etc.
