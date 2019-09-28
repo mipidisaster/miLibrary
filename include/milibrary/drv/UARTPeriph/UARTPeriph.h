@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V3.4
- * @date        22 Sept 2019
+ * @version     V3.5
+ * @date        28 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -169,6 +169,8 @@ public:
          DataError       = 0x01,     // Data Error
          Parity          = 0x02,     // Parity Fault
 
+         DMA_Rx_Error    = 0xFD,     // Error triggered if DMA (Receive) error
+         DMA_Tx_Error    = 0xFE,     // Error triggered if DMA (Transmit) errorST
          Initialised     = 0xFF      // Just initialised
      };
 
@@ -288,7 +290,7 @@ protected:  /*******************************************************************
 
     // UART Error status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~
-    // None - as of yet
+    void ClearComptChk(void);               // Clear the Transmission Complete flag
 
     // UART Interrupt status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -336,13 +338,13 @@ public:     /*******************************************************************
     void intReadPacket(uint8_t *rData, uint16_t size,
                        volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    void UARTInterruptStart(void);              // Enable communication is bus is free, otherwise
+    virtual void UARTInterruptStart(void);      // Enable communication is bus is free, otherwise
                                                 // wait (doesn't actually pause at this point)
-    void intWrteFormCmplt(void);                // Closes out the input Request Form (Write)
-    void intReadFormCmplt(void);                // Closes out the input Request Form (Read)
+    virtual void intWrteFormCmplt(void);        // Closes out the input Request Form (Write)
+    virtual void intReadFormCmplt(void);        // Closes out the input Request Form (Read)
 
-    void Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
-                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    virtual void Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
+                                    volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     virtual void IRQHandle(void);               // Interrupt handler
 

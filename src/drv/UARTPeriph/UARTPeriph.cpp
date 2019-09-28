@@ -1,8 +1,8 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V2.3
- * @date        22 Sept 2019
+ * @version     V2.4
+ * @date        28 Sept 2019
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -215,6 +215,29 @@ uint8_t UARTPeriph::ReceiveToReadChk(void) {
         return (1);
     else
         return (0);
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//==================================================================================================
+
+
+#else
+//==================================================================================================
+
+#endif
+}
+
+void UARTPeriph::ClearComptChk(void) {
+/**************************************************************************************************
+ * Clear the Transmission complete flag
+ *************************************************************************************************/
+
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//==================================================================================================
+    __HAL_UART_CLEAR_FLAG(this->UART_Handle, UART_FLAG_TC); // Clear status register
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//==================================================================================================
+    __HAL_UART_CLEAR_FLAG(this->UART_Handle, UART_CLEAR_TCF); // Clear status register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -732,6 +755,7 @@ void UARTPeriph::intWrteFormCmplt(void) {
     this->WrteCommState = Free;
 
     this->configTransmtIT(ITDisable);       // Disable Transmit empty buffer interrupt
+    this->configTransCmIT(ITDisable);       // Disable Transmit complete interrupt
 }
 
 void UARTPeriph::intReadFormCmplt(void) {
@@ -764,14 +788,17 @@ void UARTPeriph::Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
  * status.
  *
  *************************************************************************************************/
-    if (this->ReadCommState == CommLock::Free) {
-        *fltReturn = DevFlt::None;
-        cmpFlag = 0;
+    if (this->ReadCommState == CommLock::Free) {    // If the UART Receive is free to be used
+        *fltReturn = DevFlt::None;                  // Clear the linked fault flag
+        cmpFlag = 0;                                // Clear complete flag
 
         this->intReadPacket( ReadArray->pa, ReadArray->length, fltReturn, cmpFlag);
+            // Request a new read back
     }
 
     ReadArray->input_pointer = ReadArray->length - this->curReadCount;
+    // use internal class structure - 'curReadCount' to calculate how many data points have
+    // been read back
 }
 
 void UARTPeriph::IRQHandle(void) {
@@ -822,7 +849,13 @@ void UARTPeriph::IRQHandle(void) {
  *      }
  *************************************************************************************************/
     if ( (this->TransmitComptChk() & this->TransmitComptITChk()) == 0x01) { //
-        __HAL_UART_CLEAR_FLAG(this->UART_Handle, UART_FLAG_TC); // Clear status register
+        this->ClearComptChk();      // Clear the Transmission complete flag
+
+        this->intWrteFormCmplt();               // Complete the current request form
+                                                // (no faults)
+        this->UARTInterruptStart();             // Check if any new requests
+                                                // remain
+
     }
 
     // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
