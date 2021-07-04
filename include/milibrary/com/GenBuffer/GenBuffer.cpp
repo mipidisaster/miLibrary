@@ -78,7 +78,7 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint16_t size) {
  * Once done it will call the "QFlush" function to  setup pointers to the start of the buffer.
  *  Leaves the contents of the data unaffected.
  *************************************************************************************************/
-    create(arrayloc, size);
+    this->create(arrayloc, size);
 }
 
 template <typename Typ>

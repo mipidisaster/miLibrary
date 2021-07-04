@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        UARTDMAPeriph.cpp
  * @author      Thomas
- * @version     V0.1
+ * @version     V0.2
  * @date        28 Sep 2019
  * @brief       Source file for the Generic UART with DMA Class handle
  **************************************************************************************************
@@ -97,8 +97,6 @@ void UARTDMAPeriph::UARTInterruptStart(void) {
             this->popDMARegisters(this->DMA_Tx,  (uint32_t) this->curWrteForm.Buff,
                                                  (uint32_t)&this->UART_Handle->Instance->TDR,
                                                  this->curWrteForm.size);
-#error('Set me up!')
-
 
 #else
 //==================================================================================================
@@ -171,11 +169,9 @@ void UARTDMAPeriph::UARTInterruptStart(void) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-            this->popDMARegisters(this->DMA_Rx,  ((uint32_t)&this->UART_Handle->Instance->RDR,
+            this->popDMARegisters(this->DMA_Rx,  (uint32_t)&this->UART_Handle->Instance->RDR,
                                                  (uint32_t) this->curReadForm.Buff,
                                                  this->curReadForm.size);
-#error('Set me up!')
-
 
 #else
 //==================================================================================================
