@@ -11,7 +11,11 @@ This library contains the support of a majority of devices/interaces which will 
  - [Useful guides](#useful-guides)
 
 ## Build Tree
-![build tree](https://github.com/mipidisaster/Library/master/img/Build_tree.png)
+![build tree](https://github.com/mipidisaster/Library/master/_image/Build_tree.png)
+
+0.1.1
+Major changes
+* README.md file image build updated to work correctly
 
 0.1.0
 * Initial release
