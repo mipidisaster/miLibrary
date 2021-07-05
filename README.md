@@ -15,6 +15,16 @@ This library contains the support of a majority of devices/interaces which will 
 0.1.0
 * Initial release
 
+# Configuration
+
+Embedded Device | Configuration parameter
+-- | --
+Raspberry Pi | #define zz__MiRaspbPi__zz
+STM32Fx devices | #define zz__MiSTM32Fx__zz
+STM32Lx devices | #define zz__MiSTM32Lx__zz
+
+Eclipse settings/preferences (or at least my preferences), can be located in the `_preferences` folder
+
 # Wiki
 The wiki for this can be found within the Github repository for this - https://github.com/mipidisaster/miLibrary/wiki
 
