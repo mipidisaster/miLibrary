@@ -250,7 +250,7 @@ AD741x::DevFlt AD741x::deconstructData(uint8_t *readData, uint16_t size) {
                 // read back. So ignore this request.
         }
         else {  // If no entry in queue (but function still expecting to decode data), then
-                // indicate Syncrhronized Error
+                // indicate Synchronised Error
             return (this->Flt = DevFlt::SynchronizeErr);
         }
 
