@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        UARTDMAPeriph.h
  * @author      Thomas
- * @version     V0.1
- * @date        28 Sep 2019
  * @brief       Header file for the Generic UART with DMA Class handle
  **************************************************************************************************
  @ attention
@@ -25,7 +23,7 @@
  * attempt to response to any 'Receive Empty' interrupt flags
  *
  *      The following 'UARTPeriph' functions will be redefined for use with DMA:
- *          ".UARTInterruptStart"   - This will update the Interrupt setup function with switches
+ *          ".startInterrupt"       - This will update the Interrupt setup function with switches
  *                                    for DMA enabling (either Transmit/Receive). If DMA is
  *                                    disabled, logic is the same as 'UARTPeriph', if DMA is
  *                                    enabled, then the relevant DMA is configured to manage
@@ -41,14 +39,14 @@
  *          ".intReadFormCmplt"     - Will tidy up the current read request, with DMA enabled
  *                                    it will retrieve number of data points transmitted from DMA
  *                                    registers
- *          ".Read_GenBufferLock"   - Function assumes that the DMA linked to Receive will be in
+ *          ".readGenBufferLock"   - Function assumes that the DMA linked to Receive will be in
  *                                    circular mode, will then determine how many data points
  *                                    received and update linked 'GenBuffer'
  * 
  *      The following functions will be added, so as to manage the DMA interrupts
- *          ".IRQDMATxHandle"       - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleDMATxIRQ"       - Functions to be placed within the relevant Interrupt Vector
  *                                    call, for DMA linked to Transmit, so as to handle interrupts
- *          ".IRQDMARxHandle"       - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleDMARxIRQ"       - Functions to be placed within the relevant Interrupt Vector
  *                                    call, for DMA linked to Receive, so as to handle interrupts
  *
  *      There is no other functionality within this class.
@@ -101,11 +99,11 @@ class UARTDMAPeriph : public UARTPeriph, public DMAPeriph {
 *  Parameters required for the class to function.
 *************************************************************************************************/
     protected:
-        DMA_HandleTypeDef   *DMA_Rx;            // Store the UART DMA handle (Receive)
-        DMA_HandleTypeDef   *DMA_Tx;            // Store the UART DMA handle (Transmit)
+        DMA_HandleTypeDef   *_dma_rx_;      // Store the UART DMA handle (Receive)
+        DMA_HandleTypeDef   *_dma_tx_;      // Store the UART DMA handle (Transmit)
 
-        DMAMode             ModeTx;             // DMA Transmit Communication Mode
-        DMAMode             ModeRx;             // DMA Receive  Communication Mode
+        DMAMode             _mode_tx_;      // DMA Transmit Communication Mode
+        DMAMode             _mode_rx_;      // DMA Receive  Communication Mode
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -134,18 +132,18 @@ public:     /*******************************************************************
              *  Following functions are redefinitions of 'UARTPeriph', functions such as to allow
              *  interfacing with DMAs
              *************************************************************************************/
-    void UARTInterruptStart(void);      // Enable communication is bus is free, otherwise
+    void startInterrupt(void);          // Enable communication is bus is free, otherwise
                                         // wait (doesn't actually pause at this point)
 
     void intWrteFormCmplt(void);        // Closes out the input Request Form (Write)
     void intReadFormCmplt(void);        // Closes out the input Request Form (Read)
 
-    void Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
-                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    void readGenBufferLock(GenBuffer<uint8_t> *ReadArray,
+                           volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
 // USART/DMA specific functions
-    void IRQDMATxHandle(void);            // Interrupt handler for DMA Transmit
-    void IRQDMARxHandle(void);            // Interrupt handler for DMA Receive
+    void handleDMATxIRQ(void);            // Interrupt handler for DMA Transmit
+    void handleDMARxIRQ(void);            // Interrupt handler for DMA Receive
 
     virtual ~UARTDMAPeriph();
 };

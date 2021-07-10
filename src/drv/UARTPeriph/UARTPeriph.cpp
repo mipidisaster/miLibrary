@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        UART.cpp
  * @author      Thomas
- * @version     V2.4
- * @date        28 Sept 2019
  * @brief       Source file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -19,15 +17,15 @@ void UARTPeriph::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    this->Flt           = DevFlt::Initialised;      // Initialise the fault to "initialised"
-    this->WrteCommState = CommLock::Free;           // Indicate bus is free (Write)
-    this->ReadCommState = CommLock::Free;           // Indicate bus is free (Read)
+    flt           = DevFlt::kInitialised;   // Initialise the fault to "initialised"
+    wrte_comm_state = CommLock::kFree;      // Indicate bus is free (Write)
+    read_comm_state = CommLock::kFree;      // Indicate bus is free (Read)
 
-    this->curWrteCount  = 0;                // Initialise the current packet size count
-    this->curWrteForm   = { 0 };            // Initialise the form to a blank entry
+    _cur_wrte_count_  = 0;          // Initialise the current packet size count
+    _cur_wrte_form_   = { 0 };      // Initialise the form to a blank entry
 
-    this->curReadCount  = 0;                // Initialise the current packet size count
-    this->curReadForm   = { 0 };            // Initialise the form to a blank entry
+    _cur_read_count_  = 0;          // Initialise the current packet size count
+    _cur_read_form_   = { 0 };      // Initialise the form to a blank entry
 }
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
@@ -44,11 +42,11 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
  * device, there is no need to define that within this function. Simply providing the handle is
  * required.
  *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
-    this->UART_Handle   = UART_Handle;      // Copy data into class
+    popGenParam();                      // Populate generic class parameters
+    _uart_handle_ = UART_Handle;        // Copy data into class
 
-    this->FormWrteQ.create(WrteForm, WrteFormSize);
-    this->FormReadQ.create(ReadForm, ReadFormSize);
+    _form_wrte_q_.create(WrteForm, WrteFormSize);
+    _form_read_q_.create(ReadForm, ReadFormSize);
 }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -64,18 +62,18 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
  *  as to provide the Raspberry Pi the same function use as other embedded devices.
  *  The Receive and Transmit buffers size will be as per input "BufferSize"
  *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
+    popGenParam();                      // Populate generic class parameters
 
-    this->deviceloc         = deviceloc;    // Capture the folder location of UART device
-    this->baudrate          = baud;         // Capture the desired baud rate
-    this->pseudo_interrupt  = 0x00;         // pseudo interrupt register used to control the UART
-                                            // interrupt for Raspberry Pi
+    _device_loc_      = deviceloc;      // Capture the folder location of UART device
+    _baud_rate_       = baud;           // Capture the desired baud rate
+    _pseudo_interrupt_= 0x00;           // pseudo interrupt register used to control the UART
+                                        // interrupt for Raspberry Pi
 
     // Configure both the Write and Read Buffers to be the size as per input
-    this->FormWrteQ.create(WrteForm, WrteFormSize);
-    this->FormReadQ.create(ReadForm, ReadFormSize);
+    _form_wrte_q_.create(WrteForm, WrteFormSize);
+    _form_read_q_.create(ReadForm, ReadFormSize);
 
-    this->UART_Handle = serialOpen(this->deviceloc, this->baudrate);
+    _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
             // Open the serial interface
 }
 
@@ -83,7 +81,7 @@ int  UARTPeriph::AnySerDataAvil(void) {
 /**************************************************************************************************
 * RaspberryPi specific function to determine amount of data within the hardware
 *************************************************************************************************/
-   return(serialDataAvail(this->UART_Handle));
+   return(serialDataAvail(UART_Handle));
 }
 
 #else
@@ -93,22 +91,22 @@ UARTPeriph::UARTPeriph() {
 }
 #endif
 
-uint8_t UARTPeriph::DRRead(void) {
+uint8_t UARTPeriph::readDR(void) {
 /**************************************************************************************************
  * Read from the UART hardware
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    return ((uint8_t)this->UART_Handle->Instance->DR);
+    return ((uint8_t)_uart_handle_->Instance->DR);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    return ((uint8_t)this->UART_Handle->Instance->RDR);
+    return ((uint8_t)_uart_handle_->Instance->RDR);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    return((uint8_t) serialGetchar(this->UART_Handle));
+    return((uint8_t) serialGetchar(_uart_handle_));
 
 #else
 //==================================================================================================
@@ -116,22 +114,22 @@ uint8_t UARTPeriph::DRRead(void) {
 #endif
 }
 
-void UARTPeriph::DRWrite(uint8_t data) {
+void UARTPeriph::writeDR(uint8_t data) {
 /**************************************************************************************************
  * Write from the UART hardware
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    this->UART_Handle->Instance->DR = data;
+    _uart_handle_->Instance->DR = data;
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    this->UART_Handle->Instance->TDR = data;
+    _uart_handle_->Instance->TDR = data;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    serialPutchar(this->UART_Handle, (unsigned char) data);
+    serialPutchar(_uart_handle_, (unsigned char) data);
 
 #else
 //==================================================================================================
@@ -139,21 +137,21 @@ void UARTPeriph::DRWrite(uint8_t data) {
 #endif
 }
 
-uint8_t UARTPeriph::TransmitEmptyChk(void) {
+uint8_t UARTPeriph::transmitEmptyChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Transmit buffer (if empty, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_TXE) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_TXE) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -168,21 +166,21 @@ uint8_t UARTPeriph::TransmitEmptyChk(void) {
 #endif
 }
 
-uint8_t UARTPeriph::TransmitComptChk(void) {
+uint8_t UARTPeriph::transmitComptChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Transmit communication (if completed, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_TC) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_TC) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TC) != 0 )
         return (1);
     else
         return (0);
@@ -197,21 +195,21 @@ uint8_t UARTPeriph::TransmitComptChk(void) {
 #endif
 }
 
-uint8_t UARTPeriph::ReceiveToReadChk(void) {
+uint8_t UARTPeriph::receiveToReadChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Receive buffer (if not empty "data to read", output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_RXNE) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_FLAG(this->UART_Handle, UART_FLAG_RXNE) != 0 )
+    if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -226,18 +224,18 @@ uint8_t UARTPeriph::ReceiveToReadChk(void) {
 #endif
 }
 
-void UARTPeriph::ClearComptChk(void) {
+void UARTPeriph::clearComptChk(void) {
 /**************************************************************************************************
  * Clear the Transmission complete flag
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_UART_CLEAR_FLAG(this->UART_Handle, UART_FLAG_TC); // Clear status register
+    __HAL_UART_CLEAR_FLAG(_uart_handle_, UART_FLAG_TC); // Clear status register
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    __HAL_UART_CLEAR_FLAG(this->UART_Handle, UART_CLEAR_TCF); // Clear status register
+    __HAL_UART_CLEAR_FLAG(_uart_handle_, UART_CLEAR_TCF); // Clear status register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -249,21 +247,21 @@ void UARTPeriph::ClearComptChk(void) {
 #endif
 }
 
-uint8_t UARTPeriph::TransmitEmptyITChk(void) {
+uint8_t UARTPeriph::transmitEmptyITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Transmit Empty Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_TXE) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_TXE) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -279,21 +277,21 @@ uint8_t UARTPeriph::TransmitEmptyITChk(void) {
 #endif
 }
 
-uint8_t UARTPeriph::TransmitComptITChk(void) {
+uint8_t UARTPeriph::transmitComptITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Transmit Complete Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_TC) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_TC) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TC) != 0 )
         return (1);
     else
         return (0);
@@ -309,7 +307,7 @@ uint8_t UARTPeriph::TransmitComptITChk(void) {
 #endif
 }
 
-uint8_t UARTPeriph::ReceiveToReadITChk(void) {
+uint8_t UARTPeriph::receiveToReadITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Receive Buffer full interrupt has been enabled (if enabled,
  * output = 1)
@@ -317,14 +315,14 @@ uint8_t UARTPeriph::ReceiveToReadITChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_RXNE) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_UART_GET_IT_SOURCE(this->UART_Handle, UART_IT_RXNE) != 0 )
+    if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -340,37 +338,37 @@ uint8_t UARTPeriph::ReceiveToReadITChk(void) {
 #endif
 }
 
-UARTPeriph::Form UARTPeriph::GenericForm(uint8_t *data, uint16_t size,
+UARTPeriph::Form UARTPeriph::genericForm(uint8_t *data, uint16_t size,
                                          volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a UARTForm request, based upon the generic information provided as input.
  *************************************************************************************************/
-    UARTPeriph::Form RequestForm = { 0 };       // Generate the "UARTPeriph::Form" variable to
+    UARTPeriph::Form request_form = { 0 };      // Generate the "UARTPeriph::Form" variable to
                                                 // provide as output
 
-    RequestForm.Buff            = data;         // Populate form with input data
-    RequestForm.size            = size;         //
+    request_form.Buff           = data;         // Populate form with input data
+    request_form.size           = size;         //
 
     // Indications used for source functionality to get status of requested communication
-    RequestForm.Flt             = fltReturn;    // Populate return fault flag
-    RequestForm.Cmplt           = cmpFlag;      // Populate complete communication indication
+    request_form.Flt            = fltReturn;    // Populate return fault flag
+    request_form.Cmplt          = cmpFlag;      // Populate complete communication indication
 
-    return (RequestForm);
+    return (request_form);
 }
 
-uint8_t UARTPeriph::GetFormWriteData(Form *RequestForm) {
+uint8_t UARTPeriph::getFormWriteData(Form *RequestForm) {
 /**************************************************************************************************
  * Retrieve the next data point to write to external device from the selected UART Request form
  *************************************************************************************************/
-    uint8_t tempval = 0;        // Temporary variable to store data value
+    uint8_t temp_val = 0;       // Temporary variable to store data value
 
-    tempval = *(RequestForm->Buff);             // Retrieve data from array
+    temp_val = *(RequestForm->Buff);            // Retrieve data from array
     RequestForm->Buff       += sizeof(uint8_t); // Increment array pointer
 
-    return (tempval);       // Return value outside of function
+    return (temp_val);       // Return value outside of function
 }
 
-void UARTPeriph::PutFormReadData(Form *RequestForm, uint8_t readdata) {
+void UARTPeriph::putFormReadData(Form *RequestForm, uint8_t readdata) {
 /**************************************************************************************************
  * Data read from the I2C external device is copied into the requested source location, as per
  * the UART Request form
@@ -388,40 +386,40 @@ uint8_t UARTPeriph::poleSingleRead(void) {
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     // Ensure that the UART interface has been enabled
-    if ((this->UART_Handle->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
-        __HAL_UART_ENABLE(this->UART_Handle);   // Enable the UART interface if not enabled
+    if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
+        __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
 
         // Check to see if there is data to be read, done by checking the Read Data Register not
         // empty flag (RXNE), if this is TRUE then there is data to be read.
-    while (this->ReceiveToReadChk() != 1) {}
+    while (receiveToReadChk() != 1) {}
 
-    return (this->DRRead());  // Retrieve the read data, and pass out of function
+    return (readDR());  // Retrieve the read data, and pass out of function
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
     // Ensure that the UART interface has been enabled
-    if ((this->UART_Handle->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
-        __HAL_UART_ENABLE(this->UART_Handle);   // Enable the UART interface if not enabled
+    if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
+        __HAL_UART_ENABLE(_uart_handle_); // Enable the UART interface if not enabled
 
         // Check to see if there is data to be read, done by checking the Read Data Register not
         // empty flag (RXNE), if this is TRUE then there is data to be read.
-    while (this->ReceiveToReadChk() != 1) {}
+    while (receiveToReadChk() != 1) {}
 
-    return (this->DRRead());  // Retrieve the read data, and pass out of function
+    return (readDR());  // Retrieve the read data, and pass out of function
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    int readbackdata = -1;      // Create a variable which will contain the read contents of the
-                                // UART device
-                                // Set this to -1, as this indicates that there is no data to be
-                                // read, and need to loop until data is read
-    while(readbackdata == -1) { // Loop until get data from UART
-        readbackdata = this->DRRead();                  // Read data from UART
+    int read_back_data = -1;        // Create a variable which will contain the read contents of
+                                    // the UART device
+                                    // Set this to -1, as this indicates that there is no data to
+                                    // be read, and need to loop until data is read
+    while(read_back_data == -1) {   // Loop until get data from UART
+        read_back_data = readDR();                  // Read data from UART
             // Function will time out after 10s returning -1. As want to pole until new data is
             // available, keep looping until get anything but -1
     }
 
-    return ((uint8_t) readbackdata);    // If get to this point data has been read from UART,
+    return ((uint8_t) read_back_data);  // If get to this point data has been read from UART,
                                         // therefore return read value
 #else
 //==================================================================================================
@@ -438,34 +436,33 @@ void UARTPeriph::poleSingleTransmit(uint8_t data) {
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
     // Ensure that the UART interface has been enabled
-    if ((this->UART_Handle->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
-        __HAL_UART_ENABLE(this->UART_Handle);   // Enable the UART interface if not enabled
+    if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
+        __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
 
         // Check to see if the Transmit Data Register is empty (TXE), this will be set to TRUE
         // by the hardware to indicate that the contents of the TDR register have been setup for
         // transmission. Therefore new data can be added for transmission
-    while (this->TransmitEmptyChk() == 0) {}
+    while (transmitEmptyChk() == 0) {}
 
-    this->DRWrite(data);    // Now put the selected data onto the Data Register (DR) for
-                            // transmission.
+    writeDR(data);    // Now put the selected data onto the Data Register (DR) for transmission.
+
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
     // Ensure that the UART interface has been enabled
-    if ((this->UART_Handle->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
-        __HAL_UART_ENABLE(this->UART_Handle);   // Enable the UART interface if not enabled
+    if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
+        __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
 
         // Check to see if the Transmit Data Register is empty (TXE), this will be set to TRUE
         // by the hardware to indicate that the contents of the TDR register have been setup for
         // transmission. Therefore new data can be added for transmission
-    while (this->TransmitEmptyChk() == 0) {}
+    while (transmitEmptyChk() == 0) {}
 
-    this->DRWrite(data);    // Now put the selected data onto the Data Register (DR) for
-                            // transmission.
+    writeDR(data);      // Now put the selected data onto the Data Register (DR) for transmission.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    this->DRWrite(data);    // Send data via UART
+    writeDR(data);      // Send data via UART
 
 #else
 //==================================================================================================
@@ -481,44 +478,44 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
  * > However if there is no data, or the size is zero, it will return a fault.
  *************************************************************************************************/
 
-    if (pData == __null || size == 0)           // If no data has been requested to be set
-        return (this->Flt = DevFlt::DataError); // return error with DATA (also update fault state)
+    if (pData == __null || size == 0)       // If no data has been requested to be set
+        return (flt = DevFlt::kData_Error); // return error with DATA (also update fault state)
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     while (size > 0) {                      // Whilst there is data to be transferred
-        this->poleSingleTransmit(*pData);   // Transmit the single point of data
+        poleSingleTransmit(*pData);   // Transmit the single point of data
         pData += sizeof(uint8_t);           // Increment pointer by the size of the data to be
                                             // transmitted
         size--;                             // Decrement the size
     }
 
     // Wait for final data point to have completed transmission before continuing
-    while (this->TransmitComptChk() == 0) {}
+    while (transmitComptChk() == 0) {}
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    char *newpa;                        // Create a character pointer
+    char *new_pa;                       // Create a character pointer
     uint16_t i;                         // Loop variable to go through contents of array
 
-    newpa = new char[size];             // Define an array to contain the data in a char type
+    new_pa = new char[size];            // Define an array to contain the data in a char type
 
     for (i = 0; i != size; i++) {       // Cycle through the size of the input array
-        newpa[i] = *pData;              // Copy data into new array
+        new_pa[i] = *pData;             // Copy data into new array
         pData += sizeof(uint8_t);       // Increment the input array pointer
     }
 
-    serialPuts(this->UART_Handle, newpa);   // Then send new data via UART
-    delete [] newpa;                        // Delete the new array, such as to clear up resources
+    serialPuts(_uart_handle_, new_pa);  // Then send new data via UART
+    delete [] new_pa;                   // Delete the new array, such as to clear up resources
 
 #else
 //==================================================================================================
 
 #endif
 
-    return (this->Flt = DevFlt::None);  // If have made it to this point, then there is no issues
-                                        // also update fault state
+    return (flt = DevFlt::kNone);   // If have made it to this point, then there is no issues
+                                    // also update fault state
 
 }
 
@@ -530,31 +527,31 @@ void UARTPeriph::configTransmtIT(InterState intr) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TXE);   // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);  // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TXE);  // Then disable interrupt
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TXE);   // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TXE);   // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TXE);  // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TXE);  // Then disable interrupt
     }
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        UARTD_EnabInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransmtIntBit);
         // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
-    else {                                                      // If request is to disable
-        UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransmtIntBit);
+    else {                                                  // If request is to disable
+        UARTD_DisaInter(_pseudo_interrupt_, UARTD_TransmtIntBit);
         // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
 
@@ -572,31 +569,31 @@ void UARTPeriph::configTransCmIT(InterState intr) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TC);    // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TC);    // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TC);   // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TC);   // Then disable interrupt
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_TC);    // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TC);    // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_TC);   // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TC);   // Then disable interrupt
     }
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        UARTD_EnabInter(this->pseudo_interrupt, UARTD_TransCmIntBit);
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransCmIntBit);
         // Enable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        UARTD_DisaInter(this->pseudo_interrupt, UARTD_TransCmIntBit);
+        UARTD_DisaInter(_pseudo_interrupt_, UARTD_TransCmIntBit);
         // Disable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
 
@@ -614,31 +611,31 @@ void UARTPeriph::configReceiveIT(InterState intr) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_RXNE);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_RXNE);  // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_RXNE); // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_RXNE); // Then disable interrupt
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_UART_ENABLE_IT(this->UART_Handle, UART_IT_RXNE);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_RXNE);  // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_UART_DISABLE_IT(this->UART_Handle, UART_IT_RXNE); // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_RXNE); // Then disable interrupt
     }
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        UARTD_EnabInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        UARTD_EnabInter(_pseudo_interrupt_, UARTD_ReceiveIntBit);
         // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        UARTD_DisaInter(this->pseudo_interrupt, UARTD_ReceiveIntBit);
+        UARTD_DisaInter(_pseudo_interrupt_, UARTD_ReceiveIntBit);
         // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
 
@@ -653,13 +650,13 @@ void UARTPeriph::intWrtePacket(uint8_t *wData, uint16_t size,
 /**************************************************************************************************
  * Function will generate a new form for the write UART communication
  *************************************************************************************************/
-    UARTPeriph::Form RequestForm = this->GenericForm(wData, size, fltReturn, cmpFlag);
+    UARTPeriph::Form request_form = genericForm(wData, size, fltReturn, cmpFlag);
 
-    this->FormWrteQ.InputWrite(RequestForm);
+    _form_wrte_q_.inputWrite(request_form);
     // Add to queue
 
     // Trigger interrupt(s)
-    this->UARTInterruptStart();
+    startInterrupt();
 }
 
 void UARTPeriph::intReadPacket(uint8_t *rData, uint16_t size,
@@ -667,78 +664,80 @@ void UARTPeriph::intReadPacket(uint8_t *rData, uint16_t size,
 /**************************************************************************************************
  * Function will generate a new form for the read UART communication
  *************************************************************************************************/
-    UARTPeriph::Form RequestForm = this->GenericForm(rData, size, fltReturn, cmpFlag);
+    UARTPeriph::Form request_form = genericForm(rData, size, fltReturn, cmpFlag);
 
-    this->FormReadQ.InputWrite(RequestForm);
+    _form_read_q_.inputWrite(request_form);
     // Add to queue
 
     // Trigger interrupt(s)
-    this->UARTInterruptStart();
+    startInterrupt();
 }
 
-void UARTPeriph::UARTInterruptStart(void) {
+void UARTPeriph::startInterrupt(void) {
 /**************************************************************************************************
  * Function will be called to start off any new UART communication (read/write) if there is
  * anything within either of the queues, and the bus is free.
  *************************************************************************************************/
     // Write Communication setup
-    if ( (this->WrteCommState == Free) && (this->FormWrteQ.State() != GenBuffer_Empty) ) {
+    if ( (wrte_comm_state == CommLock::kFree) && (_form_wrte_q_.state() != kGenBuffer_Empty) ) {
         // If the UART (write) bus is free, and there is a UART write transmit request forms in
         // the queue
-        this->FormWrteQ.OutputRead( &(this->curWrteForm) );     // Capture form request
+        _form_wrte_q_.outputRead( &(_cur_wrte_form_) );     // Capture form request
 
         // Check current form to see if a fault has already been detected - therefore any new
         // request is no longer valid
-        while (  *(this->curWrteForm.Flt) != UARTPeriph::DevFlt::None  ) {
+        while (  *(_cur_wrte_form_.Flt) != DevFlt::kNone  ) {
             // If there is a fault in request form, check to see if there is a new request
-            if ( this->FormWrteQ.State() == GenBuffer_Empty ) { // If buffer is empty, break out
-                //this->Disable();
+            if ( _form_wrte_q_.state() == kGenBuffer_Empty ) {  // If buffer is empty break out
+                //Disable();
                 return;
             }
             // If there is something in the queue, then make it current. Then re-check
-            this->FormWrteQ.OutputRead( &(this->curWrteForm) );     // Capture form request
+            _form_wrte_q_.outputRead( &(_cur_wrte_form_) );     // Capture form request
         }
 
-        this->WrteCommState = Communicating;    // Lock UART bus
+        wrte_comm_state = CommLock::kCommunicating; // Lock UART bus
 
-        //this->Enable();
+        //Enable();
 
-        this->curWrteCount  = this->curWrteForm.size;
+        _cur_wrte_count_  = _cur_wrte_form_.size;
 
-        this->configTransmtIT(ITEnable);        // Then enable Transmit Empty buffer interrupt
+        configTransmtIT(InterState::kIT_Enable);    // Then enable Transmit Empty buffer interrupt
     }
-    else if ( (this->WrteCommState == Free) && (this->FormWrteQ.State() == GenBuffer_Empty) ) {
-        //this->Disable();
+    else if ( (wrte_comm_state == CommLock::kFree) &&
+              (_form_wrte_q_.state() == kGenBuffer_Empty) ) {
+        //Disable();
     }
 
     // Read Communication setup
-    if ( (this->ReadCommState == Free) && (this->FormReadQ.State() != GenBuffer_Empty) ) {
+    if ( (read_comm_state == CommLock::kFree) && (_form_read_q_.state() != kGenBuffer_Empty) ) {
         // If the UART (write) bus is free, and there is a UART write transmit request forms in
         // the queue
-        this->FormReadQ.OutputRead( &(this->curReadForm) );     // Capture form request
+        _form_read_q_.outputRead( &(_cur_read_form_) );     // Capture form request
 
         // Check current form to see if a fault has already been detected - therefore any new
         // request is no longer valid
-        while (  *(this->curReadForm.Flt) != UARTPeriph::DevFlt::None  ) {
+        while (  *(_cur_read_form_.Flt) != DevFlt::kNone  ) {
             // If there is a fault in request form, check to see if there is a new request
-            if ( this->FormReadQ.State() == GenBuffer_Empty ) { // If buffer is empty, break out
-                //this->Disable();
+            if ( _form_read_q_.state() == kGenBuffer_Empty ) {  // If buffer is empty, break out
+                //Disable();
                 return;
             }
             // If there is something in the queue, then make it current. Then re-check
-            this->FormWrteQ.OutputRead( &(this->curReadForm) );     // Capture form request
+            _form_read_q_.outputRead( &(_cur_read_form_) );     // Capture form request
         }
 
-        this->ReadCommState = Communicating;    // Lock UART bus
+        read_comm_state = CommLock::kCommunicating; // Lock UART bus
 
-        //this->Enable();
+        //Enable();
 
-        this->curReadCount  = this->curReadForm.size;
+        _cur_read_count_  = _cur_read_form_.size;
 
-        this->configReceiveIT(ITEnable);        // Then enable Receive buffer full interrupt
+        configReceiveIT(InterState::kIT_Enable);    // Then enable Receive buffer full interrupt
     }
-    else if ( (this->ReadCommState == Free) && (this->FormReadQ.State() == GenBuffer_Empty) ) {
-        //this->Disable();
+    else if ( (read_comm_state == CommLock::kFree) &&
+              (_form_read_q_.state() == kGenBuffer_Empty) ) {
+        //Disable();
     }
 }
 
@@ -748,14 +747,14 @@ void UARTPeriph::intWrteFormCmplt(void) {
  * Indicates that the UART write Device is now free for any new communication
  * Disables the Transmit Interrupts
  *************************************************************************************************/
-    *(this->curWrteForm.Cmplt)  += (this->curWrteForm.size - this->curWrteCount);
+    *(_cur_wrte_form_.Cmplt)  += (_cur_wrte_form_.size - _cur_wrte_count_);
     // Indicate how many data points have been transfered (curCount should be 0)
 
     // Indicate that UART bus is now free, and disable any interrupts
-    this->WrteCommState = Free;
+    wrte_comm_state = kFree;
 
-    this->configTransmtIT(ITDisable);       // Disable Transmit empty buffer interrupt
-    this->configTransCmIT(ITDisable);       // Disable Transmit complete interrupt
+    configTransmtIT(InterState::kIT_Disable);   // Disable Transmit empty buffer interrupt
+    configTransCmIT(InterState::kIT_Disable);   // Disable Transmit complete interrupt
 }
 
 void UARTPeriph::intReadFormCmplt(void) {
@@ -764,17 +763,17 @@ void UARTPeriph::intReadFormCmplt(void) {
  * Indicates that the UART read Device is now free for any new communication
  * Disables the Receive Interrupts
  *************************************************************************************************/
-    *(this->curReadForm.Cmplt)  += (this->curReadForm.size - this->curReadCount);
+    *(_cur_read_form_.Cmplt)  += (_cur_read_form_.size - _cur_read_count_);
     // Indicate how many data points have been transfered (curCount should be 0)
 
     // Indicate that UART bus is now free, and disable any interrupts
-    this->ReadCommState = Free;
+    read_comm_state = CommLock::kFree;
 
-    this->configReceiveIT(ITDisable);       // Disable Receive buffer full interrupt
+    configReceiveIT(InterState::kIT_Disable);   // Disable Receive buffer full interrupt
 }
 
-void UARTPeriph::Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
-                                    volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
+void UARTPeriph::readGenBufferLock(GenBuffer<uint8_t> *ReadArray,
+                                   volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Intended to allow link to a GenBuffer class, whilst also utilising the UART Form system.
  * Will in essence ensure that there is always a request to read data, and put this into the
@@ -788,20 +787,20 @@ void UARTPeriph::Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
  * status.
  *
  *************************************************************************************************/
-    if (this->ReadCommState == CommLock::Free) {    // If the UART Receive is free to be used
-        *fltReturn = DevFlt::None;                  // Clear the linked fault flag
+    if (read_comm_state == CommLock::kFree) {       // If the UART Receive is free to be used
+        *fltReturn = DevFlt::kNone;                 // Clear the linked fault flag
         cmpFlag = 0;                                // Clear complete flag
 
-        this->intReadPacket( ReadArray->pa, ReadArray->length, fltReturn, cmpFlag);
+        intReadPacket( ReadArray->pa, ReadArray->length, fltReturn, cmpFlag);
             // Request a new read back
     }
 
-    ReadArray->input_pointer = ReadArray->length - this->curReadCount;
+    ReadArray->input_pointer = ReadArray->length - _cur_read_count_;
     // use internal class structure - 'curReadCount' to calculate how many data points have
     // been read back
 }
 
-void UARTPeriph::IRQHandle(void) {
+void UARTPeriph::handleIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the UART class. Each of the supported devices needs to call this
@@ -848,41 +847,35 @@ void UARTPeriph::IRQHandle(void) {
  *      void UARTPeriph_IRQHandler(void);
  *      }
  *************************************************************************************************/
-    if ( (this->TransmitComptChk() & this->TransmitComptITChk()) == 0x01) { //
-        this->ClearComptChk();      // Clear the Transmission complete flag
+    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) { //
+        clearComptChk();            // Clear the Transmission complete flag
 
-        this->intWrteFormCmplt();               // Complete the current request form
-                                                // (no faults)
-        this->UARTInterruptStart();             // Check if any new requests
-                                                // remain
+        intWrteFormCmplt();         // Complete the current request form (no faults)
+        startInterrupt();           // Check if any new requests remain
 
     }
 
     // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
-    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) {
-        this->PutFormReadData( &(this->curReadForm) , this->DRRead() );
+    if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
+        putFormReadData( &(_cur_read_form_) , readDR() );
         // Put next data point into the area requested from the UART Form
-        this->curReadCount--;       // Decrement the class global current count
+        _cur_read_count_--;         // Decrement the class global current count
 
-        if (this->curReadCount == 0) {
-            this->intReadFormCmplt();               // Complete the current request form
-                                                    // (no faults)
-            this->UARTInterruptStart();             // Check if any new requests
-                                                    // remain
+        if (_cur_read_count_ == 0) {
+            intReadFormCmplt();         // Complete the current request form (no faults)
+            startInterrupt();           // Check if any new requests remain
         }
     }
 
     // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
-    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) {
-        this->DRWrite (  this->GetFormWriteData( &(this->curWrteForm) )  );
+    if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
+        writeDR (  getFormWriteData( &(_cur_wrte_form_) )  );
         // Retrieve next data point from the Request SPI Form, and put onto hardware queue
-        this->curWrteCount--;       // Decrement the class global current count
+        _cur_wrte_count_--;         // Decrement the class global current count
 
-        if (this->curWrteCount == 0) {
-            this->intWrteFormCmplt();               // Complete the current request form
-                                                    // (no faults)
-            this->UARTInterruptStart();             // Check if any new requests
-                                                    // remain
+        if (_cur_wrte_count_ == 0) {
+            intWrteFormCmplt();         // Complete the current request form (no faults)
+            startInterrupt();           // Check if any new requests remain
         }
     }
 
@@ -925,29 +918,29 @@ void UARTPeriph::IRQHandle(void) {
  * Similar to the STM32 a pointer to the UARTPeriph will need to be made global to allow this
  * new thread to all the "IRQHandler"
  *************************************************************************************************/
-    int BufferContents = 0;             // Variable to store the amount of data in UART peripheral
+    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {}
 
-    if ( (this->TransmitComptChk() & this->TransmitComptITChk()) == 0x01) {}
+    int buffer_contents = 0;            // Variable to store the amount of data in UART peripheral
 
     // Check to see if Receive Interrupt bit has been set.
-    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) {
+    if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
         // If it has check to see if there is any data to be read
-        BufferContents = serialDataAvail(this->UART_Handle);    // Get the amount of data in UART
+        buffer_contents = serialDataAvail(_uart_handle_);   // Get the amount of data in UART
 
-        while (BufferContents > 0) {
-            this->FormReadQ->InputWrite(this->DRRead());
-            BufferContents--;
+        while (buffer_contents > 0) {
+            _form_read_Q_->inputWrite(readDR());
+            buffer_contents--;
         }
     }
 
-    uint8_t tempdata;
+    uint8_t temp_data = 0x00;
 
-    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) {
-        while (this->FormWrteQ->OutputRead(&tempdata) != GenBuffer_Empty) {
-            this->DRWrite(tempdata);
+    if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
+        while (_form_wrte_q_->outputRead(&temp_data) != kGenBuffer_Empty) {
+            writeDR(temp_data);
         }
 
-        this->configTransmtIT(InterState::ITDisable);
+        configTransmtIT(InterState::ITDisable);
     }
 
 #else
@@ -967,7 +960,7 @@ UARTPeriph::~UARTPeriph() {
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
-    serialClose(this->UART_Handle);     // Close the UART interface
+    serialClose(_uart_handle_);     // Close the UART interface
 
 #else
 //==================================================================================================

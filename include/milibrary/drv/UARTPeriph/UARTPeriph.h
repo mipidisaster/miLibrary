@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        UARTPeriph.h
  * @author      Thomas
- * @version     V3.5
- * @date        28 Sept 2019
  * @brief       Header file for the Generic UART Class handle
  **************************************************************************************************
  @ attention
@@ -46,16 +44,16 @@
  *                                    (again utilises the UART form system, see below), expects to
  *                                    receive an array data location
  *
- *          ".UARTInterruptStart"   - Check to see if the UART bus is free, and a new request form
+ *          ".startInterrupt"       - Check to see if the UART bus is free, and a new request form
  *                                    (either read or write) is available. Then trigger a
  *                                    communication run (Enables Transmit Empty/Receive interrupts)
  *          ".intWrteFormCmplt"     - Function will go through tidy up procedure for the current
  *                                    Request form - Write buffer
  *          ".intReadFormCmplt"     - Same as above however for the Read buffer
- *          ".IRQHandle"            - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleIRQ"            - Functions to be placed within the relevant Interrupt Vector
  *                                    call, so as to handle the UART interrupt
  *
- *          ".Read_GenBufferLock"   - Specific function for the read buffer, will essential lock
+ *          ".readGenBufferLock"    - Specific function for the read buffer, will essential lock
  *                                    the read buffer to a single array (based upon input
  *                                    GenBuffer), ensure that pointer aligns with any new reads,
  *                                    and if the buffer has been filled (i.e. will therefore no
@@ -66,18 +64,18 @@
  *
  *      Following functions are protected, so will only work for classes which inherit from this
  *      one, and not visible external to class:
- *          ".DRRead"               - Will take data straight from the hardware
- *          ".DRWrite"              - Will put data straight onto the hardware
+ *          ".readDR"               - Will take data straight from the hardware
+ *          ".writeDR"              - Will put data straight onto the hardware
  *
- *          ".TransmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
- *          ".TransmitComptChk"     - Check to see if Transmission is complete
- *          ".ReceiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
+ *          ".transmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
+ *          ".transmitComptChk"     - Check to see if Transmission is complete
+ *          ".receiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
  *
- *          ".TransmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
+ *          ".transmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
  *                                    enabled
- *          ".TransmitComptITChk"   - Indicates if the interrupt for Transmit Complete has been
+ *          ".transmitComptITChk"   - Indicates if the interrupt for Transmit Complete has been
  *                                    enabled
- *          ".ReceiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
+ *          ".receiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
  *                                    enabled
  *
  *  [#] UART Request Form System
@@ -87,7 +85,7 @@
  *      communication via UART, is done correctly and effectively.
  *      Each of the source functions will generate a Request Form, which will then be placed into
  *      the target UART device Form queue (for reading and writing), such that the UART device can
- *      go through each of these forms in seqeuence; each form will contain the following:
+ *      go through each of these forms in sequence; each form will contain the following:
  *          Number of packets to transmit/write (8bits x N)
  *          Location for where the data is to be taken/stored
  *          Communication complete return flag      (will be updated with the amount of packets
@@ -95,11 +93,11 @@
  *          UART communication fault return flag
  *
   *      Function list (all are protected):
- *          ".GenericForm"          - Populate generic entries of the UART Form (outputs structure)
- *          ".FormW8bitArray"       - Link form to a 8bit array location
+ *          ".genericForm"          - Populate generic entries of the UART Form (outputs structure)
+ *          ".formW8bitArray"       - Link form to a 8bit array location
  *
- *          ".GetFormWriteData"     - Retrieve data from UART Form's requested location
- *          ".PutFormReadData"      - Write data to location specified by current UART Form
+ *          ".getFormWriteData"     - Retrieve data from UART Form's requested location
+ *          ".putFormReadData"      - Write data to location specified by current UART Form
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
@@ -109,7 +107,7 @@
 #include "FileIndex.h"
 #include <stdint.h>
 
-#include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -165,19 +163,19 @@ class UARTPeriph {
 **************************************************************************************************/
 public:
      enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
-         None            = 0x00,     // Normal Operation
-         DataError       = 0x01,     // Data Error
-         Parity          = 0x02,     // Parity Fault
+         kNone           = 0x00,     // Normal Operation
+         kData_Error     = 0x01,     // Data Error
+         kParity         = 0x02,     // Parity Fault
 
-         DMA_Rx_Error    = 0xFD,     // Error triggered if DMA (Receive) error
-         DMA_Tx_Error    = 0xFE,     // Error triggered if DMA (Transmit) errorST
-         Initialised     = 0xFF      // Just initialised
+         kDMA_Rx_Error   = 0xFD,     // Error triggered if DMA (Receive) error
+         kDMA_Tx_Error   = 0xFE,     // Error triggered if DMA (Transmit) errorST
+         kInitialised    = 0xFF      // Just initialised
      };
 
-     enum InterState : uint8_t {ITEnable, ITDisable};// Enumerate state for enabling/disabling
-                                                     // interrupts
-     enum CommLock : uint8_t {Communicating, Free};  // Enumerate state for indicating if device is
-                                                     // communicating
+     enum InterState : uint8_t {kIT_Enable, kIT_Disable};   // Enumerate state for enabling/
+                                                            // disabling interrupts
+     enum CommLock : uint8_t {kCommunicating, kFree};       // Enumerate state for indicating if
+                                                            // device iscommunicating
 
      typedef struct {           // UART Form structure, used to manage UART Communication
                                 // interrupts
@@ -198,21 +196,21 @@ public:
 *  Parameters required for the class to function.
 *************************************************************************************************/
     protected:
-        GenBuffer<Form>     FormWrteQ;      // Pointer to the class internal UARTForm buffer, which
-        GenBuffer<Form>     FormReadQ;      // is used to manage interrupt based communication.
+        GenBuffer<Form>     _form_wrte_q_;  // Pointer to the class internal UARTForm buffer, which
+        GenBuffer<Form>     _form_read_q_;  // is used to manage interrupt based communication.
                                             // Functions will add request forms to this buffer,
                                             // and interrupt then goes through them sequentially.
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        Form            curWrteForm;    // Current UART Read form
-        uint16_t        curWrteCount;   // Current communication packet count (Write)
+        Form            _cur_wrte_form_;    // Current UART Read form
+        uint16_t        _cur_wrte_count_;   // Current communication packet count (Write)
 
-        Form            curReadForm;    // Current UART Read form
-        uint16_t        curReadCount;   // Current communication packet count (Read)
+        Form            _cur_read_form_;    // Current UART Read form
+        uint16_t        _cur_read_count_;   // Current communication packet count (Read)
 
     public:
-        DevFlt      Flt;                // Fault state of the UART Device
-        CommLock    WrteCommState;      // Status of the Communication (Write)
-        CommLock    ReadCommState;      // Status of the Communication (Read)
+        DevFlt      flt;                // Fault state of the UART Device
+        CommLock    wrte_comm_state;    // Status of the Communication (Write)
+        CommLock    read_comm_state;    // Status of the Communication (Read)
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -228,7 +226,7 @@ public:
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     protected:
-        UART_HandleTypeDef  *UART_Handle;       // Store the UART handle
+        UART_HandleTypeDef  *_uart_handle_;     // Store the UART handle
 
     public:
         UARTPeriph(UART_HandleTypeDef *UART_Handle, Form *WrteForm, uint16_t WrteFormSize,
@@ -240,13 +238,13 @@ public:
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
     private:
-        int                 UART_Handle;        // Stores the device to communicate too
-        const char          *deviceloc;         // Store location file for UART device
-        int                 baudrate;           // Store entered baudrate
-        uint8_t             pseudo_interrupt;   // Pseudo interrupt register
+        int                 _uart_handle_;      // Stores the device to communicate too
+        const char          *_device_loc_;      // Store location file for UART device
+        int                 _baud_rate_;        // Store entered baudrate
+        uint8_t             _pseudo_interrupt_; // Pseudo interrupt register
 
     public:
-        int  AnySerDataAvil(void);              // Function to provide the amount of data at
+        int  anySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
 
         UARTPeriph(const char *deviceloc, int baud, Form *WrteForm, uint16_t WrteFormSize,
@@ -279,35 +277,35 @@ protected:  /*******************************************************************
     //void Enable(void);                      // Enable the UART device
     //void Disable(void);                     // Disable the UART device
 
-    uint8_t DRRead(void);                   // Function to read direct from the hardware
-    void DRWrite(uint8_t data);             // Function to write direct to the hardware
+    uint8_t readDR(void);                   // Function to read direct from the hardware
+    void writeDR(uint8_t data);             // Function to write direct to the hardware
 
     // UART Event status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyChk(void);         // Check state of transmission register (1 = empty)
-    uint8_t TransmitComptChk(void);         // Check state of transmission complete (1 = cmplt)
-    uint8_t ReceiveToReadChk(void);         // Check state of receive data register (1 =  read)
+    uint8_t transmitEmptyChk(void);         // Check state of transmission register (1 = empty)
+    uint8_t transmitComptChk(void);         // Check state of transmission complete (1 = cmplt)
+    uint8_t receiveToReadChk(void);         // Check state of receive data register (1 =  read)
 
     // UART Error status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~
-    void ClearComptChk(void);               // Clear the Transmission Complete flag
+    void clearComptChk(void);               // Clear the Transmission Complete flag
 
     // UART Interrupt status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t TransmitComptITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t ReceiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t transmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t transmitComptITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t receiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
 
     // UART Communication Request Form handling
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    static Form GenericForm(uint8_t *data, uint16_t size,
-                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    Form genericForm(uint8_t *data, uint16_t size,
+                     volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    static uint8_t GetFormWriteData(Form *RequestForm);
+    uint8_t getFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
     // UART "RequestForm"
 
-    static void PutFormReadData(Form *RequestForm, uint8_t readdata);
+    void putFormReadData(Form *RequestForm, uint8_t readdata);
     // Function will take the data read from the UART Hardware, and put into the requested data
     // location specified within the "RequestForm" input (will be curForm)
 
@@ -338,15 +336,15 @@ public:     /*******************************************************************
     void intReadPacket(uint8_t *rData, uint16_t size,
                        volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    virtual void UARTInterruptStart(void);      // Enable communication is bus is free, otherwise
+    virtual void startInterrupt(void);          // Enable communication is bus is free, otherwise
                                                 // wait (doesn't actually pause at this point)
     virtual void intWrteFormCmplt(void);        // Closes out the input Request Form (Write)
     virtual void intReadFormCmplt(void);        // Closes out the input Request Form (Read)
 
-    virtual void Read_GenBufferLock(GenBuffer<uint8_t> *ReadArray,
-                                    volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    virtual void readGenBufferLock(GenBuffer<uint8_t> *ReadArray,
+                                   volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    virtual void IRQHandle(void);               // Interrupt handler
+    virtual void handleIRQ(void);               // Interrupt handler
 
         virtual ~UARTPeriph();
 };
