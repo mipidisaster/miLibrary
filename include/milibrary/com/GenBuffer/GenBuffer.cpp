@@ -85,17 +85,16 @@
 
 #endif
 
+// Defines specific within this class
+typedef enum {
+    kGenBuffer_Empty    = 0,    // Indicates that the buffer is empty of any new data
+    kGenBuffer_New_Data = 1,    // Indicates that the buffer contains new data to be read
+    kGenBuffer_Full     = 2     // Indicates that the buffer is full, and no new data can be added
+} _GenBufState;
 
 template <typename Typ>
 class GenBuffer {
-    // Defines specific within this class
 public:
-    typedef enum {
-        kEmpty      = 0,        // Indicates that the buffer is empty of any new data
-        kNew_Data   = 1,        // Indicates that the buffer contains new data to be read
-        kFull       = 2         // Indicates that the buffer is full, and no new data can be added
-    } BufState;
-
     // Declarations which are generic, and will be used in ALL devices
         uint16_t        input_pointer;      // Pointer to where the current input point is
         uint16_t        output_pointer;     // Pointer to where the current output point is
@@ -116,12 +115,12 @@ public:
         void flush(void);                   // Clear the data within the buffer
         void qFlush(void);                  // Clear buffer, by setting pointers to 0
 
-        BufState state(void);               // Function to determine state of buffer:
+        _GenBufState state(void);           // Function to determine state of buffer:
                                             // Full/NewData/Empty
 
         void inputWrite(Typ newdata);       // Add data onto the buffer (if at size of buffer, will
                                             // override oldest points (maintaining defined size)
-        BufState outputRead(Typ *readdata); // Read next data entry in buffer (if data is
+        _GenBufState outputRead(Typ *readdata); // Read next data entry in buffer (if data is
                                                 // present)
         Typ readBuffer(uint16_t position);      // Read specific entry from buffer
 
@@ -223,7 +222,7 @@ GenBuffer<Typ>::GenBuffer(Typ *arrayloc, uint16_t size) {
 }
 
 template <typename Typ>
-typename GenBuffer<Typ>::BufState GenBuffer<Typ>::state(void) {
+_GenBufState GenBuffer<Typ>::state(void) {
 /**************************************************************************************************
  * Function to determine the state of the Buffer - Empty/NewData/Full
  * It does this in 3 steps:
@@ -255,13 +254,13 @@ typename GenBuffer<Typ>::BufState GenBuffer<Typ>::state(void) {
  *      is FULL. As data within entry [2] has NOT been read yet.
  *************************************************************************************************/
     if      (output_pointer == input_pointer)                   // If the pointers are equal
-        return (kEmpty);                                        // then buffer is empty
+        return (kGenBuffer_Empty);                              // then buffer is empty
 
     else if (output_pointer == ((input_pointer + 1) % length))  // If output pointer is one behind
-        return (kFull);                                         // the input, then buffer is full
+        return (kGenBuffer_Full);                               // the input, then buffer is full
 
     else                                                        // If none of the above are true
-        return (kNew_Data);                                     // then there is data in the buffer
+        return (kGenBuffer_New_Data);                           // then there is data in the buffer
                                                                 // which needs to be read
 }
 
@@ -277,7 +276,7 @@ void GenBuffer<Typ>::inputWrite(Typ newdata) {
  *************************************************************************************************/
     pa[input_pointer] = newdata;                    // Add the input data into the buffer
 
-    if (state() == kFull) {
+    if (state() == kGenBuffer_Full) {
         output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
                                                         // limited to size "length"
     }
@@ -301,7 +300,7 @@ void GenBuffer<Typ>::inputWrite(Typ newdata) {
 }
 
 template <typename Typ>
-typename GenBuffer<Typ>::BufState GenBuffer<Typ>::outputRead(Typ *readdata) {
+_GenBufState GenBuffer<Typ>::outputRead(Typ *readdata) {
 /**************************************************************************************************
  * Function will take data from the buffer.
  * It will only provide an updated output if the buffer contains data (i.e. is not empty), if it
@@ -310,18 +309,19 @@ typename GenBuffer<Typ>::BufState GenBuffer<Typ>::outputRead(Typ *readdata) {
  * If there is data, again it will be linked to the pointed data. Then it will increase the output
  * pointer, and limit it to the defined size of the buffer.
  *************************************************************************************************/
-    BufState returnentry = state();         // Generate variable to store the current state of
+    _GenBufState return_entry = state();    // Generate variable to store the current state of
                                             // buffer, and update with latest state
 
-    if (!(returnentry == kEmpty)) {         // If the buffer is not empty (therefore there is data
-                                            // be read
-        *readdata = pa[output_pointer];     // Update the output with the latest entry from buffer
+    if (!(return_entry == kGenBuffer_Empty)) {  // If the buffer is not empty (therefore there is
+                                                // data be read
+        *readdata = pa[output_pointer];         // Update the output with the latest entry from
+                                                // buffer
         output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
                                                         // limited to size "length"
-        return(returnentry);                // Return state of buffer prior to read
+        return(return_entry);               // Return state of buffer prior to read
     }
     else                                    // If state is equal to "Empty"
-        return (returnentry);               // Return state of buffer (which will be "Empty")
+        return (return_entry);              // Return state of buffer (which will be "Empty")
 }
 
 template <typename Typ>
@@ -344,7 +344,7 @@ uint16_t GenBuffer<Typ>::spaceRemaining(void) {
  *  empty, then the output of this will be length - 1 (to cater for the buffer requiring 1 blank
  *  entry between input and output.
  *************************************************************************************************/
-    if (state() == kEmpty) {
+    if (state() == kGenBuffer_Empty) {
         return (length - 1);
     }
     else { return((uint16_t)( output_pointer - input_pointer + length - 1 ) % length); }
@@ -367,7 +367,7 @@ uint16_t GenBuffer<Typ>::unreadCount(void) {
  * Calculates the number of entries within the buffer which have not been read yet.
  * If the buffer is already full, then it will return the full buffer size.
  *************************************************************************************************/
-    if (state() == kFull) {
+    if (state() == kGenBuffer_Full) {
         return (length - 1);
     }
     else { return((uint16_t)( length + input_pointer - output_pointer ) % length); }
@@ -398,21 +398,21 @@ uint16_t GenBuffer<Typ>::quickRead(Typ *backdata, uint16_t size) {
  * copied.
  *  Relies upon the function "InputWrite"
  *************************************************************************************************/
-    uint16_t returnsize = 0;    // Initialise a count of the entries returned.
-    Typ BufEntry = 0;           // Data variable to retain buffer entry
+    uint16_t return_size = 0;   // Initialise a count of the entries returned.
+    Typ Buf_Entry = 0;          // Data variable to retain buffer entry
 
     while(size != 0) {          // Cycle through the number of data points to return
-        if (outputRead(&BufEntry) != kEmpty) {          // If buffer is not empty
-            *backdata = BufEntry;                       // Return data to input array
+        if (outputRead(&Buf_Entry) != kGenBuffer_Empty) {   // If buffer is not empty
+            *backdata = Buf_Entry;                          // Return data to input array
             backdata++;                                 // Increase data pointer
-            returnsize++;                               // Increment the return size count
+            return_size++;                              // Increment the return size count
             size--;                                     // Decrease size (till = 0)
         }
         else                                        // If buffer is empty
             break;                                  // exit loop
     }                                               // return size count will already be updated
 
-    return (returnsize);                    // Return the number of entries populated
+    return (return_size);                   // Return the number of entries populated
 }
 
 template <typename Typ>
