@@ -26,7 +26,16 @@
 #ifndef GPIO_H_
 #define GPIO_H_
 
+#include "FileIndex.h"
+// C System Header(s)
+// ------------------
 #include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
@@ -45,8 +54,10 @@
 
 #endif
 
-// Types used within this class
-// Defined within the class, to ensure are contained within the correct scope
+// Project Libraries
+// -----------------
+
+//=================================================================================================
 
 class GPIO {
 /**************************************************************************************************

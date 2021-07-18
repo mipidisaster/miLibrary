@@ -105,17 +105,22 @@
 #define UARTPeriph_H_
 
 #include "FileIndex.h"
+// C System Header(s)
+// ------------------
 #include <stdint.h>
 
-#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+// C++ System Header(s)
+// --------------------
 
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL library
+#include "stm32f1xx_hal.h"              // Include the HAL UART library
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL library
+#include "stm32l4xx_hal.h"              // Include the HAL UART library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -127,7 +132,12 @@
 
 #endif
 
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+
 //=================================================================================================
+
 
 class UARTPeriph {
 /**************************************************************************************************
@@ -199,7 +209,7 @@ public:
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//=================================================================================================
+//==================================================================================================
     protected:
         UART_HandleTypeDef  *_uart_handle_;     // Store the UART handle
 
@@ -211,7 +221,7 @@ public:
         // Class will then generate a GenBuffer item internally.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//=================================================================================================
+//==================================================================================================
     private:
         int                 _uart_handle_;      // Stores the device to communicate too
         const char          *_device_loc_;      // Store location file for UART device
@@ -229,7 +239,7 @@ public:
         // outside of class
 
 #else
-//=================================================================================================
+//==================================================================================================
     public:
         UARTPeriph();
 

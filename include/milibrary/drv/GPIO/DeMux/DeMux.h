@@ -36,9 +36,15 @@
 #define DEMUX_H_
 
 #include "FileIndex.h"
-#include <stdint.h>             // Defines types - uint8_t, etc.
-#include FilInd_GPIO___HD       // Defines class - GPIO
+// C System Header(s)
+// ------------------
+#include <stdint.h>
 
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
@@ -54,11 +60,11 @@
 
 #endif
 
-// Defines specific within this class
-// None
+// Project Libraries
+// -----------------
+#include FilInd_GPIO___HD               // Defines class - GPIO
 
-// Types used within this class
-// Defined within the class, to ensure are contained within the correct scope
+//=================================================================================================
 
 class DeMux {
 /**************************************************************************************************

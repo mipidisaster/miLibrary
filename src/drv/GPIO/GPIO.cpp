@@ -8,8 +8,40 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include <FileIndex.h>
-#include FilInd_GPIO___HD
+#include <FileIndex.h>                  // Header for miLibrary index
+#include FilInd_GPIO___HD               // Header for GPIO
+
+// C System Header(s)
+// ------------------
+#include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//=================================================================================================
+#include "stm32f1xx_hal.h"              // Include the HAL library
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+#include "stm32l4xx_hal.h"              // Include the HAL library
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//=================================================================================================
+#include <wiringPi.h>                   // Include the wiringPi library
+
+#else
+//=================================================================================================
+#error "Unrecognised target device"
+
+#endif
+
+// Project Libraries
+// -----------------
+
+//=================================================================================================
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...

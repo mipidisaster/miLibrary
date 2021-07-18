@@ -77,11 +77,15 @@
 #define AD741X_H_
 
 #include "FileIndex.h"
+// C System Header(s)
+// ------------------
 #include <stdint.h>
 
-#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
-#include FilInd_I2CPe__HD               // Include class for I2C Peripheral
+// C++ System Header(s)
+// --------------------
 
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // None
@@ -99,6 +103,13 @@
 #error "Unrecognised target device"
 
 #endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+#include FilInd_I2CPe__HD               // Include class for I2C Peripheral
+
+//=================================================================================================
 
 // Defines specific within this class
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/

@@ -17,8 +17,16 @@
 #ifndef DATAMANIP_H_
 #define DATAMANIP_H_
 
-#include <stdint.h>                     // Include library for standard data types
+#include "FileIndex.h"
+// C System Header(s)
+// ------------------
+#include <stdint.h>
 
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // Add includes specific to the STM32Fxx devices
@@ -37,11 +45,10 @@
 
 #endif
 
-// Defines specific within this file
-// None
+// Project Libraries
+// -----------------
 
-// Types used within this file
-// None
+//=================================================================================================
 
 namespace DataManip {
     /**********************************************************************************************

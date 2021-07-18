@@ -8,9 +8,41 @@
  << To be Introduced >>
 
  *************************************************************************************************/
+#include <FileIndex.h>                  // Header for miLibrary index
+#include FilInd_SPIPe__HD               // Header for SPI
 
-#include <FileIndex.h>
-#include FilInd_SPIPe__HD
+// C System Header(s)
+// ------------------
+#include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//=================================================================================================
+#include "stm32f1xx_hal.h"              // Include the HAL UART library
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+#include "stm32l4xx_hal.h"              // Include the HAL UART library
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//=================================================================================================
+#include <wiringPiSPI.h>                // Include the wiringPi SPI library
+
+#else
+//=================================================================================================
+#error "Unrecognised target device"
+
+#endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+#include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
+#include FilInd_DeMux__HD
 
 void SPIPeriph::popGenParam(void) {
 /**************************************************************************************************

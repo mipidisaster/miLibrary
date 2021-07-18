@@ -78,12 +78,15 @@
 #define AS5X4X_H_
 
 #include "FileIndex.h"
+// C System Header(s)
+// ------------------
 #include <stdint.h>
 
-#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
-#include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
-#include FilInd_SPIPe__HD               // Include class for SPI Peripheral
+// C++ System Header(s)
+// --------------------
 
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // None
@@ -101,6 +104,14 @@
 #error "Unrecognised target device"
 
 #endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+#include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
+#include FilInd_SPIPe__HD               // Include class for SPI Peripheral
+
+//=================================================================================================
 
 // Defines specific within this class
 // Generic Defines for AS5x4x devices

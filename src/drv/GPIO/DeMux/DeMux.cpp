@@ -8,8 +8,38 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include <FileIndex.h>
-#include FilInd_DeMux__HD
+#include <FileIndex.h>                  // Header for miLibrary index
+#include FilInd_DeMux__HD               // Header for DeMux
+
+// C System Header(s)
+// ------------------
+#include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
+#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+//=================================================================================================
+// None
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#else
+//=================================================================================================
+#error "Unrecognised target device"
+
+#endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GPIO___HD               // Defines class - GPIO
+
+//=================================================================================================
 
 DeMux::DeMux(GPIO *High_Enable, GPIO *Low_Enable, GPIO Switches[], uint8_t SwitchSize) {
 /**************************************************************************************************

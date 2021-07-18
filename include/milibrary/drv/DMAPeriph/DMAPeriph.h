@@ -25,15 +25,22 @@
 #define DMAPERIPH_H_
 
 #include "FileIndex.h"
+// C System Header(s)
+// ------------------
 #include <stdint.h>
 
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL library
+#include "stm32f1xx_hal.h"              // Include the HAL UART library
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL library
+#include "stm32l4xx_hal.h"              // Include the HAL UART library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -45,11 +52,11 @@
 
 #endif
 
-// Defines specific within this class
-// None
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 
-// Types used within this class
-// Defined within the class, to ensure are contained within the correct scope
+//=================================================================================================
 
 class DMAPeriph {
 /**************************************************************************************************

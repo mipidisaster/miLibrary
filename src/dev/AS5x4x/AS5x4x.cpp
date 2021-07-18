@@ -8,8 +8,43 @@
  << To be Introduced >>
 
  *************************************************************************************************/
-#include <FileIndex.h>
-#include FilInd_AS5x4x_HD
+#include <FileIndex.h>                  // Header for miLibrary index
+#include FilInd_AS5x4x_HD               // Header for AS5x4x Device
+
+// C System Header(s)
+// ------------------
+#include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//=================================================================================================
+// None
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+// None
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#else
+//=================================================================================================
+#error "Unrecognised target device"
+
+#endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+#include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
+#include FilInd_SPIPe__HD               // Include class for SPI Peripheral
+
+//=================================================================================================
 
 void AS5x4x::popGenParam(void) {
 /**************************************************************************************************

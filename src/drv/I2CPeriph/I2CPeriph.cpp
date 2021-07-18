@@ -8,9 +8,41 @@
  << To be Introduced >>
 
  *************************************************************************************************/
+#include <FileIndex.h>                  // Header for miLibrary index
+#include FilInd_I2CPe__HD               // Header for I2C
 
-#include <FileIndex.h>
-#include FilInd_I2CPe__HD
+// C System Header(s)
+// ------------------
+#include <stdint.h>
+
+// C++ System Header(s)
+// --------------------
+
+// Other Libraries
+// --------------
+#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+//=================================================================================================
+#include "stm32f1xx_hal.h"              // Include the HAL UART library
+
+#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+#include "stm32l4xx_hal.h"              // Include the HAL UART library
+
+#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+//=================================================================================================
+#error "Unrecognised target device"
+
+#else
+//=================================================================================================
+#error "Unrecognised target device"
+
+#endif
+
+// Project Libraries
+// -----------------
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
+
+//=================================================================================================
 
 void I2CPeriph::popGenParam(void) {
 /**************************************************************************************************
