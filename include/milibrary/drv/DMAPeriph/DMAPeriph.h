@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        DMAPeriph.h
  * @author      Thomas
- * @version     V0.1
- * @date        28 Sep 2019
  * @brief       Header file for the Generic DMA Class handler
  **************************************************************************************************
  @ attention
@@ -62,8 +60,8 @@ class DMAPeriph {
  *************************************************************************************************/
 protected:
     enum class DMAMode : uint8_t {      // DMA modes used for UART
-        disable     = 0x00,             // DMA is disabled
-        enable      = 0x01              // DMA is enabled
+        kDisable    = 0x00,             // DMA is disabled
+        kEnable     = 0x01              // DMA is enabled
     };
 
 /**************************************************************************************************

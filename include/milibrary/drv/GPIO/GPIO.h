@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        GPIO.h
  * @author      Thomas
- * @version     V2.2
- * @date        22 Sept 2019
  * @brief       Header file for the Generic GPIO Class handle
  **************************************************************************************************
  @ attention
@@ -58,8 +56,8 @@ class GPIO {
  *  state "GPIO::" followed by the type.
  *************************************************************************************************/
 public:
-        enum State : uint8_t  {   LOW = 0,   HIGH = 1 };
-        enum Dir   : uint8_t  {OUTPUT = 0,  INPUT = 1 };
+        enum State : uint8_t  {   kLow = 0,   kHigh = 1 };
+        enum Dir   : uint8_t  {kOutput = 0,  kInput = 1 };
 
 /**************************************************************************************************
  * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
@@ -67,8 +65,8 @@ public:
  *  Parameters required for the class to function.
  *************************************************************************************************/
     private:
-        uint32_t        pinnumber;
-        Dir             pindirection;
+        uint32_t        _pin_number_;
+        Dir             _pin_direction_;
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -82,7 +80,7 @@ public:
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     private:
-        GPIO_TypeDef    *PortAddress;           // Store the Port Address of pin
+        GPIO_TypeDef    *_port_address_;        // Store the Port Address of pin
 
     public:
         GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
@@ -90,7 +88,7 @@ public:
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
     private:
-        _GPIOValue      pinvalue;               // Current value of pin
+        _GPIOValue      _pin_value_;            // Current value of pin
 
     public:
     GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection);

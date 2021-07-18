@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        SPIPeriph.cpp
  * @author      Thomas
- * @version     V3.3
- * @date        22 Sept 2018
  * @brief       Source file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -20,12 +18,12 @@ void SPIPeriph::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    this->Flt           = DevFlt::Initialised;      // Initialise the fault to "initialised"
-    this->CommState     = CommLock::Free;           // Indicate bus is free
+    Flt           = DevFlt::kInitialised;     // Initialise the fault to "initialised"
+    CommState     = CommLock::kFree;          // Indicate bus is free
 
-    this->curCount      = 0;                // Initialise the current packet size count
+    _cur_count_   = 0;                // Initialise the current packet size count
 
-    this->curForm       = { 0 };            // Initialise the form to a blank entry
+    _cur_form_    = { 0 };            // Initialise the form to a blank entry
 }
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
@@ -37,26 +35,26 @@ SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t For
  * Receives the address of the SPI Handle of device - generated from cubeMX
  * Will then determine which mode has been selected, based upon the states of the registers
  *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
+    popGenParam();                    // Populate generic class parameters
 
-    this->SPI_Handle        = SPIHandle;    // copy handle across into class
+    _spi_handle_        = SPIHandle;  // copy handle across into class
 
-    this->FormQueue.create(FormArray, FormSize);
+    _form_queue_.create(FormArray, FormSize);
 
     // From handle can determine what the MODE of the SPI can be configured too:
-    if (SPIHandle->Instance->CR1 & SPI_POLARITY_HIGH) {     // If Clock Idles HIGH
-        if (SPIHandle->Instance->CR1 & SPI_PHASE_2EDGE)     // If data is captured on second edge
-            this->Mode = MODE3;                             // MODE is 3
+    if (_spi_handle_->Instance->CR1 & SPI_POLARITY_HIGH) {  // If Clock Idles HIGH
+        if (_spi_handle_->Instance->CR1 & SPI_PHASE_2EDGE)  // If data is captured on second edge
+            _mode_ = SPIMode::kMode3;                       // MODE is 3
         else                                                // Otherwise captured on first edge
-            this->Mode = MODE2;                             // MODE is 2
+            _mode_ = SPIMode::kMode2;                       // MODE is 2
     } else {                                                // If Clock Idles LOW
-        if (SPIHandle->Instance->CR1 & SPI_PHASE_2EDGE)     // If data is captured on second edge
-            this->Mode = MODE1;                             // MODE is 1
+        if (_spi_handle_->Instance->CR1 & SPI_PHASE_2EDGE)  // If data is captured on second edge
+            _mode_ = SPIMode::kMode1;                       // MODE is 1
         else                                                // Otherwise captured on first edge
-            this->Mode = MODE0;                             // MODE is 0
+            _mode_ = SPIMode::kMode0;                       // MODE is 0
     }
 
-    this->Enable();                     // Enable the SPI device
+    enable();                     // Enable the SPI device
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -65,22 +63,22 @@ SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
  * Create a SPIPeriph class specific for RaspberryPi
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
-    this->popGenParam();                // Populate generic class parameters
+    popGenParam();                // Populate generic class parameters
 
-    this->Mode          = Mode;         // Copy across the selected Mode
-    this->SPIChannel    = channel;      //
+    _mode_        = Mode;         // Copy across the selected Mode
+    _spi_handle_  = channel;      //
     int tempMode = 0;
 
-    if (this->Mode == MODE1)            // If Mode 1 is selected then
+    if      (_mode_ == SPIMode::kMode1) // If Mode 1 is selected then
         tempMode = 1;                   // Store "1"
-    else if (this->Mode == MODE2)       // If Mode 2 is selected then
+    else if (_mode_ == SPIMode::kMode2) // If Mode 2 is selected then
         tempMode = 2;                   // Store "2"
-    else if (this->Mode == MODE3)       // If Mode 3 is selected then
+    else if (_mode_ == SPIMode::kMode3) // If Mode 3 is selected then
         tempMode = 3;                   // Store "3"
     else                                // If any other Mode is selected then
        tempMode = 0;                    // Default to "0"
 
-    wiringPiSPISetupMode(this->SPIChannel, speed, tempMode);
+    wiringPiSPISetupMode(_spi_channel_, speed, tempMode);
         // Enable SPI interface for selected SPI channel, speed and mode
 }
 #else
@@ -89,18 +87,18 @@ SPIPeriph::SPIPeriph() {
 }
 #endif
 
-void SPIPeriph::Enable(void) {
+void SPIPeriph::enable(void) {
 /**************************************************************************************************
  * Enable the SPI Device
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_SPI_ENABLE(this->SPI_Handle);     // Enable the SPI interface
+    __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    __HAL_SPI_ENABLE(this->SPI_Handle);     // Enable the SPI interface
+    __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -112,18 +110,18 @@ void SPIPeriph::Enable(void) {
 #endif
 }
 
-void SPIPeriph::Disable(void) {
+void SPIPeriph::disable(void) {
 /**************************************************************************************************
  * Enable the SPI Device
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    __HAL_SPI_DISABLE(this->SPI_Handle);    // Disable the SPI interface
+    __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    __HAL_SPI_DISABLE(this->SPI_Handle);    // Disable the SPI interface
+    __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -135,20 +133,20 @@ void SPIPeriph::Disable(void) {
 #endif
 }
 
-uint8_t SPIPeriph::DRRead(void) {
+uint8_t SPIPeriph::readDR(void) {
 /**************************************************************************************************
  * Read from the SPI hardware
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    return ((uint8_t) this->SPI_Handle->Instance->DR);
+    return ((uint8_t) _spi_handle_->Instance->DR);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 // STM32L4 uses a RXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
-    return( (uint8_t) this->SPI_Handle->Instance->DR );
+    return( (uint8_t) _spi_handle_->Instance->DR );
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -162,14 +160,14 @@ uint8_t SPIPeriph::DRRead(void) {
 #endif
 }
 
-void SPIPeriph::DRWrite(uint8_t data) {
+void SPIPeriph::writeDR(uint8_t data) {
 /**************************************************************************************************
  * Write to the SPI hardware
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    this->SPI_Handle->Instance->DR = data;
+    _spi_handle_->Instance->DR = data;
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
@@ -177,7 +175,7 @@ void SPIPeriph::DRWrite(uint8_t data) {
 // been configured to allow a read of only 8bits (or less)
 // To ensure only 8bits is transmitted, need to ensure that we cast the Data Register (DR) to
 // unsigned 8bits, hence the initial casing
-    *(uint8_t *)&this->SPI_Handle->Instance->DR = data;
+    *(uint8_t *)&_spi_handle_->Instance->DR = data;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -191,21 +189,21 @@ void SPIPeriph::DRWrite(uint8_t data) {
 #endif
 }
 
-uint8_t SPIPeriph::TransmitEmptyChk(void) {
+uint8_t SPIPeriph::transmitEmptyChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Transmit buffer (if empty, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_TXE) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -222,21 +220,21 @@ uint8_t SPIPeriph::TransmitEmptyChk(void) {
 #endif
 }
 
-uint8_t SPIPeriph::ReceiveToReadChk(void) {
+uint8_t SPIPeriph::receiveToReadChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Receive buffer (if not empty "data to read", output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_RXNE) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -253,21 +251,21 @@ uint8_t SPIPeriph::ReceiveToReadChk(void) {
 #endif
 }
 
-uint8_t SPIPeriph::BusBusyChk(void) {
+uint8_t SPIPeriph::busBusyChk(void) {
 /**************************************************************************************************
  * Check to see if the SPI bus is already communicating (if bus is busy, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_BSY) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
@@ -284,21 +282,21 @@ uint8_t SPIPeriph::BusBusyChk(void) {
 #endif
 }
 
-uint8_t SPIPeriph::BusOverRunChk(void) {
+uint8_t SPIPeriph::busOverRunChk(void) {
 /**************************************************************************************************
  * Check to see if a Bus Over run has occurred (if over run, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_OVR) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
@@ -315,7 +313,7 @@ uint8_t SPIPeriph::BusOverRunChk(void) {
 #endif
 }
 
-void SPIPeriph::ClearBusOvrRun(void) {
+void SPIPeriph::clearBusOvrRun(void) {
 /**************************************************************************************************
  * Go through the required sequence to clear the Bus Overrun fault state
  *************************************************************************************************/
@@ -324,13 +322,13 @@ void SPIPeriph::ClearBusOvrRun(void) {
 //==================================================================================================
 // To clear the Bus Over run status form STM32F, the DR register needs to be read, followed by a
 // read of the Status Register.
-    __HAL_SPI_CLEAR_OVRFLAG(this->SPI_Handle);      // Utilise the existing MACRO
+    __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 // To clear the Bus Over run status form STM32L, the DR register needs to be read, followed by a
 // read of the Status Register.
-    __HAL_SPI_CLEAR_OVRFLAG(this->SPI_Handle);      // Utilise the existing MACRO
+    __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -344,21 +342,21 @@ void SPIPeriph::ClearBusOvrRun(void) {
 #endif
 }
 
-uint8_t SPIPeriph::BusModeFltChk(void) {
+uint8_t SPIPeriph::busModeFltChk(void) {
 /**************************************************************************************************
  * Check to see if a Bus mode fault has occurred (if mode fault, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_MODF) != 0 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_FLAG(this->SPI_Handle, SPI_FLAG_MODF) != 0x00 )
+    if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0x00 )
         return (1);
     else
         return (0);
@@ -374,7 +372,7 @@ uint8_t SPIPeriph::BusModeFltChk(void) {
 #endif
 }
 
-void SPIPeriph::ClearBusModeFlt(void) {
+void SPIPeriph::clearBusModeFlt(void) {
 /**************************************************************************************************
  * Go through the required sequence to clear the Bus Mode fault state
  *************************************************************************************************/
@@ -383,13 +381,13 @@ void SPIPeriph::ClearBusModeFlt(void) {
 //==================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
-    __HAL_SPI_CLEAR_MODFFLAG(this->SPI_Handle);     // Utilise the existing MACRO
+    __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
-    __HAL_SPI_CLEAR_MODFFLAG(this->SPI_Handle);     // Utilise the existing MACRO
+    __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -403,21 +401,21 @@ void SPIPeriph::ClearBusModeFlt(void) {
 #endif
 }
 
-uint8_t SPIPeriph::TransmitEmptyITChk(void) {
+uint8_t SPIPeriph::transmitEmptyITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Transmit Empty Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_TXE) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
@@ -433,7 +431,7 @@ uint8_t SPIPeriph::TransmitEmptyITChk(void) {
 #endif
 }
 
-uint8_t SPIPeriph::ReceiveToReadITChk(void) {
+uint8_t SPIPeriph::receiveToReadITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Receive Buffer full interrupt has been enabled (if enabled,
  * output = 1)
@@ -441,14 +439,14 @@ uint8_t SPIPeriph::ReceiveToReadITChk(void) {
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_RXNE) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
@@ -464,21 +462,21 @@ uint8_t SPIPeriph::ReceiveToReadITChk(void) {
 #endif
 }
 
-uint8_t SPIPeriph::BusErrorITChk(void) {
+uint8_t SPIPeriph::busErrorITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Bus Error interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    if ( __HAL_SPI_GET_IT_SOURCE(this->SPI_Handle, SPI_IT_ERR) != 0 )
+    if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
@@ -494,67 +492,67 @@ uint8_t SPIPeriph::BusErrorITChk(void) {
 #endif
 }
 
-SPIPeriph::CSHandle SPIPeriph::HardwareCS(void) {
+SPIPeriph::CSHandle SPIPeriph::hardwareCS(void) {
 /**************************************************************************************************
  * Generate a CSHandle struct variable with the parameters configured to indicate that SPI device
  * communication is to be done via the Hardware Chip Select (no software interaction required)
  *************************************************************************************************/
-    CSHandle TempStruct = { 0 };                        // Initialise structure
+    CSHandle temp_struct = { 0 };                       // Initialise structure
 
-    TempStruct.Type  = CSHandle::Hardware_Managed;      // Indicate that SPI device is hardware
-                                                        // managed
-    return (TempStruct);                                // Return build structure
+    temp_struct.Type  = CSHandle::CSType::kHardware_Managed;    // Indicate that SPI device is
+                                                                // hardware managed
+    return (temp_struct);                               // Return build structure
 }
 
-SPIPeriph::CSHandle SPIPeriph::SoftwareGPIO(GPIO *CS) {
+SPIPeriph::CSHandle SPIPeriph::softwareGPIO(GPIO *CS) {
 /**************************************************************************************************
  * Generate a CSHandle struct variable with the parameters configured to indicate that SPI device
  * communication is to be done via software selection of input GPIO pin.
  *************************************************************************************************/
-    CSHandle TempStruct = { 0 };                        // Initialise structure
+    CSHandle temp_struct = { 0 };                       // Initialise structure
 
-    TempStruct.GPIO_CS  = CS;                           // Link input Chip Select to struct
-    TempStruct.Type  = CSHandle::Software_GPIO;         // Indicate that SPI device is software
-                                                        // managed
-    return (TempStruct);                                // Return build structure
+    temp_struct.GPIO_CS  = CS;                          // Link input Chip Select to struct
+    temp_struct.Type  = CSHandle::CSType::kSoftware_GPIO;   // Indicate that SPI device is software
+                                                            // managed
+    return (temp_struct);                               // Return build structure
 }
 
-void SPIPeriph::ChipSelectHandle(CSHandle selection, CSSelection Mode) {
+void SPIPeriph::chipSelectHandle(CSHandle selection, CSSelection Mode) {
 /**************************************************************************************************
  * With the provided CSHandle struct, and the desired Mode (Select/Deselect), function will then
  * do the necessary work to enable the external SPI device for communication.
  *************************************************************************************************/
-    if (selection.Type == CSHandle::Software_GPIO) {        // If the CSHandle indicates Software
-                                                            // management, then...
-        if (Mode == Select)                                 // If Mode is "Select"
-            selection.GPIO_CS->setValue(GPIO::LOW);         // Pull the GPIO "LOW"
+    if (selection.Type == CSHandle::CSType::kSoftware_GPIO) {   // If the CSHandle indicates
+                                                                // Software management, then...
+        if (Mode == CSSelection::kSelect)                   // If Mode is "Select"
+            selection.GPIO_CS->setValue(GPIO::kLow);        // Pull the GPIO "LOW"
 
         else                                                // If Mode is "DeSelect"
-            selection.GPIO_CS->setValue(GPIO::HIGH);        // Pull the GPIO "HIGH"
+            selection.GPIO_CS->setValue(GPIO::kHigh);       // Pull the GPIO "HIGH"
     }
     // Hardware Managed doesn't require any software interaction. Therefore doesn't do anything
     // is selected.
 }
 
-SPIPeriph::Form SPIPeriph::GenericForm(CSHandle devLoc, uint16_t size,
+SPIPeriph::Form SPIPeriph::genericForm(CSHandle devLoc, uint16_t size,
                                        volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a SPIForm request, based upon the generic information provided as input.
  *************************************************************************************************/
-    SPIPeriph::Form RequestForm = { 0 };        // Generate the "SPIPeriph::Form" variable to
-                                                // provide as output
+    Form request_form = { 0 };                  // Generate the "Form" variable to provide as 
+                                                // output
 
-    RequestForm.devLoc          = devLoc;       // Populate form with input data
-    RequestForm.size            = size;         //
+    request_form.devLoc          = devLoc;      // Populate form with input data
+    request_form.size            = size;        //
 
     // Indications used for source functionality to get status of requested communication
-    RequestForm.Flt             = fltReturn;    // Populate return fault flag
-    RequestForm.Cmplt           = cmpFlag;      // Populate complete communication indication
+    request_form.Flt             = fltReturn;   // Populate return fault flag
+    request_form.Cmplt           = cmpFlag;     // Populate complete communication indication
 
-    return (RequestForm);
+    return (request_form);
 }
 
-void SPIPeriph::FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData) {
+void SPIPeriph::formW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData) {
 /**************************************************************************************************
  * Link input 8bit array pointer(s) to the provided SPI Request Form.
  *************************************************************************************************/
@@ -563,19 +561,19 @@ void SPIPeriph::FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxDa
     RequestForm->RxBuff     = RxData;           // Pass Transmit Buffer to SPIForm
 }
 
-uint8_t SPIPeriph::GetFormWriteData(Form *RequestForm) {
+uint8_t SPIPeriph::getFormWriteData(Form *RequestForm) {
 /**************************************************************************************************
  * Retrieve the next data point to write to external device from the selected SPI Request form
  *************************************************************************************************/
-    uint8_t tempval = 0;        // Temporary variable to store data value
+    uint8_t temp_val = 0;       // Temporary variable to store data value
 
-    tempval = *(RequestForm->TxBuff);           // Retrieve data from array
+    temp_val = *(RequestForm->TxBuff);          // Retrieve data from array
     RequestForm->TxBuff     += sizeof(uint8_t); // Increment array pointer
 
-    return (tempval);       // Return value outside of function
+    return (temp_val);          // Return value outside of function
 }
 
-void SPIPeriph::PutFormReadData(Form *RequestForm, uint8_t readdata) {
+void SPIPeriph::putFormReadData(Form *RequestForm, uint8_t readdata) {
 /**************************************************************************************************
  * Data read from the SPI external device is copied into the requested source location, as per
  * the SPI Request form
@@ -592,64 +590,64 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
  *   version doesn't pull down any pins within software. Relies upon a hardware managed CS.
  *************************************************************************************************/
     if (wData == __null || rData == __null || size == 0)    // If no data has been requested
-        return ( this->Flt = DevFlt::DataSize );            // to be set return error
+        return ( Flt = DevFlt::kData_Size );                // to be set return error
 
     // Indicate that the bus is not free
-    this->CommState = Communicating;        // Indicate bus is communicating
+    CommState = CommLock::kCommunicating;       // Indicate bus is communicating
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-    this->Enable();                     // Ensure that the device has been enabled
+    enable();                       // Ensure that the device has been enabled
 
-    SET_BIT(this->SPI_Handle->Instance->CR2, SPI_RXFIFO_THRESHOLD_QF);
+    SET_BIT(_spi_handle_->Instance->CR2, SPI_RXFIFO_THRESHOLD_QF);
         // Ensure that the RXNE bit is set when the Receive buffer is 1/4 full (i.e. 8bits is
         // within)
 
     while (size != 0) {
         // Wait for the transfer buffer to be empty before putting data for transfer, whilst
         // waiting, check for any faults
-        while(this->TransmitEmptyChk() == 0) {
-            if (this->BusOverRunChk() == 1) {   // Any Bus Over runs errors
-                this->ClearBusOvrRun();         // Clear the Bus Overrun fault
-                return ( this->Flt = DevFlt::Overrun );     // Indicate fault, and exit
+        while(transmitEmptyChk() == 0) {
+            if (busOverRunChk() == 1) {     // Any Bus Over runs errors
+                clearBusOvrRun();           // Clear the Bus Overrun fault
+                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
-            if (this->BusModeFltChk() == 1) {   // Any Bus Mode faults detected
-                this->ClearBusModeFlt();        // Clear the Bus Mode fault
-                return ( this->Flt = DevFlt::ModeFault );   // Indicate fault, and exit
+            if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
+                clearBusModeFlt();          // Clear the Bus Mode fault
+                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
             // No timeout period has been specified - Can get stuck
 
-        this->DRWrite(*wData);                              // Put data onto buffer for transfer
+        writeDR(*wData);                                // Put data onto buffer for transfer
 
         // Wait for the transfer to complete, and data to be read back from SLAVE, whilst waiting
         // check for any faults
-        while(this->ReceiveToReadChk() == 0) {
-            if (this->BusOverRunChk() == 1) {   // Any Bus Over runs errors
-                this->ClearBusOvrRun();         // Clear the Bus Overrun fault
-                return ( this->Flt = DevFlt::Overrun );     // Indicate fault, and exit
+        while(receiveToReadChk() == 0) {
+            if (busOverRunChk() == 1) {     // Any Bus Over runs errors
+                clearBusOvrRun();           // Clear the Bus Overrun fault
+                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
-            if (this->BusModeFltChk() == 1) {   // Any Bus Mode faults detected
-                this->ClearBusModeFlt();        // Clear the Bus Mode fault
-                return ( this->Flt = DevFlt::ModeFault );   // Indicate fault, and exit
+            if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
+                clearBusModeFlt();          // Clear the Bus Mode fault
+                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
 
-        *rData = this->DRRead();                // Put data read from device back into array
-        wData += sizeof(uint8_t);               // Increment pointer for write array by the size
-                                                // of the data type.
-        rData += sizeof(uint8_t);               // Increment pointer for read array by the size of
-                                                // the data type.
-        size--;                                 // Decrement count
+        *rData = readDR();          // Put data read from device back into array
+        wData += sizeof(uint8_t);   // Increment pointer for write array by the size of the data
+                                    // type.
+        rData += sizeof(uint8_t);   // Increment pointer for read array by the size of the data
+                                    // type.
+        size--;                     // Decrement count
     }
 
     // Only exit function once transfer is complete -> detected by BUSY flag clearing
-    while(this->BusBusyChk() == 1) {};
+    while(busBusyChk() == 1) {};
 
-    this->Disable();                    // Ensure that the device has been disable
+    disable();                      // Ensure that the device has been disable
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -659,7 +657,7 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         rData[i] = wData[i];            // and copy into the read data
 
 
-    wiringPiSPIDataRW(this->SPIChannel, rData, (int)size);
+    wiringPiSPIDataRW(_spi_channel_, rData, (int)size);
         // Using wiringPiSPI function, transfer data from RaspberryPi to selected device
 
 #else
@@ -668,9 +666,9 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
 #endif
 
     // Indicate that the bus is free
-    this->CommState = Free;             // Indicate bus is free
+    CommState = CommLock::kFree;        // Indicate bus is free
 
-    return ( this->Flt = DevFlt::None );
+    return ( Flt = DevFlt::kNone );
 }
 
 
@@ -681,16 +679,16 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(GPIO *ChipSelect,
  * This version utilises the basic version, however prior to calling this, pulls down the input
  * GPIO pin.
  *************************************************************************************************/
-    DevFlt returnvalue = DevFlt::Initialised;       // Variable to store output of RWTransfer
+    DevFlt return_value = DevFlt::kInitialised;         // Variable to store output of RWTransfer
 
-    this->ChipSelectHandle(SoftwareGPIO(ChipSelect), Select);
+    chipSelectHandle(softwareGPIO(ChipSelect), CSSelection::kSelect);
 
-    returnvalue = this->poleMasterTransfer(wData, rData, size);
+    return_value = poleMasterTransfer(wData, rData, size);
         // Use private function to transfer data
 
-    this->ChipSelectHandle(SoftwareGPIO(ChipSelect), Deselect);
+    chipSelectHandle(softwareGPIO(ChipSelect), CSSelection::kDeselect);
 
-    return(returnvalue);                            // Return providing the output of transfer
+    return(return_value);                               // Return providing the output of transfer
 }
 
 SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(DeMux *DeMuxCS, uint8_t CSNum,
@@ -706,20 +704,20 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(DeMux *DeMuxCS, uint8_t CSNum,
  * peripheral.
  * Once transmission has finished, the Demultiplexor will be disabled
  *************************************************************************************************/
-    DevFlt returnvalue = DevFlt::Initialised;       // Variable to store output of RWTransfer
+    DevFlt return_value = DevFlt::kInitialised;     // Variable to store output of RWTransfer
 
-    DeMuxCS->updateselection(CSNum);                // Setup Demultiplexor for SPI Slave
+    DeMuxCS->updateSelection(CSNum);                // Setup Demultiplexor for SPI Slave
                                                     // Chip Select
     DeMuxCS->enable();                              // Enable the Demultiplexor
             // This expects that at least 1 of the EnableLow pins has been linked to the
             // SPI hardware CS signal (will not has been allocated to the DeMuxCS entry)
 
-    returnvalue = this->poleMasterTransfer(wData, rData, size);
+    return_value = poleMasterTransfer(wData, rData, size);
         // Use private function to transfer data
 
     DeMuxCS->disable();                             // Disable the Demultiplexor
 
-    return(returnvalue);                            // Return providing the output of transfer
+    return(return_value);                           // Return providing the output of transfer
 }
 
 void SPIPeriph::configTransmtIT(InterState intr) {
@@ -734,12 +732,11 @@ void SPIPeriph::configTransmtIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_SPI_ENABLE_IT(this->SPI_Handle, SPI_IT_TXE);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {               // If request is to enable
+        __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_TXE);  // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_SPI_DISABLE_IT(this->SPI_Handle, SPI_IT_TXE); // Then disable interrupt
+        __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_TXE); // Then disable interrupt
     }
 
 
@@ -765,12 +762,11 @@ void SPIPeriph::configReceiveIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_SPI_ENABLE_IT(this->SPI_Handle, SPI_IT_RXNE); // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {               // If request is to enable
+        __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_RXNE); // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_SPI_DISABLE_IT(this->SPI_Handle, SPI_IT_RXNE);// Then disable interrupt
+        __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_RXNE);// Then disable interrupt
     }
 
 
@@ -796,12 +792,11 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_SPI_ENABLE_IT(this->SPI_Handle, SPI_IT_ERR);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {               // If request is to enable
+        __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_ERR);  // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_SPI_DISABLE_IT(this->SPI_Handle, SPI_IT_ERR); // Then disable interrupt
+        __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_ERR); // Then disable interrupt
     }
 
 
@@ -824,17 +819,17 @@ void SPIPeriph::intMasterTransfer(uint16_t size, uint8_t *TxBuff, uint8_t *RxBuf
  *   This is an OVERLOADED function, used to populate the SPI Request Form, with the Chip select
  *   being managed by the hardware.
  *************************************************************************************************/
-    SPIPeriph::Form RequestForm = this->GenericForm(HardwareCS(), size, fltReturn, cmpFlag);
+    Form request_form = genericForm(hardwareCS(), size, fltReturn, cmpFlag);
     // Build the generic parts of the SPI Request Form
 
-    this->FormW8bitArray(&RequestForm, TxBuff, RxBuff);
+    formW8bitArray(&request_form, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
-    this->FormQueue.InputWrite(RequestForm);
+    _form_queue_.inputWrite(request_form);
     // Add to queue
 
     // Trigger interrupt(s)
-    this->SPIInterruptStart();
+    startInterrupt();
 }
 
 void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint8_t *RxBuff,
@@ -846,53 +841,53 @@ void SPIPeriph::intMasterTransfer(GPIO *CS, uint16_t size, uint8_t *TxBuff, uint
  *   Second version of the OVERLOADED function.
  *   This version populates the form, but states that the Chip select is managed by the software.
  *************************************************************************************************/
-    SPIPeriph::Form RequestForm = this->GenericForm(SoftwareGPIO(CS), size, fltReturn, cmpFlag);
+    Form request_form = genericForm(softwareGPIO(CS), size, fltReturn, cmpFlag);
 
-    this->FormW8bitArray(&RequestForm, TxBuff, RxBuff);
+    formW8bitArray(&request_form, TxBuff, RxBuff);
     // Populate with specific entries for the data type provided as input
 
-    this->FormQueue.InputWrite(RequestForm);
+    _form_queue_.inputWrite(request_form);
     // Add to queue
 
     // Trigger interrupt(s)
-    this->SPIInterruptStart();
+    startInterrupt();
 }
 
-void SPIPeriph::SPIInterruptStart(void) {
+void SPIPeriph::startInterrupt(void) {
 /**************************************************************************************************
  * Function will be called to start off a new SPI communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (this->CommState == Free) && (this->FormQueue.State() != GenBuffer_Empty) ) {
+    if ( (CommState == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
-        this->FormQueue.OutputRead( &(this->curForm) );    // Capture form request
+        _form_queue_.outputRead( &(_cur_form_) );       // Capture form request
 
         // Check current form to see if a fault has already been detected - therefore any new
         // request is no longer valid
-        while (  *(this->curForm.Flt) != SPIPeriph::DevFlt::None  ) {
+        while (  *(_cur_form_.Flt) != SPIPeriph::DevFlt::kNone  ) {
             // If there is a fault in request form, check to see if there is a new request
-            if ( this->FormQueue.State() == GenBuffer_Empty ) { // If buffer is empty, break out
-                this->Disable();
+            if ( _form_queue_.state() == kGenBuffer_Empty ) {   // If buffer is empty, break out
+                disable();
                 return;
             }
             // If there is something in the queue, then make it current. Then re-check
-            this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+            _form_queue_.outputRead( &(_cur_form_) );           // Capture form request
         }
 
-        this->CommState = Communicating;        // Lock SPI bus
+        CommState = CommLock::kCommunicating;   // Lock SPI bus
 
-        this->Enable();
+        enable();
 
-        this->curCount  = this->curForm.size;
+        _cur_count_  = _cur_form_.size;
 
-        this->ChipSelectHandle(this->curForm.devLoc, Select);
+        chipSelectHandle(_cur_form_.devLoc, CSSelection::kSelect);
             // Select the specified device location as per SPI Request Form
 
-        this->configReceiveIT(ITEnable);            // Then enable Receive buffer full interrupt
-        this->configTransmtIT(ITEnable);            // Then enable Transmit Empty buffer interrupt
+        configReceiveIT(InterState::kIT_Enable);    // Then enable Receive buffer full interrupt
+        configTransmtIT(InterState::kIT_Enable);    // Then enable Transmit Empty buffer interrupt
     }
-    else if ( (this->CommState == Free) && (this->FormQueue.State() == GenBuffer_Empty) ) {
-        this->Disable();
+    else if ( (CommState == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
+        disable();
     }
 }
 
@@ -903,19 +898,19 @@ void SPIPeriph::intReqFormCmplt(void) {
  * Indicate that the SPI Device is now free for any new communication
  * Disables the Receive/Transmit Interrupts
  *************************************************************************************************/
-    *(this->curForm.Cmplt)  += (this->curForm.size - this->curCount);
+    *(_cur_form_.Cmplt)  += (_cur_form_.size - _cur_count_);
     // Indicate how many data points have been transfered (curCount should be 0)
 
-    this->ChipSelectHandle(this->curForm.devLoc, Deselect);
+    chipSelectHandle(_cur_form_.devLoc, CSSelection::kDeselect);
     // Deselect the current device, as communication is now complete
 
     // Indicate that SPI bus is now free, and disable any interrupts
-    this->CommState = Free;
-    this->configReceiveIT(ITDisable);       // Disable Receive buffer full interrupt
-    this->configTransmtIT(ITDisable);       // Disable Transmit empty buffer interrupt
+    CommState = CommLock::kFree;
+    configReceiveIT(InterState::kIT_Disable);   // Disable Receive buffer full interrupt
+    configTransmtIT(InterState::kIT_Disable);   // Disable Transmit empty buffer interrupt
 }
 
-void SPIPeriph::IRQHandle(void) {
+void SPIPeriph::handleIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the SPI events within the I2C class.
@@ -955,9 +950,9 @@ void SPIPeriph::IRQHandle(void) {
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) { // If Transmit Buffer
-                                                                            // Empty triggered
-        this->DRWrite (  this->GetFormWriteData( &(this->curForm) )  );
+    if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) { // If Transmit Buffer Empty
+                                                                // triggered
+        writeDR (  getFormWriteData( &(_cur_form_) )  );
         // Retrieve next data point from the Request SPI Form, and put onto hardware queue
 
 #if   defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
@@ -967,50 +962,44 @@ void SPIPeriph::IRQHandle(void) {
         // This feature of the hardware is not really used within the class, so interrupt is to be
         // disabled once single byte has been put into FIFO.
         // Will be enabled once a read of the hardware has occurred.
-        this->configTransmtIT(ITDisable);
+        configTransmtIT(InterState::kIT_Disable);
 #else
 //=================================================================================================
-        if (this->curCount <= 1)
-            this->configTransmtIT(ITDisable);
+        if (_cur_count_ <= 1)
+            configTransmtIT(InterState::kIT_Disable);
 #endif
     }
 
-    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) { // If Receive Buffer
-                                                                            // full triggered
-        this->PutFormReadData( &(this->curForm) , this->DRRead() );
+    if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) { // If Receive Buffer full triggered
+        putFormReadData( &(_cur_form_) , readDR() );
         // Put next data point into the area requested from the SPI Form
-        this->curCount--;       // Decrement the class global current count
+        _cur_count_--;                  // Decrement the class global current count
 
-        if (this->curCount == 0) {
-            this->intReqFormCmplt();                // Complete the current request form
-                                                    // (no faults)
-            this->SPIInterruptStart();              // Check if any new requests
-                                                    // remain
-        } else {                                    // Only when the count is none zero
-            this->configTransmtIT(ITEnable);        // Re-enable the Transmit empty interrupt
+        if (_cur_count_ == 0) {
+            intReqFormCmplt();          // Complete the current request form (no faults)
+            startInterrupt();           // Check if any new requests remain
+        } else {                                        // Only when the count is none zero
+            configTransmtIT(InterState::kIT_Enable);    // Re-enable the Transmit empty interrupt
         }
     }
 
-    if (this->BusErrorITChk()  == 0x01) {           // If Bus Error interrupt is enabled, then
-                                                    // check each of the faults that can cause
-                                                    // bus errors
-        if (this->BusOverRunChk() == 0x01) {        // If a Bus Over run fault has been detected
-            this->ClearBusOvrRun();                 // Clear the failure
-            *(this->curForm.Flt)    = DevFlt::Overrun;      // Indicate a data overrun fault
+    if (busErrorITChk()  == 0x01) {     // If Bus Error interrupt is enabled, then check each of
+                                        // the faults that can cause bus errors
+        if (busOverRunChk() == 0x01) {  // If a Bus Over run fault has been detected
+            clearBusOvrRun();                           // Clear the failure
+            *(_cur_form_.Flt)    = DevFlt::kOverrun;    // Indicate a data overrun fault
 
-            this->intReqFormCmplt();                // Complete the current request form
-            this->SPIInterruptStart();              // Check if any new requests
-                                                    // remain
+            intReqFormCmplt();                          // Complete the current request form
+            startInterrupt();                           // Check if any new requests remain
         }
 
-        if (this->BusModeFltChk() == 0x01) {        // If a Bus Mode fault has been detected
-            this->ClearBusModeFlt();                // Clear the fault (results in the SPI
-                                                    // peripheral being disabled
-            *(this->curForm.Flt)    = DevFlt::ModeFault;    // Indicate a mode fault has occurred
+        if (busModeFltChk() == 0x01) {  // If a Bus Mode fault has been detected
+            clearBusModeFlt();          // Clear the fault (results in the SPI peripheral being
+                                        // disabled)
+            *(_cur_form_.Flt)    = DevFlt::kMode_Fault; // Indicate a mode fault has occurred
 
-            this->intReqFormCmplt();                // Complete the current request form
-            this->SPIInterruptStart();              // Check if any new requests
-                                                    // remain
+            intReqFormCmplt();          // Complete the current request form
+            startInterrupt();           // Check if any new requests remain
         }
     }
 

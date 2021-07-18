@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        I2CPeriph.h
  * @author      Thomas
- * @version     V2.3
- * @date        22 Sept 2019
  * @brief       Header file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -42,47 +40,47 @@
  *                                    selected I2C device (utilises the I2C form system, see below)
  *                                    expects to receive an array data location
  *
- *          ".I2CInterruptStart"    - Check to see if the I2C bus is free, and a new request form
+ *          ".startInterrupt"       - Check to see if the I2C bus is free, and a new request form
  *                                    is available. Then trigger a communication run (enables
  *                                    Transmit Empty/Receive interrupts)
  *          ".intReqFormCmplt"      - Function will go through tidy up procedure for the current
  *                                    Request Form
- *          ".IRQEventHandle"       - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleEventIRQ"       - Functions to be placed within the relevant Interrupt Vector
  *                                    call, so as to handle the I2C interrupt
- *          ".IRQErrorHandle"       - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleErrorIRQ"       - Functions to be placed within the relevant Interrupt Vector
  *                                    call, so as to handle the I2C interrupt
  *
  *      Following functions are protected so will only work for classes which inherit from this
  *      one, and are not visible external to this class. They contain the lower level handling
  *      of hardware, which the functions above rely upon to function (this is where a majority of
  *      the differences between the supported embedded devices will lie:
- *          ".DRRead"               - Will take data straight from hardware
- *          ".DRWrite"              - Will put data straight onto the hardware
- *          ".RequestTransfer"      - Configures the hardware for a I2C transfer (sets up Address,
+ *          ".readDR"               - Will take data straight from hardware
+ *          ".writeDR"              - Will put data straight onto the hardware
+ *          ".requestTransfer"      - Configures the hardware for a I2C transfer (sets up Address,
  *                                    R/~W, START/STOP, etc.)
  *
- *          ".TransmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
- *          ".TransmitComptChk"     - Check to see if Transmission is complete
- *          ".ReceiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
- *          ".BusNACKChk"           - Check to see if there has been a NACK on the BUS
- *          ".BusBusyChk"           - Check to see if the BUS is busy
- *          ".BusSTOPChk"           - Check to see if there has been a STOP on the BUS
- *          ".BusErroChk"           - Check to see if there has been an ERROR on the BUS
+ *          ".transmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
+ *          ".transmitComptChk"     - Check to see if Transmission is complete
+ *          ".receiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
+ *          ".busNACKChk"           - Check to see if there has been a NACK on the BUS
+ *          ".busBusyChk"           - Check to see if the BUS is busy
+ *          ".busStopChk"           - Check to see if there has been a STOP on the BUS
+ *          ".busErroChk"           - Check to see if there has been an ERROR on the BUS
  *
- *          ".ClearNACK"            - Clear the NACK status bit
- *          ".ClearBusEr"           - Clear the Bus error status bis
- *          ".Clear_STOP"           - Clear the STOP status bit
+ *          ".clearNACK"            - Clear the NACK status bit
+ *          ".clearBusEr"           - Clear the Bus error status bis
+ *          ".clearStop"            - Clear the STOP status bit
  *
- *          ".TransmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
+ *          ".transmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
  *                                    enabled
- *          ".TransmitComptITChk"   - Indicates if the interrupt for Transmit Complete has been
+ *          ".transmitComptITChk"   - Indicates if the interrupt for Transmit Complete has been
  *                                    enabled
- *          ".ReceiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
+ *          ".receiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
  *                                    enabled
- *          ".BusNACKITChk"         - Indicates if the interrupt for NACK on the I2C bus has been
+ *          ".busNACKITChk"         - Indicates if the interrupt for NACK on the I2C bus has been
  *                                    enabled
- *          ".BusSTOPITChk"         - Indicates if the interrupt for I2C Bus STOP has been enabled
- *          ".BusErrorITChk"        - Indicates if the interrupt for an I2C Bus Error has been
+ *          ".busStopITChk"         - Indicates if the interrupt for I2C Bus STOP has been enabled
+ *          ".busErrorITChk"        - Indicates if the interrupt for an I2C Bus Error has been
  *                                    enabled
  *
  *  [#] I2C Request Form System
@@ -102,13 +100,13 @@
  *          I2C communication fault return flag
  *
  *      Function list (all are protected):
- *          ".GenericForm"          - Populate generic entries of the I2C Form (outputs structure)
- *          ".FormW8bitArray"       - Link form to a 8bit array location
+ *          ".genericForm"          - Populate generic entries of the I2C Form (outputs structure)
+ *          ".formW8bitArray"       - Link form to a 8bit array location
  *          ".specificRequest"      - OVERLOADED function, for putting a request onto the target
  *                                    I2C's form queue
  *
- *          ".GetFormWriteData"     - Retrieve data from I2C Form's requested location
- *          ".PutFormReadData"      - Write data to location specified by current I2C Form
+ *          ".getFormWriteData"     - Retrieve data from I2C Form's requested location
+ *          ".putFormReadData"      - Write data to location specified by current I2C Form
  *
  *      There is no other functionality within this class.
  *************************************************************************************************/
@@ -118,7 +116,7 @@
 #include "FileIndex.h"
 #include <stdint.h>
 
-#include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //==================================================================================================
@@ -153,34 +151,34 @@ class I2CPeriph {
  *************************************************************************************************/
 public:
     enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
-        None            = 0x00,     // Normal Operation
-        NACK            = 0x01,     // I2C No Acknowledge
-        BUS_ERROR       = 0x02,     // I2C Bus error
+        kNone            = 0x00,    // Normal Operation
+        kNACK            = 0x01,    // I2C No Acknowledge
+        kBus_Error       = 0x02,    // I2C Bus error
 
-        Initialised     = 0xFF      // Just initialised
+        kInitialised     = 0xFF     // Just initialised
     };
 
     enum class CommMode : uint8_t { // Communication mode for I2C
-        AutoEnd         = 0,        // In AutoEnd mode, internal class functions will generate
+        kAutoEnd        = 0,        // In AutoEnd mode, internal class functions will generate
                                     // STOP command, once final packet has transmitted
-        Reload          = 1,        // In Reload mode, internal class will wait for more data
+        kReload         = 1,        // In Reload mode, internal class will wait for more data
                                     // to be added to the buffer before continuing transmission
-        SoftEnd         = 2         // In SoftEnd mode, generation of STOP/RELOAD condition
+        kSoftEnd        = 2         // In SoftEnd mode, generation of STOP/RELOAD condition
                                     // need to be done manually
     };
 
     enum class Request : uint8_t  { // Request mode for I2C
-        Nothing         = 0,        // Do not change the state of the current communication
+        kNothing        = 0,        // Do not change the state of the current communication
                                     // request
-        START_WRITE     = 1,        // Start new communication, in WRITE MODE
-        START_READ      = 2,        // Start new communication, in READ MODE
-        STOP            = 3         // STOP current communication
+        kStart_Write    = 1,        // Start new communication, in WRITE MODE
+        kStart_Read     = 2,        // Start new communication, in READ MODE
+        kStop           = 3         // STOP current communication
     };
 
-    enum InterState : uint8_t {ITEnable, ITDisable};// Enumerate state for enabling/disabling
-                                                    // interrupts
-    enum CommLock : uint8_t {Communicating, Free};  // Enumerate state for indicating if device is
-                                                    // communicating
+    enum InterState : uint8_t {kIT_Enable, kIT_Disable};   // Enumerate state for enabling/
+                                                           // disabling interrupts
+    enum CommLock : uint8_t {kCommunicating, kFree};       // Enumerate state for indicating if
+                                                           // device iscommunicating
 
     typedef struct {            // I2C Form structure, used to manage I2C Communication interrupts
         uint16_t                devAddress; // State the I2C Address to be used
@@ -204,18 +202,18 @@ public:
  *  Parameters required for the class to function.
  *************************************************************************************************/
     protected:
-        GenBuffer<Form>     FormQueue;      // Pointer to the class internal I2CForm buffer, which
+        GenBuffer<Form>     _form_queue_;   // Pointer to the class internal I2CForm buffer, which
                                             // is used to manage interrupt based communication.
                                             // Functions will add request forms to this buffer,
                                             // and interrupt then goes through them sequentially.
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        uint16_t        curCount;       // Current communication packet count
-        Request         curReqst;       // Current request for communication (ignores "Nothing")
-        Form            curForm;        // Current I2C request form
+        uint16_t        _cur_count_;        // Current communication packet count
+        Request         _cur_reqst_;        // Current request for communication (ignores "Nothing")
+        Form            _cur_form_;         // Current I2C request form
 
     public:
-        DevFlt      Flt;                // Fault state of the I2C Device
-        CommLock    CommState;          // Status of the Communication
+        DevFlt      flt;                // Fault state of the I2C Device
+        CommLock    comm_state;         // Status of the Communication
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -231,7 +229,7 @@ public:
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     protected:
-        I2C_HandleTypeDef  *I2C_Handle;     // Store the I2C handle
+        I2C_HandleTypeDef  *_i2c_handle_;     // Store the I2C handle
 
     public:
         I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize);
@@ -268,57 +266,57 @@ protected:  /*******************************************************************
     //void Enable(void);                      // Enable the I2C device
     //void Disable(void);                     // Disable the I2C device
 
-    uint8_t DRRead(void);                   // Function to read direct from the hardware
-    void DRWrite(uint8_t data);             // Function to write direct to the hardware
+    uint8_t readDR(void);                   // Function to read direct from the hardware
+    void writeDR(uint8_t data);             // Function to write direct to the hardware
 
     // I2C Event status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyChk(void);         // Check state of transmission register (1 = empty)
-    uint8_t TransmitComptChk(void);         // Check state of transmission complete (1 = cmplt)
-    uint8_t ReceiveToReadChk(void);         // Check state of receive data register (1 =  read)
-    uint8_t BusNACKChk(void);               // Check if No Acknowledge is received  (1 = NACK)
-    void ClearNACK(void);                   // Clear the NACK bit
+    uint8_t transmitEmptyChk(void);         // Check state of transmission register (1 = empty)
+    uint8_t transmitComptChk(void);         // Check state of transmission complete (1 = cmplt)
+    uint8_t receiveToReadChk(void);         // Check state of receive data register (1 =  read)
+    uint8_t busNACKChk(void);               // Check if No Acknowledge is received  (1 = NACK)
+    void clearNACK(void);                   // Clear the NACK bit
 
-    uint8_t BusSTOPChk(void);               // Check if I2C bus STOP has been set   (1 = STOP)
-    void Clear_STOP(void);                  // Clear the Bus STOP bit
+    uint8_t busStopChk(void);               // Check if I2C bus STOP has been set   (1 = STOP)
+    void clearStop(void);                   // Clear the Bus STOP bit
 
-    uint8_t BusBusyChk(void);               // Check if I2C bus is busy             (1 = BUSY)
+    uint8_t busBusyChk(void);               // Check if I2C bus is busy             (1 = BUSY)
 
     // I2C Error status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t BusErroChk(void);               // Check if START/STOP bit is set wrong (1 =  Flt)
-    void ClearBusEr(void);                  // Clear the Bus error flag
+    uint8_t busErroChk(void);               // Check if START/STOP bit is set wrong (1 =  Flt)
+    void clearBusEr(void);                  // Clear the Bus error flag
 
     // I2C Interrupt status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t TransmitComptITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t ReceiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t BusNACKITChk(void);             // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t BusSTOPITChk(void);             // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t BusErrorITChk(void);            // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t transmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t transmitComptITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t receiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t busNACKITChk(void);             // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t busStopITChk(void);             // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t busErrorITChk(void);            // Check to see if interrupt is enabled (1 = enabled)
 
     // I2C Communication Request Form handling
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    void RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst);
+    void requestTransfer(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst);
         // Request a new communicate via I2C device, function handles the START/STOP, R/~W setup
         // devAddress needs to be full, i.e. 7bit address needs to be provided as 8bits. The
         // R/~W will be ignored and populated as required
 
-    static Form GenericForm(uint16_t devAddress, uint16_t size, CommMode mode, Request reqst,
-                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    Form genericForm(uint16_t devAddress, uint16_t size, CommMode mode, Request reqst,
+                     volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    static void FormW8bitArray(Form *RequestForm, uint8_t *pData);
+    void formW8bitArray(Form *RequestForm, uint8_t *pData);
 
     void specificRequest(uint16_t devAddress, uint16_t size, uint8_t *pData,
                             CommMode mode, Request reqst,
                             volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    static uint8_t GetFormWriteData(Form *RequestForm);
+    uint8_t getFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
     // I2C "RequestForm"
 
-    static void PutFormReadData(Form *RequestForm, uint8_t readdata);
+    void putFormReadData(Form *RequestForm, uint8_t readdata);
     // Function will take the data read from the I2C Hardware, and put into the requested data
     // location specified within the "RequestForm" input (will be curForm)
 
@@ -349,11 +347,11 @@ public:     /*******************************************************************
                       CommMode mode, Request reqst,
                       volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    void I2CInterruptStart(void);           // Enable communication if bus is free, otherwise
+    void startInterrupt(void);              // Enable communication if bus is free, otherwise
                                             // wait (doesn't actually wait)
     void intReqFormCmplt(void);             // Closes out the input Request Form
-    void IRQEventHandle(void);              // Interrupt I2C Event handler
-    void IRQErrorHandle(void);              // Interrupt I2C Error handler
+    void handleEventIRQ(void);              // Interrupt I2C Event handler
+    void handleErrorIRQ(void);              // Interrupt I2C Error handler
 
         virtual ~I2CPeriph();
 };

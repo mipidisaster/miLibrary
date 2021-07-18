@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        AD741x.h
  * @author      Thomas
- * @version     V3.4
- * @date        22 Sept 2019
  * @brief       Header file for the AD741x series of temperature sensors
  **************************************************************************************************
  @ attention
@@ -42,19 +40,19 @@
  *
  *      Fundamental functions used within this class, which are protected, so not visible outside
  *      the class:
- *          ".GetAddress"           - From input parameters on device, retrieve I2C Address (as
+ *          ".getAddress"           - From input parameters on device, retrieve I2C Address (as
  *                                    per Datasheet)
- *          ".AddressForm"          - Used to generate the AD741x Form structure, used to handle
+ *          ".addressForm"          - Used to generate the AD741x Form structure, used to handle
  *                                    what the state of device's Address Pointer has been set too
  *                                    (see section below on AD741x Form)
- *          ".UpdateAddressPointer" - Add a new Address pointer write request to the buffer
+ *          ".updateAddressPointer" - Add a new Address pointer write request to the buffer
  *                                    (only function which puts a "WRITE" state into AD741x form)
- *          ".LastAddresPointRqst"  - Retrieve the last requested/known state of the Address
+ *          ".lastAddresPointRqst"  - Retrieve the last requested/known state of the Address
  *                                    Pointer
- *          ".UpdateConfigReg"      - Construct the byte value to update Configuration Register as
+ *          ".updateConfigReg"      - Construct the byte value to update Configuration Register as
  *                                    per new request
- *          ".DecodeConfig"         - Decode what the read back Configuration value indicates
- *          ".DecodeTempReg"        - Decode what the read back Temperature value is (degC)
+ *          ".decodeConfig"         - Decode what the read back Configuration value indicates
+ *          ".decodeTempReg"        - Decode what the read back Temperature value is (degC)
  *
  *          ".deconstructData"      - Goes through the input buffer, and based upon the next
  *                                    AD741x form request decode the data
@@ -81,7 +79,7 @@
 #include "FileIndex.h"
 #include <stdint.h>
 
-#include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 #include FilInd_I2CPe__HD               // Include class for I2C Peripheral
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
@@ -162,43 +160,43 @@ class AD741x {
  *************************************************************************************************/
 public:
     enum class DevFlt : uint8_t {
-        None                = 0x00,
-        Fault               = 0x01,
-        SizeReqst           = 0x02,
-        UnRecognisedAddress = 0x03,
-        SynchronizeErr      = 0x04,
+        kNone                           = 0x00,
+        kFault                          = 0x01,
+        kSize_Request                   = 0x02,
+        kUnrecognised_Address           = 0x03,
+        kSynchronize_Error              = 0x04,
 
-        NoCommunication     = 0xE0,
-        ParentCommFlt       = 0xF0,
+        kNo_Communication               = 0xE0,
+        kParent_Communication_Fault     = 0xF0,
 
-        Initialised         = 0xFF
+        kInitialised                    = 0xFF
     };
 
     enum class AddrBit : uint8_t {
-        Float       = 0,
-        GND         = 1,
-        Vdd         = 2
+        kFloat      = 0,
+        kGnd        = 1,
+        kVdd        = 2
     };
 
     enum class DevPart : uint8_t {
-        AD7414_0        = 0,
-        AD7414_1        = 1,
-        AD7414_2        = 2,
-        AD7414_3        = 3,
+        kAD7414_0       = 0,
+        kAD7414_1       = 1,
+        kAD7414_2       = 2,
+        kAD7414_3       = 3,
 
-        AD7415_0        = 4,
-        AD7415_1        = 5
+        kAD7415_0       = 4,
+        kAD7415_1       = 5
     };
 
-    enum class PwrState : uint8_t {FullPower, StandBy};
+    enum class PwrState : uint8_t {kFull_Power, kStand_By};
 
-    enum class FiltState: uint8_t {Enabled, Disabled};
+    enum class FiltState: uint8_t {kEnabled, kDisabled};
 
-    enum class OneShot  : uint8_t {TrigConv, Nothing};
+    enum class OneShot  : uint8_t {kTrigConv, kNothing};
 
     typedef struct {
         uint8_t     AddrPoint;
-        enum Dir : uint8_t {Write, Read} ReadWrite;
+        enum Dir : uint8_t {kWrite, kRead} ReadWrite;
     } Form;
 
 /**************************************************************************************************
@@ -207,34 +205,34 @@ public:
  *  Parameters required for the class to function.
  *************************************************************************************************/
     protected:
-        GenBuffer<Form>      AdBuff;// Buffer for the state of the Address pointer, needs to line
-                                    // up with any read backs (as this indicates what has been
-                                    // read!)
+        GenBuffer<Form>      _address_buff_;    // Buffer for the state of the Address pointer,
+                                                // needs to line up with any read backs (as this
+                                                // indicates what has been read!)
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        DevPart     PartNumber;     // Retain the selected part number of device
-        AddrBit     AddressPin;     // Retain the status of the Address Pin
-        PwrState    Mode;           // Mode of the device
-        FiltState   FiltMode;       // Mode of the device filter
+        DevPart     _part_number_;      // Retain the selected part number of device
+        AddrBit     _address_pin_;      // Retain the status of the Address Pin
+        PwrState    _mode_;             // Mode of the device
+        FiltState   _filter_mode_;      // Mode of the device filter
 
-        uint16_t    I2CAddress;     // I2C Address of the device
-        uint8_t     AddressPointer; // Stores the current state of the Address Pointer
+        uint16_t    _i2c_address;       // I2C Address of the device
+        uint8_t     _address_pointer_;  // Stores the current state of the Address Pointer
 
     public:
-        DevFlt      Flt;            // Fault status of the device
+        DevFlt      flt;            // Fault status of the device
 
-        float       Temp;           // Read temperature from device (degC)
-        int16_t     TempReg;        // Read temperature register
+        float       temp;           // Read temperature from device (degC)
+        int16_t     temp_reg;       // Read temperature register
 
         // Parameters used for interrupt based I2C communication
-        volatile I2CPeriph::DevFlt   I2CWFlt;// Fault status of the I2C write Communication
-        volatile uint16_t    wtcmpFlag;      // I2C write communication complete flag
-        uint16_t    wtcmpTarget;    // I2C write communication number of bytes to have been
-                                    // transmitted
+        volatile I2CPeriph::DevFlt   i2c_wrte_flt;  // Fault status of the I2C write Communication
+        volatile uint16_t    wrte_cmp_flg;          // I2C write communication complete flag
+        uint16_t    wrte_cmp_target;    // I2C write communication number of bytes to have been
+                                        // transmitted
 
-        volatile I2CPeriph::DevFlt   I2CRFlt;// Fault status of the I2C read Communication
-        volatile uint16_t    rdcmpFlag;      // I2C read communication complete flag
-        uint16_t    rdcmpTarget;    // I2C read communication number of bytes to have been
-                                    // received
+        volatile I2CPeriph::DevFlt   i2c_read_flt;  // Fault status of the I2C read Communication
+        volatile uint16_t    read_cmp_flag;         // I2C read communication complete flag
+        uint16_t    read_cmp_target;    // I2C read communication number of bytes to have been
+                                        // received
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -271,18 +269,18 @@ protected:  /*******************************************************************
              *  (which are public), rely upon these functions to operate.
              *  Are protected, as the upper level functions will not need to use these.
              *************************************************************************************/
-    void GetAddress(void);          // Determine the Address from provided device number
-    Form AddressForm(uint8_t newAdd, Form::Dir Direction);
+    void getAddress(void);          // Determine the Address from provided device number
+    Form addressForm(uint8_t newAdd, Form::Dir Direction);
 
-    uint8_t UpdateAddressPointer(uint8_t *buff, uint8_t newval);
+    uint8_t updateAddressPointer(uint8_t *buff, uint8_t newval);
     // Generate write request to update Address Pointer in AD741x device
-    uint8_t LastAddresPointRqst(void);              // Retrieve the last Address Pointer request
+    uint8_t lastAddresPointRqst(void);              // Retrieve the last Address Pointer request
 
-    uint8_t UpdateConfigReg(uint8_t *buff, PwrState Mode, FiltState Filt, OneShot Conv);
+    uint8_t updateConfigReg(uint8_t *buff, PwrState Mode, FiltState Filt, OneShot Conv);
     // Generate write request to update the Configuration Register
 
-    void DecodeConfig(uint8_t data);                // Decode the Configuration Register
-    void DecodeTempReg(uint8_t *pData);             // Decode the Temperature Registers
+    void decodeConfig(uint8_t data);                // Decode the Configuration Register
+    void decodeTempReg(uint8_t *pData);             // Decode the Temperature Registers
 
     DevFlt deconstructData(uint8_t *readData, uint16_t size);
             // Go through input "GenBuffer" read data, and only deconstruct "size" entries.

@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        AS5x4x.cpp
  * @author      Thomas
- * @version     V2.4
- * @date        22 Sept 2019
  * @brief       Source file for the AMS Angular Position device (AS5x4x)
  **************************************************************************************************
  @ attention
@@ -19,14 +17,14 @@ void AS5x4x::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    this->Angle         = -999;                 // All parameters set to zero
-    this->AngularSteps  = 0;                    //
-    this->Mag           = 0;                    //
-    this->AGC           = 0;                    //
+    angle         = -999;               // All parameters set to zero
+    angular_steps = 0;                  //
+    mag           = 0;                  //
+    AGC           = 0;                  //
 
-    this->Flt           = DevFlt::None;         // Set fault state to initialised
-    this->Diagnostic    = 0;                    // Initialise Diagnostic flags to zero
-    this->Device        = DevPart::AS5048A;     // Default is "AS5048A"
+    flt           = DevFlt::kNone;      // Set fault state to initialised
+    diagnostic    = 0;                  // Initialise Diagnostic flags to zero
+    device        = DevPart::kAS5048A;  // Default is "AS5048A"
 }
 
 AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size) {
@@ -37,19 +35,19 @@ AS5x4x::AS5x4x(DevPart Device, uint16_t *wtBuff, uint16_t *rdBuff, uint16_t size
  * The class construction will initialise all the parameters, and set the fault state to
  * initialised.
  *************************************************************************************************/
-    this->popGenParam();                        // Populate generic class parameters
-    this->Device        = Device;               // Store the device
+    popGenParam();                      // Populate generic class parameters
+    device        = Device;             // Store the device
 
     // Setup buffer pointers:
-    this->wtBuff.create(wtBuff, size);          // Create internal GenBuffer
-    this->rdBuff.create(rdBuff, size);          // Create internal GenBuffer
+    _wrte_buff_.create(wtBuff, size);   // Create internal GenBuffer
+    _read_buff_.create(rdBuff, size);   // Create internal GenBuffer
 
 
-    this->wtBuff.QFlush();                      // Flush data
-    this->rdBuff.QFlush();                      // Flush data
+    _wrte_buff_.qFlush();               // Flush data
+    _read_buff_.qFlush();               // Flush data
 }
 
-uint8_t AS5x4x::EvenParityCheck(uint16_t packet) {
+uint8_t AS5x4x::evenParityCheck(uint16_t packet) {
 /**************************************************************************************************
  * Function will determine if the input data is an even parity
  * This is done by going through the bits set from the input data, then take this number and put
@@ -57,7 +55,8 @@ uint8_t AS5x4x::EvenParityCheck(uint16_t packet) {
  * parity
  * Otherwise will not return 0 = ODD parity
  *************************************************************************************************/
-    uint8_t count = 0, i = 0;
+    uint8_t count = 0;
+    uint8_t i = 0;
 
     for (i = 0; i != 16; i++) {         // Cycle through each bit in the data packet
         if (packet & 0x01) count++;     // If the lower bit is "1", increment count
@@ -70,19 +69,19 @@ uint8_t AS5x4x::EvenParityCheck(uint16_t packet) {
         return(0);              // return 0 - value is ODD
 }
 
-void AS5x4x::WriteDataPacket(uint16_t PacketData) {
+void AS5x4x::writeDataPacket(uint16_t PacketData) {
 /**************************************************************************************************
  * Function will take the input packet to be transmitted to the AS5x4x device.
  * Prior to putting into the internal write buffer, it will be checked to ensure the data is of
  * EVEN parity.
  *************************************************************************************************/
-    if (this->EvenParityCheck(PacketData) != 1)         // If not EVEN parity then
-        PacketData |= AS5x4x_PARITY;                    // make data EVEN parity
+    if (evenParityCheck(PacketData) != 1)       // If not EVEN parity then
+        PacketData |= AS5x4x_PARITY;            // make data EVEN parity
 
-    this->wtBuff.InputWrite(PacketData);                // Put data into the buffer
+    _wrte_buff_.inputWrite(PacketData);         // Put data into the buffer
 }
 
-uint16_t AS5x4x::SPIWriteChain(AS5x4x *device, uint16_t numchain, uint8_t *wtdata) {
+uint16_t AS5x4x::writeSPIChain(AS5x4x *targdevice, uint16_t numchain, uint8_t *wtdata) {
 /**************************************************************************************************
  * Externally callable function, which is able to cycle through the AS5x4x device(s) in the daisy
  * chain configuration - See the devices datasheet for how to configure a daisy chain.
@@ -105,48 +104,54 @@ uint16_t AS5x4x::SPIWriteChain(AS5x4x *device, uint16_t numchain, uint8_t *wtdat
  *
  * Function will then return the number of SPI write (8bit) array entries used.
  *************************************************************************************************/
-    uint16_t packetdata = 0;        // Variable to store the packet to transmit
-    uint8_t getmeout = 1;           // Variable to break out of function if there is no data to
-                                    // transmit (initialise to "break out" = 1)
-    uint16_t i = 0;                 // Variable to loop through the devices attached in the chain
+    uint16_t packet_data = 0;           // Variable to store the packet to transmit
+    uint8_t  break_out_condition = 1;   // Variable to break out of function if there is no data to
+                                        // transmit (initialise to "break out" = 1)
+    uint16_t i = 0;                     // Variable to loop through the devices attached in the
+                                        // chain
+            //==================================
             // note, the first entry in the list, is the LAST device in the chain
+            //==================================
 
     for (i = 0; i != numchain; i++) {                       // Loop through the AS5x4x pointer
-        if (device[i].wtBuff.State() != GenBuffer_Empty) {  // If there is data to be transmitted
-            getmeout = 0;                                   // Set get out variable to "0", do not
+        if (targdevice[i]._wrte_buff_.state() != kGenBuffer_Empty) {
+                // If there is data to be transmitted
+            break_out_condition = 0;                        // Set get out variable to "0", do not
                                                             // exit function
             break;                                          // Then break out of loop
         }
     }
 
-    if (getmeout == 1)          // If the get out variable to still "1", i.e. no data found to be
-        return(0);              // transmitted, then exit function - returning a value of "0"
+    if (break_out_condition == 1)   // If the get out variable to still "1", i.e. no data found to
+        return(0);                  // be transmitted, then exit function - returning a value of
+                                    // "0"
 
-    uint16_t arraysize = 0;     // Variable to store the number of SPI packets to transmit
+    uint16_t array_size = 0;        // Variable to store the number of SPI packets to transmit
 
     for (i = 0; i != numchain; i++) {                       // Loop through the AS5x4x pointer
         // Then read the contents of the AS5x4x write buffer.
-        if (device[i].wtBuff.State() == GenBuffer_Empty) {  // If the AS5x4x device is empty
-            device[i].constructNOP();                       // Force a NOP request
+        if (targdevice[i]._wrte_buff_.state() == kGenBuffer_Empty) {
+            // If the AS5x4x device is empty, then force a NOP request
+            targdevice[i].constructNOP();
             // This will ensure that the "ReadDataPacket" will still function correctly
         }
 
-        device[i].wtBuff.OutputRead(&packetdata);   // Read from internal buffer (no need to check
-                                                    // state, as already checked
+        targdevice[i]._wrte_buff_.outputRead(&packet_data); // Read from internal buffer (no need
+                                                            // to check state, as already checked
 
-        *wtdata         = (uint8_t) (packetdata >> 8);          // Take the MSByte of the packet
+        *wtdata         = (uint8_t) (packet_data >> 8);         // Take the MSByte of the packet
                                                                 // to transmit and put into SPI
                                                                 // buffer.
-        arraysize++; wtdata += sizeof(uint8_t);                 // increment array size and pointer
+        array_size++; wtdata += sizeof(uint8_t);                // increment array size and pointer
 
 
-        *wtdata         = (uint8_t) (packetdata);               // Take the LSByte of the packet
+        *wtdata         = (uint8_t) (packet_data);              // Take the LSByte of the packet
                                                                 // to transmit and put into SPI
                                                                 // buffer.
-        arraysize++; wtdata += sizeof(uint8_t);                 // increment array size and pointer
+        array_size++; wtdata += sizeof(uint8_t);                // increment array size and pointer
     }
 
-    return (arraysize);     // Once complete return the number of SPI array entries populated
+    return (array_size);    // Once complete return the number of SPI array entries populated
 }
 
 void AS5x4x::deconstructAS5048A(uint16_t Address, uint16_t packetdata) {
@@ -158,39 +163,39 @@ void AS5x4x::deconstructAS5048A(uint16_t Address, uint16_t packetdata) {
  * Depending upon the address how to understand the "packetdata" will vary.
  * Consult the AS5048A datasheet to see how this has been constructed.
  *************************************************************************************************/
-    if      (Address == AS5048_ERRFL) {     // If ERRFL then
+    if      (Address == AS5048_ERRFL) {             // If ERRFL then
         //=========================================================================================
         packetdata  &= AS5x4x_ErrorMask;            // Retrieve only the error bits
 
-        this->Flt = DevFlt::None;                   // Default the data as being "No Fault"
+        flt = DevFlt::kNone;                        // Default the data as being "No Fault"
             // This will then be overridden if there is data in the register
 
         if      (packetdata == AS5x4x_FrameError)   // If the error equals "Frame Error"
-            this->Flt = DevFlt::Frame;              // Set the fault state to "AS5x4x_Frame"
+            flt = DevFlt::kFrame;                   // Set the fault state to "AS5x4x_Frame"
 
         else if (packetdata == AS5x4x_CmdIvError)   // If the error equals "Command Invalid"
-            this->Flt = DevFlt::CmdInv;             // Set the fault state to "AS5x4x_CmdInv"
+            flt = DevFlt::kCmd_Inv;                 // Set the fault state to "AS5x4x_CmdInv"
 
         else if (packetdata == AS5x4x_ParitError)   // If the error equals "Parity Fault"
-            this->Flt = DevFlt::Parity;             // Set the fault state to "AS5x4x_Parity"
+            flt = DevFlt::kParity;                  // Set the fault state to "AS5x4x_Parity"
 
         else if (packetdata != 0x0000)              // If register is none zero
-            this->Flt = DevFlt::MultiFault;         // Then multiple faults have occured
+            flt = DevFlt::kMulti_Fault;             // Then multiple faults have occured
     }
     else if (Address == AS5048_DIAAGC) {    // If DIAAGC then
         //=========================================================================================
-        this->AGC           = (packetdata & AS5x4x_AGVValueMask);       // Retrieve the AGC Values
-        this->Diagnostic    = ((packetdata & AS5x4x_DiagnFlags) >> 8);  // Retrieve the Diagnostic
+        AGC           = (packetdata & AS5x4x_AGVValueMask);       // Retrieve the AGC Values
+        diagnostic    = ((packetdata & AS5x4x_DiagnFlags) >> 8);  // Retrieve the Diagnostic
                                                                         // flags and shift down
     }
     else if (Address == AS5048_MAG) {       // If MAG then
         //=========================================================================================
-        this->Mag           = (packetdata & AS5x4x_DataMask);       // Retrieve the Magnitude value
+        mag           = (packetdata & AS5x4x_DataMask);       // Retrieve the Magnitude value
     }
     else if (Address == AS5048_ANGLE) {     // If ANGLE then
         //=========================================================================================
-        this->AngularSteps  = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
-        this->Angle         = (((float)this->AngularSteps) * PI * 2) / 16383;
+        angular_steps = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
+        angle         = (((float)angular_steps) * PI * 2) / 16383;
             // Convert to radians
     }
     else {}
@@ -209,41 +214,41 @@ void AS5x4x::deconstructAS5047D(uint16_t Address, uint16_t packetdata) {
         //=========================================================================================
         packetdata  &= AS5x4x_ErrorMask;            // Retrieve only the error bits
 
-        this->Flt = DevFlt::None;                   // Default the data as being "No Fault"
+        flt = DevFlt::kNone;                        // Default the data as being "No Fault"
             // This will then be overridden if there is data in the register
 
         if      (packetdata == AS5x4x_FrameError)   // If the error equals "Frame Error"
-            this->Flt = DevFlt::Frame;              // Set the fault state to "AS5x4x_Frame"
+            flt = DevFlt::kFrame;                   // Set the fault state to "AS5x4x_Frame"
 
         else if (packetdata == AS5x4x_CmdIvError)   // If the error equals "Command Invalid"
-            this->Flt = DevFlt::CmdInv;             // Set the fault state to "AS5x4x_CmdInv"
+            flt = DevFlt::kCmd_Inv;                 // Set the fault state to "AS5x4x_CmdInv"
 
         else if (packetdata == AS5x4x_ParitError)   // If the error equals "Parity Fault"
-            this->Flt = DevFlt::Parity;              // Set the fault state to "AS5x4x_Parity"
+            flt = DevFlt::kParity;                  // Set the fault state to "AS5x4x_Parity"
 
         else if (packetdata != 0x0000)              // If register is none zero
-            this->Flt = DevFlt::MultiFault;         // Then multiple faults have occured
+            flt = DevFlt::kMulti_Fault;             // Then multiple faults have occured
     }
     else if (Address == AS5047_DIAAGC) {    // If DIAAGC then
         //=========================================================================================
-        this->AGC           = (packetdata & AS5x4x_AGVValueMask);       // Retrieve the AGC Values
-        this->Diagnostic    = ((packetdata & AS5x4x_DiagnFlags) >> 8);  // Retrieve the Diagnostic
+        AGC           = (packetdata & AS5x4x_AGVValueMask);       // Retrieve the AGC Values
+        diagnostic    = ((packetdata & AS5x4x_DiagnFlags) >> 8);  // Retrieve the Diagnostic
                                                                         // flags and shift down
     }
     else if (Address == AS5047_MAG) {       // If MAG then
         //=========================================================================================
-        this->Mag           = (packetdata & AS5x4x_DataMask);       // Retrieve the Magnitude value
+        mag           = (packetdata & AS5x4x_DataMask);       // Retrieve the Magnitude value
     }
     else if (Address == AS5047_ANGLE) {     // If ANGLE then
         //=========================================================================================
-        this->AngularSteps  = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
-        this->Angle         = (((float)this->AngularSteps) * PI * 2) / 16383;
+        angular_steps = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
+        angle         = (((float)angular_steps) * PI * 2) / 16383;
             // Convert to radians
     }
     else {}
 }
 
-uint8_t AS5x4x::SPIReadChain(AS5x4x *device, uint16_t numchain,
+uint8_t AS5x4x::readSPIChain(AS5x4x *targdevice, uint16_t numchain,
                              uint8_t *rddata, uint16_t size) {
 /**************************************************************************************************
  * Externally callable function, which is able to cycle through the input SPI read data, read from
@@ -267,8 +272,9 @@ uint8_t AS5x4x::SPIReadChain(AS5x4x *device, uint16_t numchain,
  * value again, to ensure that they are equal - function has worked correctly, will therefore
  * return "0". Otherwise a fault has occurred = "-1".
  *************************************************************************************************/
-    uint8_t MSB = 0, LSB = 0;   // Variables to store the Upper (MSB) and Lower (LSB) byte of data
-    uint16_t arraysize = 0;     // Variable to store the number of SPI array entries read
+    uint8_t MSB = 0;            // Variables to store the Upper (MSB) and Lower (LSB) byte of data
+    uint8_t LSB = 0;            //
+    uint16_t array_size = 0;    // Variable to store the number of SPI array entries read
                                 // -> To be compared with input "size" to ensure no overflow.
 
     uint16_t i = 0;             // Variable to loop through the devices attached in the chain and
@@ -281,20 +287,20 @@ uint8_t AS5x4x::SPIReadChain(AS5x4x *device, uint16_t numchain,
                                             // Multiplied by 2
         return(-1);                         // Then there is a request fault
 
-    while(arraysize != size) {
+    while(array_size != size) {
         for (i = 0; i != numchain; i++) {
             MSB = *rddata;              // The first entry will be the "MSB", so link to MSB
                                         // variable
-            arraysize++; rddata += sizeof(uint8_t);     // Increment calculated array size
+            array_size++; rddata += sizeof(uint8_t);    // Increment calculated array size
 
 
             LSB = *rddata;              // The first entry will be the "LSB", so link to MSB
                                         // variable
-            arraysize++; rddata += sizeof(uint8_t);     // Increment calculated array size
+            array_size++; rddata += sizeof(uint8_t);    // Increment calculated array size
 
             // Can now populate the data into the AS5x4x internal read buffer
-            device[i].rdBuff.InputWrite((uint16_t) ((MSB << 8) | LSB)); // Combine together MSB,
-                                                                        // LSB and put into buffer
+            targdevice[i]._read_buff_.inputWrite((uint16_t) ((MSB << 8) | LSB));
+                // Combine together MSB, LSB and put into buffer
     } }
 
     return (0);     // Return "0"
@@ -305,11 +311,11 @@ void AS5x4x::constructNOP(void) {
  * Function will construct a request to the AS5x4x device of "NOP" = No Operation.
  * Will vary the address depending upon how the AS5x4x class has been constructed.
  *************************************************************************************************/
-    if (this->Device == DevPart::AS5048A)                       // If device is AS5048A
-        this->WriteDataPacket(AS5048_NOP);                      // Transmit the NOP
+    if (device == DevPart::kAS5048A)                        // If device is AS5048A
+        writeDataPacket(AS5048_NOP);                        // Transmit the NOP
 
-    else if (this->Device == DevPart::AS5047D)                  // If device is AS5047D
-        this->WriteDataPacket(AS5047_NOP);                      // Transmit the NOP
+    else if (device == DevPart::kAS5047D)                   // If device is AS5047D
+        writeDataPacket(AS5047_NOP);                        // Transmit the NOP
 }
 
 void AS5x4x::constructCEF(void) {
@@ -317,13 +323,13 @@ void AS5x4x::constructCEF(void) {
  * Function will construct a request to the AS5x4x device for "CEF" = Clear Error Flags.
  * Will vary the address depending upon how the AS5x4x class has been constructed.
  *************************************************************************************************/
-    if (this->Device == DevPart::AS5048A)                       // If device is AS5048A
-        this->WriteDataPacket(AS5048_ERRFL | AS5x4x_ReadMask);  // Transmit the Read request for
-                                                                // reading the ERRFL address
+    if (device == DevPart::kAS5048A)                        // If device is AS5048A
+        writeDataPacket(AS5048_ERRFL | AS5x4x_ReadMask);    // Transmit the Read request for
+                                                            // reading the ERRFL address
 
-    else if (this->Device == DevPart::AS5047D)                  // If device is AS5047D
-        this->WriteDataPacket(AS5047_ERRFL | AS5x4x_ReadMask);  // Transmit the Read request for
-                                                                // reading the ERRFL address
+    else if (device == DevPart::kAS5047D)                   // If device is AS5047D
+        writeDataPacket(AS5047_ERRFL | AS5x4x_ReadMask);    // Transmit the Read request for
+                                                            // reading the ERRFL address
 }
 
 void AS5x4x::constructAGC(void) {
@@ -331,13 +337,13 @@ void AS5x4x::constructAGC(void) {
  * Function will construct a request to the AS5x4x device for "AGC" = Automatic Gain Control.
  * Will vary the address depending upon how the AS5x4x class has been constructed.
  *************************************************************************************************/
-    if (this->Device == DevPart::AS5048A)                       // If device is AS5048A
-        this->WriteDataPacket(AS5048_DIAAGC | AS5x4x_ReadMask); // Transmit the Read request for
-                                                                // reading the DIAAGC address
+    if (device == DevPart::kAS5048A)                        // If device is AS5048A
+        writeDataPacket(AS5048_DIAAGC | AS5x4x_ReadMask);   // Transmit the Read request for
+                                                            // reading the DIAAGC address
 
-    else if (this->Device == DevPart::AS5047D)                  // If device is AS5047D
-        this->WriteDataPacket(AS5047_DIAAGC | AS5x4x_ReadMask); // Transmit the Read request for
-                                                                // reading the DIAAGC address
+    else if (device == DevPart::kAS5047D)                   // If device is AS5047D
+        writeDataPacket(AS5047_DIAAGC | AS5x4x_ReadMask);   // Transmit the Read request for
+                                                            // reading the DIAAGC address
 }
 
 void AS5x4x::constructMag(void) {
@@ -345,13 +351,13 @@ void AS5x4x::constructMag(void) {
  * Function will construct a request to the AS5x4x device for "MAG" = Magnitude from CORDIC
  * Will vary the address depending upon how the AS5x4x class has been constructed.
  *************************************************************************************************/
-    if (this->Device == DevPart::AS5048A)                       // If device is AS5048A
-        this->WriteDataPacket(AS5048_MAG | AS5x4x_ReadMask);    // Transmit the Read request for
-                                                                // reading the Magnitude address
+    if (device == DevPart::kAS5048A)                        // If device is AS5048A
+        writeDataPacket(AS5048_MAG | AS5x4x_ReadMask);      // Transmit the Read request for
+                                                            // reading the Magnitude address
 
-    else if (this->Device == DevPart::AS5047D)                  // If device is AS5047D
-        this->WriteDataPacket(AS5047_MAG | AS5x4x_ReadMask);    // Transmit the Read request for
-                                                                // reading the Magnitude address
+    else if (device == DevPart::kAS5047D)                   // If device is AS5047D
+        writeDataPacket(AS5047_MAG | AS5x4x_ReadMask);      // Transmit the Read request for
+                                                            // reading the Magnitude address
 }
 
 void AS5x4x::constructAng(void) {
@@ -359,13 +365,13 @@ void AS5x4x::constructAng(void) {
  * Function will construct a request to the AS5x4x device for "ANG" = Angle
  * Will vary the address depending upon how the AS5x4x class has been constructed.
  *************************************************************************************************/
-    if (this->Device == DevPart::AS5048A)                       // If device is AS5048A
-        this->WriteDataPacket(AS5048_ANGLE | AS5x4x_ReadMask);  // Transmit the Read request for
-                                                                // reading the Angle address
+    if (device == DevPart::kAS5048A)                        // If device is AS5048A
+        writeDataPacket(AS5048_ANGLE | AS5x4x_ReadMask);    // Transmit the Read request for
+                                                            // reading the Angle address
 
-    else if (this->Device == DevPart::AS5047D)                  // If device is AS5047D
-        this->WriteDataPacket(AS5047_ANGLE | AS5x4x_ReadMask);  // Transmit the Read request for
-                                                                // reading the Angle address
+    else if (device == DevPart::kAS5047D)                   // If device is AS5047D
+        writeDataPacket(AS5047_ANGLE | AS5x4x_ReadMask);    // Transmit the Read request for
+                                                            // reading the Angle address
 }
 
 void AS5x4x::constructALL(void) {
@@ -375,18 +381,18 @@ void AS5x4x::constructALL(void) {
  * Not that the final entry is a "NOP", this is to ensure that the ANG response is retrieved
  * within the same request.
  *************************************************************************************************/
-    this->constructCEF();
-    this->constructAGC();
-    this->constructMag();
-    this->constructAng();
-    this->constructNOP();
+    constructCEF();
+    constructAGC();
+    constructMag();
+    constructAng();
+    constructNOP();
 }
 
 uint8_t AS5x4x::checkDataRequest(void) {
 /**************************************************************************************************
  * Check device to see if there is any new data requests available
  *************************************************************************************************/
-    if (this->wtBuff.State() != GenBuffer_Empty )
+    if (_wrte_buff_.state() != kGenBuffer_Empty )
         return (1);
     else
         return (0);
@@ -401,53 +407,53 @@ void AS5x4x::readDataPacket(void) {
  * Depending upon which device the AS5x4x class has been configured for, this function will call
  * another sub-function to complete the deconstruction of the data.
  *************************************************************************************************/
-    uint16_t sentpacket = 0;            // Variable to store the data/command sent to the AS5x4x
-                                        // for which the read data is linked (off by 1)
-    uint16_t tempreq = 0;               // Variable to store the 16bit temporarily (Request)
-    uint16_t tempread = 0;              // Variable to store the 16bit temporarily (Read back)
+    uint16_t sent_packet = 0;       // Variable to store the data/command sent to the AS5x4x
+                                    // for which the read data is linked (off by 1)
+    uint16_t temp_req = 0;          // Variable to store the 16bit temporarily (Request)
+    uint16_t temp_read = 0;         // Variable to store the 16bit temporarily (Read back)
 
-    _GenBufState ExitLoop = this->rdBuff.State();       // Get current state of buffer
+    _GenBufState exit_loop = _read_buff_.state();   // Get current state of buffer
 
-    while(ExitLoop != GenBuffer_Empty) {
+    while(exit_loop != kGenBuffer_Empty) {
         // Retrieve the position of the current readback, and then loop back a previous entry
-        if (this->rdBuff.output_pointer == 0)           // If start of buffer
-            sentpacket = this->rdBuff.length - 1;       // Look at end of buffer
-        else                                            // Otherwise loop back
-            sentpacket = (this->rdBuff.output_pointer - 1) % this->rdBuff.length;
+        if (_read_buff_.output_pointer == 0)        // If start of buffer
+            sent_packet = _read_buff_.length - 1;   // Look at end of buffer
+        else                // Otherwise loop back
+            sent_packet = (_read_buff_.output_pointer - 1) % _read_buff_.length;
 
-        tempreq = this->wtBuff.pa[sentpacket];          // Retrieve the requested data
-        ExitLoop = this->rdBuff.OutputRead(&tempread);  // Read back the Read data (and determine
+        temp_req = _wrte_buff_.pa[sent_packet];         // Retrieve the requested data
+        exit_loop = _read_buff_.outputRead(&temp_read); // Read back the Read data (and determine
                                                         // state of buffer)
 
-        if (this->EvenParityCheck(tempread) != 1)       // If the read data is not EVEN parity
-            this->Flt = DevFlt::Parity;                 // Set the fault to "Parity" fault
+        if (evenParityCheck(temp_read) != 1)        // If the read data is not EVEN parity
+            flt = DevFlt::kParity;                  // Set the fault to "Parity" fault
 
         else {                                          // If the read data is EVENT then
-            tempreq &= AS5x4x_DataMask;                 // Only get the address data
+            temp_req &= AS5x4x_DataMask;                // Only get the address data
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            if (this->Device == DevPart::AS5048A) {             // If device is AS5048A
-                this->deconstructAS5048A(tempreq, tempread);    // Call AS5048A deconstruction
+            if (device == DevPart::kAS5048A) {              // If device is AS5048A
+                deconstructAS5048A(temp_req, temp_read);    // Call AS5048A deconstruction
             }
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            else if (this->Device == DevPart::AS5047D) {        // If device is AS5047D
-                this->deconstructAS5047D(tempreq, tempread);    // Call AS5047D deconstruction
+            else if (device == DevPart::kAS5047D) {         // If device is AS5047D
+                deconstructAS5047D(temp_req, temp_read);    // Call AS5047D deconstruction
             }
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }
     }
 }
 
-AS5x4x::Daisy AS5x4x::constructDaisy(AS5x4x *device, uint16_t numchain) {
+AS5x4x::Daisy AS5x4x::constructDaisy(AS5x4x *targdevice, uint16_t numchain) {
 /**************************************************************************************************
  * Construct the Daisy Chain structure to hold the AS5x4x device array, and size number.
  *************************************************************************************************/
     AS5x4x::Daisy newchain = { 0 };             // Generate the "AS5x4x::Daisy" structure with
                                                 // default values of zero.
 
-    newchain.Devices    = device;               // Link input pointer to "Daisy"
+    newchain.Devices    = targdevice;           // Link input pointer to "Daisy"
     newchain.numDevices = numchain;             // Put chain size into "Daisy"
 
-    newchain.Flt    = SPIPeriph::DevFlt::None;  // Default all status indicators to "0"/"None"
+    newchain.Flt    = SPIPeriph::DevFlt::kNone; // Default all status indicators to "0"/"None"
     newchain.Trgt   = 0;                        //
     newchain.Cmplt  = 0;                        //
 
@@ -493,20 +499,20 @@ void AS5x4x::poleSPITransmit(SPIPeriph *Interface, GPIO *CS) {
  * is connected to other AS5x4x devices in a daisy chain, this function will not yield correct
  * data.
  *************************************************************************************************/
-    uint8_t writedata[2]= { 0 };            // Array to store the SPI write entries
-    uint8_t readdata[2] = { 0 };            // Array to store the SPI read entries
+    uint8_t write_data[2]= { 0 };       // Array to store the SPI write entries
+    uint8_t read_data[2] = { 0 };       // Array to store the SPI read entries
 
-    while(this->checkDataRequest() != 0) {          // Keep cycling until the internal
+    while(checkDataRequest() != 0) {    // Keep cycling until the internal
                                                             // write buffer is empty
-        AS5x4x::SPIWriteChain(this, 1, &writedata[0]);      // Populate the SPI write array
+        AS5x4x::writeSPIChain(this, 1, &write_data[0]);     // Populate the SPI write array
 
-        Interface->poleMasterTransfer(CS, writedata, readdata, 2);  // Transmit data via SPI
+        Interface->poleMasterTransfer(CS, write_data, read_data, 2);    // Transmit data via SPI
 
-        AS5x4x::SPIReadChain(this, 1, &readdata[0], 2);     // Put the SPI read array into
+        AS5x4x::readSPIChain(this, 1, &read_data[0], 2);    // Put the SPI read array into
                                                             // internal read buffer
     }
 
-    this->readDataPacket();         // Read all data packets
+    readDataPacket();         // Read all data packets
 }
 
 void AS5x4x::poleSPITransmit(AS5x4x::Daisy *chain, SPIPeriph *Interface, GPIO *CS) {
@@ -526,20 +532,20 @@ void AS5x4x::poleSPITransmit(AS5x4x::Daisy *chain, SPIPeriph *Interface, GPIO *C
  *   This version reads in the "Daisy" structure so as to communication with multiple devices
  *   in the chain
  *************************************************************************************************/
-    uint16_t packetsize = 0;                // Variable to store number of bytes to transmit
+    uint16_t packet_size = 0;               // Variable to store number of bytes to transmit
 
-    uint8_t writedata[(AS5x4x_MAXChain * 2)]= { 0 };// Array to store the SPI write entries
-    uint8_t readdata[(AS5x4x_MAXChain * 2)] = { 0 };// Array to store the SPI read entries
+    uint8_t write_data[(AS5x4x_MAXChain * 2)]= { 0 };   // Array to store the SPI write entries
+    uint8_t read_data[(AS5x4x_MAXChain * 2)] = { 0 };   // Array to store the SPI read entries
 
     while(AS5x4x::checkDaisyRequest(chain) != 0) {      // Keep cycling till all devices in chain
                                                         // have no new requests to transmit
-        packetsize = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, &writedata[0]);
+        packet_size = AS5x4x::writeSPIChain(chain->Devices, chain->numDevices, &write_data[0]);
             // Populate the SPI write array
 
-        Interface->poleMasterTransfer(CS, &writedata[0], &readdata[0], packetsize);
+        Interface->poleMasterTransfer(CS, &write_data[0], &read_data[0], packet_size);
             // Transmit data via SPI
 
-        AS5x4x::SPIReadChain(chain->Devices, chain->numDevices, &readdata[0], packetsize);
+        AS5x4x::readSPIChain(chain->Devices, chain->numDevices, &read_data[0], packet_size);
             // Put the SPI read array into internal read buffer(s) of devices in chain
     }
 
@@ -551,10 +557,10 @@ void AS5x4x::reInitialise(void) {
  * This function is to be called when the internal mechanics of the class need to be reset. This
  * is likely to occur in fault situations, or at initialisation.
  *************************************************************************************************/
-    this->wtBuff.QFlush();                  // Clear the internal write buffer
-    this->rdBuff.QFlush();                  // Clear the internal read buffer
+    _wrte_buff_.qFlush();                   // Clear the internal write buffer
+    _read_buff_.qFlush();                   // Clear the internal read buffer
 
-    this->Flt           = DevFlt::Initialised;      // Set fault to initialised
+    flt           = DevFlt::kInitialised;   // Set fault to initialised
 }
 
 void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uint8_t *wBuff,
@@ -565,18 +571,17 @@ void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, uint8_t *rBuff, uin
  *
  * Done by building a SPI request form, and putting onto the device queue.
 *************************************************************************************************/
-    uint16_t numbytes = 0;          // Number of bytes to be transmitted
-    while(this->checkDataRequest() != 0) {                  // Keep cycling until the internal
-                                                            // write buffer is empty
-        numbytes = AS5x4x::SPIWriteChain(this, 1, &wBuff[*cmpTarget]);  // Populate the transmit
+    uint16_t num_bytes = 0;             // Number of bytes to be transmitted
+    while(checkDataRequest() != 0) {    // Keep cycling until the internal write buffer is empty
+        num_bytes = AS5x4x::writeSPIChain(this, 1, &wBuff[*cmpTarget]);  // Populate the transmit
                                                                         // array
 
         // Now build the SPI Request Form:
-        hal_SPI->intMasterTransfer(CS, numbytes,
+        hal_SPI->intMasterTransfer(CS, num_bytes,
                                    &wBuff[*cmpTarget], &rBuff[*cmpTarget],
                                    fltReturn, cmpFlag);
 
-        *cmpTarget += numbytes;     // Update target count
+        *cmpTarget += num_bytes;     // Update target count
     }
 }
 
@@ -588,18 +593,18 @@ void AS5x4x::intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS,  Daisy *chain,
  *
  * Done by building a SPI request form, and putting onto the device queue.
 *************************************************************************************************/
-    uint16_t numbytes = 0;          // Number of bytes to be transmitted
+    uint16_t num_bytes = 0;          // Number of bytes to be transmitted
 
     while(AS5x4x::checkDaisyRequest(chain) != 0) {      // Keep cycling till all devices in chain
                                                         // have no new requests to transmit
 
-        numbytes = AS5x4x::SPIWriteChain(chain->Devices, chain->numDevices, &wBuff[chain->Trgt]);
+        num_bytes = AS5x4x::writeSPIChain(chain->Devices, chain->numDevices, &wBuff[chain->Trgt]);
 
-        hal_SPI->intMasterTransfer(CS, numbytes,
+        hal_SPI->intMasterTransfer(CS, num_bytes,
                                    &wBuff[chain->Trgt], &rBuff[chain->Trgt],
                                    &(chain->Flt), &(chain->Cmplt));
 
-        chain->Trgt += numbytes;    // Update target count
+        chain->Trgt += num_bytes;    // Update target count
     }
 }
 

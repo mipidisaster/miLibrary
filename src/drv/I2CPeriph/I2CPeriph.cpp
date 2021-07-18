@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        I2CPeriph.cpp
  * @author      Thomas
- * @version     V2.4
- * @date        22 Sept 2019
  * @brief       Source file for the Generic I2C Class handle
  **************************************************************************************************
  @ attention
@@ -20,13 +18,13 @@ void I2CPeriph::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    this->Flt           = DevFlt::Initialised;      // Initialise the fault to "initialised"
-    this->CommState     = CommLock::Free;           // Indicate bus is free
+    flt           = DevFlt::kInitialised;   // Initialise the fault to "initialised"
+    comm_state    = CommLock::kFree;        // Indicate bus is free
 
-    this->curCount      = 0;                // Initialise the current packet size count
-    this->curForm       = { 0 };            // Initialise the form to a blank entry
+    _cur_count_    = 0;                     // Initialise the current packet size count
+    _cur_form_     = { 0 };                 // Initialise the form to a blank entry
 
-    this->curReqst      = Request::Nothing; // Initialise the current request state to 0
+    _cur_reqst_    = Request::kNothing;     // Initialise the current request state to 0
 }
 
 I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t FormSize) {
@@ -37,14 +35,14 @@ I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t Fo
  * device, there is no need to define that within this function. Simply providing the handle is
  * required.
  *************************************************************************************************/
-    this->popGenParam();                    // Populate generic class parameters
+    popGenParam();                    // Populate generic class parameters
 
-    this->I2C_Handle    = I2C_Handle;       // Link input I2C handler to class.
+    _i2c_handle_  = I2C_Handle;       // Link input I2C handler to class.
 
-    this->FormQueue.create(FormArray, FormSize);
+    _form_queue_.create(FormArray, FormSize);
 }
 
-uint8_t I2CPeriph::DRRead(void) {
+uint8_t I2CPeriph::readDR(void) {
 /**************************************************************************************************
  * Read from the I2C hardware
  *************************************************************************************************/
@@ -55,7 +53,7 @@ uint8_t I2CPeriph::DRRead(void) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    return ((uint8_t) this->I2C_Handle->Instance->RXDR);    // Read from the RX Data Register
+    return ((uint8_t) _i2c_handle_->Instance->RXDR);    // Read from the RX Data Register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -67,7 +65,7 @@ uint8_t I2CPeriph::DRRead(void) {
 #endif
 }
 
-void I2CPeriph::DRWrite(uint8_t data) {
+void I2CPeriph::writeDR(uint8_t data) {
 /**************************************************************************************************
  * Write to the I2C hardware
  *************************************************************************************************/
@@ -78,7 +76,7 @@ void I2CPeriph::DRWrite(uint8_t data) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-    this->I2C_Handle->Instance->TXDR = data;        // Put data onto the TX Data Register
+    _i2c_handle_->Instance->TXDR = data;                // Put data onto the TX Data Register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -90,7 +88,7 @@ void I2CPeriph::DRWrite(uint8_t data) {
 #endif
 }
 
-uint8_t I2CPeriph::TransmitEmptyChk(void) {
+uint8_t I2CPeriph::transmitEmptyChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Transmit buffer (if empty, output = 1)
  *************************************************************************************************/
@@ -106,8 +104,8 @@ uint8_t I2CPeriph::TransmitEmptyChk(void) {
 //     TXIE is used to trigger the interrupt
 //  Both are used within this function call.
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXE)  != 0 ) || \
-         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TXIS) != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TXE)  != 0 ) || \
+         (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TXIS) != 0 ) )
         return (1);
     else
         return (0);
@@ -122,7 +120,7 @@ uint8_t I2CPeriph::TransmitEmptyChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::TransmitComptChk(void) {
+uint8_t I2CPeriph::transmitComptChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Transmit communication (if completed, output = 1)
  *************************************************************************************************/
@@ -136,8 +134,8 @@ uint8_t I2CPeriph::TransmitComptChk(void) {
 // I2C communication for STM32L has two "Transmission Complete" flags, one is generic, the other
 // is used for Complete transmission for I2C Reload
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TC)   != 0 ) || \
-         (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_TCR)  != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TC)   != 0 ) || \
+         (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TCR)  != 0 ) )
         return (1);
     else
         return (0);
@@ -152,7 +150,7 @@ uint8_t I2CPeriph::TransmitComptChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::ReceiveToReadChk(void) {
+uint8_t I2CPeriph::receiveToReadChk(void) {
 /**************************************************************************************************
  * Check the status of the Hardware Receive buffer (if not empty "data to read", output = 1)
  *************************************************************************************************/
@@ -164,7 +162,7 @@ uint8_t I2CPeriph::ReceiveToReadChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_RXNE) != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_RXNE) != 0 ) )
         return (1);
     else
         return (0);
@@ -179,7 +177,7 @@ uint8_t I2CPeriph::ReceiveToReadChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusNACKChk(void) {
+uint8_t I2CPeriph::busNACKChk(void) {
 /**************************************************************************************************
  * Check to see if peripheral has NOT acknowledge the packet (if NACK, output = 1)
  *************************************************************************************************/
@@ -191,7 +189,7 @@ uint8_t I2CPeriph::BusNACKChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_AF)   != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_AF)   != 0 ) )
         return (1);
     else
         return (0);
@@ -206,7 +204,7 @@ uint8_t I2CPeriph::BusNACKChk(void) {
 #endif
 }
 
-void I2CPeriph::ClearNACK(void) {
+void I2CPeriph::clearNACK(void) {
 /**************************************************************************************************
  * Clear the NACK bit in the status register
  *************************************************************************************************/
@@ -218,7 +216,7 @@ void I2CPeriph::ClearNACK(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    __HAL_I2C_CLEAR_FLAG(this->I2C_Handle, I2C_FLAG_AF);
+    __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_AF);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -230,7 +228,7 @@ void I2CPeriph::ClearNACK(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusSTOPChk(void) {
+uint8_t I2CPeriph::busStopChk(void) {
 /**************************************************************************************************
  * Check to see if the I2C bus has been "STOPPED" (if bus is STOP, output = 1)
  *************************************************************************************************/
@@ -242,7 +240,7 @@ uint8_t I2CPeriph::BusSTOPChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_STOPF) != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_STOPF) != 0 ) )
         return (1);
     else
         return (0);
@@ -257,7 +255,7 @@ uint8_t I2CPeriph::BusSTOPChk(void) {
 #endif
 }
 
-void I2CPeriph::Clear_STOP(void) {
+void I2CPeriph::clearStop(void) {
 /**************************************************************************************************
  * Clear the Bus STOP bit status
  *************************************************************************************************/
@@ -269,7 +267,7 @@ void I2CPeriph::Clear_STOP(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    __HAL_I2C_CLEAR_FLAG(this->I2C_Handle, I2C_FLAG_STOPF);
+    __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_STOPF);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -281,7 +279,7 @@ void I2CPeriph::Clear_STOP(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusBusyChk(void) {
+uint8_t I2CPeriph::busBusyChk(void) {
 /**************************************************************************************************
  * Check to see if the I2C bus is already communicating (if bus is busy, output = 1)
  *************************************************************************************************/
@@ -293,7 +291,7 @@ uint8_t I2CPeriph::BusBusyChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BUSY) != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_BUSY) != 0 ) )
         return (1);
     else
         return (0);
@@ -308,7 +306,7 @@ uint8_t I2CPeriph::BusBusyChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusErroChk(void) {
+uint8_t I2CPeriph::busErroChk(void) {
 /**************************************************************************************************
  * Check to see if there has been an incorrect START/STOP bit sent (if fault, output = 1)
  *************************************************************************************************/
@@ -320,7 +318,7 @@ uint8_t I2CPeriph::BusErroChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if ( (__HAL_I2C_GET_FLAG(this->I2C_Handle, I2C_FLAG_BERR) != 0 ) )
+    if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_BERR) != 0 ) )
         return (1);
     else
         return (0);
@@ -335,7 +333,7 @@ uint8_t I2CPeriph::BusErroChk(void) {
 #endif
 }
 
-void I2CPeriph::ClearBusEr(void) {
+void I2CPeriph::clearBusEr(void) {
 /**************************************************************************************************
  * Clear the Bus error status bit
  *************************************************************************************************/
@@ -347,7 +345,7 @@ void I2CPeriph::ClearBusEr(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    __HAL_I2C_CLEAR_FLAG(this->I2C_Handle, I2C_FLAG_BERR);
+    __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_BERR);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -359,7 +357,7 @@ void I2CPeriph::ClearBusEr(void) {
 #endif
 }
 
-uint8_t I2CPeriph::TransmitEmptyITChk(void) {
+uint8_t I2CPeriph::transmitEmptyITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Transmit Empty Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
@@ -371,7 +369,7 @@ uint8_t I2CPeriph::TransmitEmptyITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TXI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_TXI) != 0 )
         return (1);
     else
         return (0);
@@ -386,7 +384,7 @@ uint8_t I2CPeriph::TransmitEmptyITChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::TransmitComptITChk(void) {
+uint8_t I2CPeriph::transmitComptITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Transmit Complete Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
@@ -398,7 +396,7 @@ uint8_t I2CPeriph::TransmitComptITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_TCI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_TCI) != 0 )
         return (1);
     else
         return (0);
@@ -413,7 +411,7 @@ uint8_t I2CPeriph::TransmitComptITChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::ReceiveToReadITChk(void) {
+uint8_t I2CPeriph::receiveToReadITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Receive Buffer full interrupt has been enabled (if enabled,
  * output = 1)
@@ -426,7 +424,7 @@ uint8_t I2CPeriph::ReceiveToReadITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_RXI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_RXI) != 0 )
         return (1);
     else
         return (0);
@@ -441,7 +439,7 @@ uint8_t I2CPeriph::ReceiveToReadITChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusNACKITChk(void) {
+uint8_t I2CPeriph::busNACKITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Negative Acknowledge interrupt has been enabled (if enabled,
  * output = 1)
@@ -454,7 +452,7 @@ uint8_t I2CPeriph::BusNACKITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_NACKI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_NACKI) != 0 )
         return (1);
     else
         return (0);
@@ -469,7 +467,7 @@ uint8_t I2CPeriph::BusNACKITChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusSTOPITChk(void) {
+uint8_t I2CPeriph::busStopITChk(void) {
 /**************************************************************************************************
  * Check to see whether the STOP bus interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
@@ -481,7 +479,7 @@ uint8_t I2CPeriph::BusSTOPITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_STOPI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_STOPI) != 0 )
         return (1);
     else
         return (0);
@@ -496,7 +494,7 @@ uint8_t I2CPeriph::BusSTOPITChk(void) {
 #endif
 }
 
-uint8_t I2CPeriph::BusErrorITChk(void) {
+uint8_t I2CPeriph::busErrorITChk(void) {
 /**************************************************************************************************
  * Check to see whether the Bus Error interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
@@ -508,7 +506,7 @@ uint8_t I2CPeriph::BusErrorITChk(void) {
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
 
-    if (__HAL_I2C_GET_IT_SOURCE(this->I2C_Handle, I2C_IT_ERRI) != 0 )
+    if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_ERRI) != 0 )
         return (1);
     else
         return (0);
@@ -523,7 +521,7 @@ uint8_t I2CPeriph::BusErrorITChk(void) {
 #endif
 }
 
-void I2CPeriph::RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst) {
+void I2CPeriph::requestTransfer(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst) {
 /**************************************************************************************************
  * Function will configure the device hardware/internal class parameters to setup a I2C
  * communication between this device (local) and the selected device (external). This communicate
@@ -550,47 +548,47 @@ void I2CPeriph::RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
     //          Bytes to transmit   (NBYTES) (limited to 255)
     //          Reload/AutoEnd      (RELOAD/AUTOEND)
     //          START/STOP          (START/STOP)
-    this->I2C_Handle->Instance->CR2 &= ~((I2C_CR2_SADD   | \
-                                          I2C_CR2_NBYTES | \
-                                          I2C_CR2_RELOAD | I2C_CR2_AUTOEND | \
-                                          I2C_CR2_START  | I2C_CR2_STOP));
+    _i2c_handle_->Instance->CR2 &= ~((I2C_CR2_SADD   | \
+                                      I2C_CR2_NBYTES | \
+                                      I2C_CR2_RELOAD | I2C_CR2_AUTOEND | \
+                                      I2C_CR2_START  | I2C_CR2_STOP));
     // If the request is anything other than NOTHING, then clear the Read/~Write bit
-    if (reqst != Request::Nothing)
-        this->I2C_Handle->Instance->CR2 &= ~(I2C_CR2_RD_WRN);
+    if (reqst != Request::kNothing)
+        _i2c_handle_->Instance->CR2 &= ~(I2C_CR2_RD_WRN);
     // Now the register has been cleared, so can now populate with the parameters for the new
     // transfer
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Setup Slave Address:
-    this->I2C_Handle->Instance->CR2 |= ((uint32_t)devAddress & I2C_CR2_SADD);
+    _i2c_handle_->Instance->CR2 |= ((uint32_t)devAddress & I2C_CR2_SADD);
 
     // Setup the size of data to be transmitted:
-    this->I2C_Handle->Instance->CR2 |= (((uint32_t)size << I2C_CR2_NBYTES_Pos) & I2C_CR2_NBYTES);
+    _i2c_handle_->Instance->CR2 |= (((uint32_t)size << I2C_CR2_NBYTES_Pos) & I2C_CR2_NBYTES);
 
-    this->curCount   = size;        // Capture the number of packets to transmit
+    _cur_count_   = size;       // Capture the number of packets to transmit
 
     // Setup the communication mode:
-    if      (mode == CommMode::AutoEnd)                 // If mode is "AutoEnd"
-        this->I2C_Handle->Instance->CR2 |= (uint32_t)(I2C_AUTOEND_MODE);
+    if      (mode == CommMode::kAutoEnd)                // If mode is "AutoEnd"
+        _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_AUTOEND_MODE);
         // Set the AutoEnd bit in register
-    else if (mode == CommMode::Reload)                  // If mode is "Reload"
-        this->I2C_Handle->Instance->CR2 |= (uint32_t)(I2C_RELOAD_MODE);
+    else if (mode == CommMode::kReload)                 // If mode is "Reload"
+        _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_RELOAD_MODE);
         // Set the RELOAD bit in register
     // The other mode "I2C_SoftEnd", is set by clearing both of these bits. Which is done during
     // the register clear part.
 
     // Setup the Request mode
-    if      (reqst == Request::START_WRITE) {           // If request is for START_WRITE
-        this->I2C_Handle->Instance->CR2 |= (uint32_t)(I2C_CR2_START);
+    if      (reqst == Request::kStart_Write) {          // If request is for START_WRITE
+        _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_CR2_START);
         // just set START bit (write is done, by clearing the read bit)
-        this->curReqst = reqst;     // Bring across the request mode
+        _cur_reqst_ = reqst;    // Bring across the request mode
     }
-    else if (reqst == Request::START_READ) {            // If request is for START_READ
-        this->I2C_Handle->Instance->CR2 |= (uint32_t)(I2C_CR2_START | I2C_CR2_RD_WRN);
+    else if (reqst == Request::kStart_Read) {           // If request is for START_READ
+        _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_CR2_START | I2C_CR2_RD_WRN);
         // Set the START bit, along with the Read bit
-        this->curReqst = reqst;     // Bring across the request mode
+        _cur_reqst_ = reqst;     // Bring across the request mode
     }
-    else if (reqst == Request::STOP)                    // If request is for STOP
-        this->I2C_Handle->Instance->CR2 |= (uint32_t)(I2C_CR2_STOP);
+    else if (reqst == Request::kStop)                   // If request is for STOP
+        _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_CR2_STOP);
         // Set the STOP bit
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
@@ -604,28 +602,28 @@ void I2CPeriph::RequestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
 
 }
 
-I2CPeriph::Form I2CPeriph::GenericForm(uint16_t devAddress, uint16_t size, CommMode mode,
+I2CPeriph::Form I2CPeriph::genericForm(uint16_t devAddress, uint16_t size, CommMode mode,
                                        Request reqst,
                                        volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag) {
 /**************************************************************************************************
  * Generate a I2CForm request, based upon the generic information provided as input.
  *************************************************************************************************/
-    I2CPeriph::Form RequestForm = { 0 };        // Generate the "I2CPeriph::Form" variable to
-                                                // provide as output
+    Form request_form = { 0 };                  // Generate the "Form" variable to provide as 
+                                                // output
 
-    RequestForm.devAddress      = devAddress;   // Populate form with input data
-    RequestForm.size            = size;         //
-    RequestForm.Reqst           = reqst;        //
-    RequestForm.Mode            = mode;         //
+    request_form.devAddress      = devAddress;  // Populate form with input data
+    request_form.size            = size;        //
+    request_form.Reqst           = reqst;       //
+    request_form.Mode            = mode;        //
 
     // Indications used for source functionality to get status of requested communication
-    RequestForm.Flt             = fltReturn;    // Populate return fault flag
-    RequestForm.Cmplt           = cmpFlag;      // Populate complete communication indication
+    request_form.Flt             = fltReturn;   // Populate return fault flag
+    request_form.Cmplt           = cmpFlag;     // Populate complete communication indication
 
-    return (RequestForm);
+    return (request_form);
 }
 
-void I2CPeriph::FormW8bitArray(I2CPeriph::Form *RequestForm, uint8_t *pData) {
+void I2CPeriph::formW8bitArray(I2CPeriph::Form *RequestForm, uint8_t *pData) {
 /**************************************************************************************************
  * Link input 8bit array pointer to the provided I2C Request Form.
  *************************************************************************************************/
@@ -640,28 +638,27 @@ void I2CPeriph::specificRequest(uint16_t devAddress, uint16_t size, uint8_t *pDa
  * Function used to populate the internal I2C Form stack, with the input requested communication.
  * Data comes from an array (pointer - pData)
  *************************************************************************************************/
-    I2CPeriph::Form RequestForm = this->GenericForm(devAddress, size, mode, reqst,
-                                                    fltReturn, cmpFlag);
+    Form request_form = genericForm(devAddress, size, mode, reqst, fltReturn, cmpFlag);
 
-    this->FormW8bitArray(&RequestForm, pData);
+    formW8bitArray(&request_form, pData);
 
 
-    this->FormQueue.InputWrite(RequestForm);    // Put request onto I2C Form Queue
+    _form_queue_.inputWrite(request_form);      // Put request onto I2C Form Queue
 }
 
-uint8_t I2CPeriph::GetFormWriteData(Form *RequestForm) {
+uint8_t I2CPeriph::getFormWriteData(Form *RequestForm) {
 /**************************************************************************************************
  * Retrieve the next data point to write to external device from the selected I2C Request form
  *************************************************************************************************/
-    uint8_t tempval = 0;        // Temporary variable to store data value
+    uint8_t temp_val = 0;       // Temporary variable to store data value
 
-    tempval = *(RequestForm->Buff);             // Retrieve data from array
+    temp_val = *(RequestForm->Buff);            // Retrieve data from array
     RequestForm->Buff       += sizeof(uint8_t); // Increment array pointer
 
-    return (tempval);       // Return value outside of function
+    return (temp_val);      // Return value outside of function
 }
 
-void I2CPeriph::PutFormReadData(Form *RequestForm, uint8_t readdata) {
+void I2CPeriph::putFormReadData(Form *RequestForm, uint8_t readdata) {
 /**************************************************************************************************
  * Data read from the I2C external device is copied into the requested source location, as per
  * the I2C Request form
@@ -679,50 +676,50 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterTransmit(uint16_t devAddress, uint8_t *pd
  * and the class fault status being updated.
  *************************************************************************************************/
     // Indicate that the bus is not free
-    this->CommState = Communicating;        // Indicate bus is communicating
+    comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
-    //this->Enable();                     // Ensure that the device has been enabled
+    //Enable();                     // Ensure that the device has been enabled
 
-    while(this->BusBusyChk() == 1) {}   // Wait until the bus is no longer busy
+    while(busBusyChk() == 1) {}   // Wait until the bus is no longer busy
 
-    this->RequestTransfer(devAddress, size, CommMode::AutoEnd, Request::START_WRITE);
+    requestTransfer(devAddress, size, CommMode::kAutoEnd, Request::kStart_Write);
     // Setup request for the I2C bus, of the size required, and the I2C device to communicate with
 
     while(size != 0) {
-        while(this->TransmitEmptyChk() == 0) {  // Whilst checking for Transmit Empty
-            if (this->BusNACKChk() == 1) {      // If there is a NACK
-                this->ClearNACK();              // Clear the NACK bit
-                return (this->Flt = DevFlt::NACK);      // Fault status of "I2C_NACK"
+        while(transmitEmptyChk() == 0) {    // Whilst checking for Transmit Empty
+            if (busNACKChk() == 1) {        // If there is a NACK
+                clearNACK();                // Clear the NACK bit
+                return (flt = DevFlt::kNACK);       // Fault status of "I2C_NACK"
             }
 
-            if (this->BusErroChk() == 1) {      // If there has been a bus error
-                this->ClearBusEr();             // Clear the Bus error bit
-                return (this->Flt = DevFlt::BUS_ERROR); // Fault status of "I2C_BUS_ERROR"
+            if (busErroChk() == 1) {        // If there has been a bus error
+                clearBusEr();               // Clear the Bus error bit
+                return (flt = DevFlt::kBus_Error);  // Fault status of "I2C_BUS_ERROR"
             }
         }
-        this->DRWrite(*pdata);                  // Put data onto the TXDR for transmission
-        pdata++;                                // Increment array
-        size--;                                 // Decrease size
+        writeDR(*pdata);                    // Put data onto the TXDR for transmission
+        pdata++;                            // Increment array
+        size--;                             // Decrease size
     }
 
-    while(this->BusSTOPChk() == 0) {        // Wait on the STOP to be set
-        if (this->BusNACKChk() == 1) {      // If there is a NACK
-            this->ClearNACK();              // Clear the NACK bit
-            return (this->Flt = DevFlt::NACK);          // Fault status of "I2C_NACK"
+    while(busStopChk() == 0) {              // Wait on the STOP to be set
+        if (busNACKChk() == 1) {            // If there is a NACK
+            clearNACK();                    // Clear the NACK bit
+            return (flt = DevFlt::kNACK);           // Fault status of "I2C_NACK"
         }
 
-        if (this->BusErroChk() == 1) {      // If there has been a bus error
-            this->ClearBusEr();             // Clear the Bus error bit
-            return (this->Flt = DevFlt::BUS_ERROR);     // Fault status of "I2C_BUS_ERROR"
+        if (busErroChk() == 1) {            // If there has been a bus error
+            clearBusEr();                   // Clear the Bus error bit
+            return (flt = DevFlt::kBus_Error);      // Fault status of "I2C_BUS_ERROR"
         }
     }
 
-    this->Clear_STOP();                     // Clear the STOP bit
+    clearStop();                    // Clear the STOP bit
 
-    //this->Disable();                    // Ensure that the device has been disable
+    //Disable();                    // Ensure that the device has been disable
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -734,9 +731,9 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterTransmit(uint16_t devAddress, uint8_t *pd
 #endif
 
     // Indicate that the bus is free
-    this->CommState = Free;             // Indicate bus is free
+    comm_state = CommLock::kFree;       // Indicate bus is free
 
-    return (this->Flt = DevFlt::None);      // No fault by this point, so return no fault
+    return (flt = DevFlt::kNone);       // No fault by this point, so return no fault
 }
 
 I2CPeriph::DevFlt I2CPeriph::poleMasterReceive(uint16_t devAddress, uint8_t *pdata,
@@ -748,50 +745,50 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterReceive(uint16_t devAddress, uint8_t *pda
  * and the class fault status being updated.
  *************************************************************************************************/
     // Indicate that the bus is not free
-    this->CommState = Communicating;        // Indicate bus is communicating
+    comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
-    //this->Enable();                     // Ensure that the device has been enabled
+    //Enable();                     // Ensure that the device has been enabled
 
-    while(this->BusBusyChk() == 1) {}   // Wait until the bus is no longer busy
+    while(busBusyChk() == 1) {}   // Wait until the bus is no longer busy
 
-    this->RequestTransfer(devAddress, size, CommMode::AutoEnd, Request::START_READ);
+    requestTransfer(devAddress, size, CommMode::kAutoEnd, Request::kStart_Read);
     // Setup request for the I2C bus, of the size required, and the I2C device to communicate with
 
     while(size != 0) {
-        while(this->ReceiveToReadChk() == 0) {  // Whilst checking for Receive buffer is full
-            if (this->BusNACKChk() == 1) {      // If there is a NACK
-                this->ClearNACK();              // Clear the NACK bit
-                return (this->Flt = DevFlt::NACK);      // Fault status of "I2C_NACK"
+        while(receiveToReadChk() == 0) {    // Whilst checking for Receive buffer is full
+            if (busNACKChk() == 1) {        // If there is a NACK
+                clearNACK();                // Clear the NACK bit
+                return (flt = DevFlt::kNACK);       // Fault status of "I2C_NACK"
             }
 
-            if (this->BusErroChk() == 1) {      // If there has been a bus error
-                this->ClearBusEr();             // Clear the Bus error bit
-                return (this->Flt = DevFlt::BUS_ERROR); // Fault status of "I2C_BUS_ERROR"
+            if (busErroChk() == 1) {        // If there has been a bus error
+                clearBusEr();               // Clear the Bus error bit
+                return (flt = DevFlt::kBus_Error);  // Fault status of "I2C_BUS_ERROR"
             }
         }
-        *pdata = this->DRRead();                // Read the data from RXDR into array
-        pdata++;                                // Increment array
-        size--;                                 // Decrease size
+        *pdata = readDR();                  // Read the data from RXDR into array
+        pdata++;                            // Increment array
+        size--;                             // Decrease size
     }
 
-    while(this->BusSTOPChk() == 0) {        // Wait on the STOP to be set
-        if (this->BusNACKChk() == 1) {      // If there is a NACK
-            this->ClearNACK();              // Clear the NACK bit
-            return (this->Flt = DevFlt::NACK);          // Fault status of "I2C_NACK"
+    while(busStopChk() == 0) {              // Wait on the STOP to be set
+        if (busNACKChk() == 1) {            // If there is a NACK
+            clearNACK();                    // Clear the NACK bit
+            return (flt = DevFlt::kNACK);           // Fault status of "I2C_NACK"
         }
 
-        if (this->BusErroChk() == 1) {      // If there has been a bus error
-            this->ClearBusEr();             // Clear the Bus error bit
-            return (this->Flt = DevFlt::BUS_ERROR);     // Fault status of "I2C_BUS_ERROR"
+        if (busErroChk() == 1) {            // If there has been a bus error
+            clearBusEr();                   // Clear the Bus error bit
+            return (flt = DevFlt::kBus_Error);      // Fault status of "I2C_BUS_ERROR"
         }
     }
 
-    this->Clear_STOP();                     // Clear the STOP bit
+    clearStop();                    // Clear the STOP bit
 
-    //this->Disable();                    // Ensure that the device has been disable
+    //Disable();                    // Ensure that the device has been disable
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
@@ -803,9 +800,9 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterReceive(uint16_t devAddress, uint8_t *pda
 #endif
 
     // Indicate that the bus is free
-        this->CommState = Free;             // Indicate bus is free
+    comm_state = CommLock::kFree;       // Indicate bus is free
 
-    return (this->Flt = DevFlt::None);      // No fault by this point, so return no fault
+    return (flt = DevFlt::kNone);       // No fault by this point, so return no fault
 }
 
 I2CPeriph::DevFlt I2CPeriph::poleDeviceRdy(uint16_t devAddress) {
@@ -816,32 +813,32 @@ I2CPeriph::DevFlt I2CPeriph::poleDeviceRdy(uint16_t devAddress) {
  * and the class fault status being updated.
  *************************************************************************************************/
     // Indicate that the bus is not free
-    this->CommState = Communicating;        // Indicate bus is communicating
+    comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
-    //this->Enable();                     // Ensure that the device has been enabled
+    //Enable();                     // Ensure that the device has been enabled
 
-    RequestTransfer(devAddress, 0, CommMode::AutoEnd, Request::START_WRITE);
+    requestTransfer(devAddress, 0, CommMode::kAutoEnd, Request::kStart_Write);
 
-    while(this->BusSTOPChk() == 0) {        // Wait on the STOP to be set
-        if (this->BusNACKChk() == 1) {      // If there is a NACK
-            this->ClearNACK();              // Clear the NACK bit
-            return (DevFlt::NACK);          // Fault status of "I2C_NACK"
+    while(busStopChk() == 0) {              // Wait on the STOP to be set
+        if (busNACKChk() == 1) {            // If there is a NACK
+            clearNACK();                    // Clear the NACK bit
+            return (DevFlt::kNACK);                 // Fault status of "I2C_NACK"
         }
 
-        if (this->BusErroChk() == 1) {      // If there has been a bus error
-            this->ClearBusEr();             // Clear the Bus error bit
-            return (DevFlt::BUS_ERROR);     // Fault status of "I2C_BUS_ERROR"
+        if (busErroChk() == 1) {            // If there has been a bus error
+            clearBusEr();                   // Clear the Bus error bit
+            return (DevFlt::kBus_Error);            // Fault status of "I2C_BUS_ERROR"
         }
     }
 
-    this->Clear_STOP();                     // Clear the STOP bit
+    clearStop();                    // Clear the STOP bit
 
-    //this->Disable();                    // Ensure that the device has been disable
+    //Disable();                    // Ensure that the device has been disable
 
     // Indicate that the bus is free
-        this->CommState = Free;             // Indicate bus is free
+    comm_state = CommLock::kFree;       // Indicate bus is free
 
-    return(DevFlt::None);
+    return(DevFlt::kNone);
 }
 
 void I2CPeriph::configTransmtIT(InterState intr) {
@@ -856,12 +853,11 @@ void I2CPeriph::configTransmtIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_TXI);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_TXI);      // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_TXI); // Then disable interrupt
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_TXI);     // Then disable interrupt
     }
 
 
@@ -887,12 +883,11 @@ void I2CPeriph::configTransCmIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_TCI);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_TCI);      // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_TCI); // Then disable interrupt
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_TCI);     // Then disable interrupt
     }
 
 
@@ -918,12 +913,11 @@ void I2CPeriph::configReceiveIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                     // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_RXI);  // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_RXI);      // Then enable the interrupt
     }
     else {                                                  // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_RXI); // Then disable interrupt
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_RXI);     // Then disable interrupt
     }
 
 
@@ -949,12 +943,11 @@ void I2CPeriph::configBusNACKIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_NACKI);    // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_NACKI);    // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_NACKI);   // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_NACKI);   // Then disable interrupt
     }
 
 
@@ -980,12 +973,11 @@ void I2CPeriph::configBusSTOPIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_STOPI);    // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_STOPI);    // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_STOPI);   // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_STOPI);   // Then disable interrupt
     }
 
 
@@ -1011,12 +1003,11 @@ void I2CPeriph::configBusErroIT(InterState intr) {
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
 //==================================================================================================
-
-    if (intr == InterState::ITEnable) {                         // If request is to enable
-        __HAL_I2C_ENABLE_IT(this->I2C_Handle, I2C_IT_ERRI);     // Then enable the interrupt
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_ERRI);     // Then enable the interrupt
     }
-    else {                                                      // If request is to disable
-        __HAL_I2C_DISABLE_IT(this->I2C_Handle, I2C_IT_ERRI);    // Then disable interrupt
+    else {                                                  // If request is to disable
+        __HAL_I2C_DISABLE_IT(_i2c_handle_, I2C_IT_ERRI);    // Then disable interrupt
     }
 
 
@@ -1039,7 +1030,7 @@ void I2CPeriph::intMasterReq(uint16_t devAddress, uint16_t size, uint8_t *Buff,
  * based communication, and therefore uses the "GenBuffer" handle input.
  *************************************************************************************************/
     // Put request into Form Queue
-    this->specificRequest(devAddress,
+    specificRequest(devAddress,
                           size,
                           Buff,
                           mode, reqst,
@@ -1047,51 +1038,51 @@ void I2CPeriph::intMasterReq(uint16_t devAddress, uint16_t size, uint8_t *Buff,
                          );
 
     // Trigger interrupt(s)
-    this->I2CInterruptStart();
+    startInterrupt();
 }
 
-void I2CPeriph::I2CInterruptStart(void) {
+void I2CPeriph::startInterrupt(void) {
 /**************************************************************************************************
  * Function will be called to start off a new I2C communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (this->CommState == Free) && (this->FormQueue.State() != GenBuffer_Empty) ) {
+    if ( (comm_state == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
-        this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+        _form_queue_.outputRead( &(_cur_form_) );           // Capture form request
 
         // Check current form to see if a fault has already been detected - therefore any new
         // request is no longer valid
-        while (  *(this->curForm.Flt) != I2CPeriph::DevFlt::None  ) {
+        while (  *(_cur_form_.Flt) != DevFlt::kNone  ) {
             // If there is a fault in request form, check to see if there is a new request
-            if ( this->FormQueue.State() == GenBuffer_Empty ) { // If buffer is empty, break out
-                //this->Disable();
+            if ( _form_queue_.state() == kGenBuffer_Empty ) {   // If buffer is empty, break out
+                //Disable();
                 return;
             }
             // If there is something in the queue, then make it current. Then re-check
-            this->FormQueue.OutputRead( &(this->curForm) );     // Capture form request
+            _form_queue_.outputRead( &(_cur_form_) );           // Capture form request
         }
 
-        this->CommState = Communicating;        // Lock I2C bus
+        comm_state = CommLock::kCommunicating;      // Lock I2C bus
 
-        //this->Enable();
+        //Enable();
 
-        this->RequestTransfer(  this->curForm.devAddress,
-                                (uint8_t) this->curForm.size,
-                                this->curForm.Mode,
-                                this->curForm.Reqst
-                             );
+        requestTransfer(  _cur_form_.devAddress,
+                (uint8_t) _cur_form_.size,
+                          _cur_form_.Mode,
+                          _cur_form_.Reqst
+                        );
             // Trigger communication as per Form request
 
-        if (this->curReqst == Request::START_WRITE) {       // If this is a write request
-            this->configTransmtIT(ITEnable);                // Then enable Transmit Empty buffer
-        }                                                   // interrupt
+        if (_cur_reqst_ == Request::kStart_Write) {     // If this is a write request
+            configTransmtIT(InterState::kIT_Enable);    // Then enable Transmit Empty buffer
+        }                                               // interrupt
 
-        else if (this->curReqst == Request::START_READ) {   // If this is a read request
-            this->configReceiveIT(ITEnable);                // Then enable Receive buffer full
-        }                                                   // interrupt
+        else if (_cur_reqst_ == Request::kStart_Read) { // If this is a read request
+            configReceiveIT(InterState::kIT_Enable);    // Then enable Receive buffer full
+        }                                               // interrupt
     }
-    else if ( (this->CommState == Free) && (this->FormQueue.State() == GenBuffer_Empty) ) {
-        //this->Disable();
+    else if ( (comm_state == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
+        //Disable();
     }
 }
 
@@ -1101,17 +1092,17 @@ void I2CPeriph::intReqFormCmplt(void) {
  * Indicate that the I2C Device is now free for any new communication
  * Disables the Receive/Transmit Interrupts
  *************************************************************************************************/
-    *(this->curForm.Cmplt)  += (this->curForm.size - this->curCount);
+    *(_cur_form_.Cmplt)  += (_cur_form_.size - _cur_count_);
     // Indicate how many data points have been transfered (curCount should be 0)
 
     // Indicate that I2C bus is now free, and disable any interrupts
-    this->CommState = Free;
+    comm_state = CommLock::kFree;
 
-    this->configReceiveIT(ITDisable);       // Disable Receive buffer full interrupt
-    this->configTransmtIT(ITDisable);       // Disable Transmit empty buffer interrupt
+    configReceiveIT(InterState::kIT_Disable);   // Disable Receive buffer full interrupt
+    configTransmtIT(InterState::kIT_Disable);   // Disable Transmit empty buffer interrupt
 }
 
-void I2CPeriph:: IRQEventHandle(void) {
+void I2CPeriph:: handleEventIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the I2C events within the I2C class.
@@ -1158,74 +1149,69 @@ void I2CPeriph:: IRQEventHandle(void) {
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    uint8_t tempDR = 0;
-
-    if ( (this->TransmitComptChk() & this->TransmitComptITChk()) == 0x01) {
+    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {
         // If Transmit Complete triggered
         // Not really supported yet!
     }
 
-    if ( (this->TransmitEmptyChk() & this->TransmitEmptyITChk()) == 0x01) {
+    uint8_t temp_DR = 0;
+    if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
         // If Transmit Buffer Empty triggered
         // Only update the transmit hardware buffer, if the class global count is not zero
-        if (this->curCount == 0)    // If count is equal to zero
-            tempDR  = 0x00;         // Populate with zeroes (default data)
+        if (_cur_count_ == 0)   // If count is equal to zero
+            temp_DR     = 0x00; // Populate with zeroes (default data)
 
         else {
-            tempDR  = GetFormWriteData( &(this->curForm) );
+            temp_DR  = getFormWriteData( &(_cur_form_) );
             // Retrieve next data point from the Request SPI Form, and put onto hardware queue
 
-            this->curCount--;       // Decrement the class global current count
+            _cur_count_--;      // Decrement the class global current count
         }
         // Get data from form, and put into hardware buffer
 
-        this->DRWrite(tempDR);
+        writeDR(temp_DR);
     }
 
-    if ( (this->ReceiveToReadChk() & this->ReceiveToReadITChk()) == 0x01) {
+    if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
         // If Receive Buffer full triggered
-        tempDR  = this->DRRead();
+        temp_DR  = readDR();
         // Retrieve data from the hardware
 
         // Only when the class global count is not zero. Put the read data into the requested data
         // location as per I2C Request Form
-        if (this->curCount != 0) {
-            this->PutFormReadData( &(this->curForm) , tempDR );
+        if (_cur_count_ != 0) {
+            putFormReadData( &(_cur_form_) , temp_DR );
 
-            this->curCount--;       // Decrement the class global current count
+            _cur_count_--;      // Decrement the class global current count
         }
     }
 
-    if ( (this->BusSTOPChk() & this->BusSTOPITChk()) == 0x01) {     // If I2C Stop triggered
-        this->Clear_STOP();                                         // Clear the STOP status
-        this->ClearNACK();                                          // Clear the NACK status
+    if ( (busStopChk() & busStopITChk()) == 0x01) { // If I2C Stop triggered
+        clearStop();                                // Clear the STOP status
+        clearNACK();                                // Clear the NACK status
 
         // Flush the contents of the Transmit buffer
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          __HAL_I2C_CLEAR_FLAG(this->I2C_Handle, I2C_FLAG_TXE);
+          __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_TXE);
 
-        this->intReqFormCmplt();                                    // Complete the current
-                                                                    // request form
-        this->I2CInterruptStart();                                  // Check if any new requests
-                                                                    // remain
+        intReqFormCmplt();          // Complete the current request form
+        startInterrupt();           // Check if any new requests remain
     }
 
-    if ( (this->BusNACKChk() & this->BusNACKITChk()) == 0x01) {     // If I2C NACK received
-        this->ClearNACK();                                          // Clear the NACK status
-        *(this->curForm.Flt)    = DevFlt::NACK;                     // Set requested fault flag
+    if ( (busNACKChk() & busNACKITChk()) == 0x01) { // If I2C NACK received
+        clearNACK();                                // Clear the NACK status
+        *(_cur_form_.Flt) = DevFlt::kNACK;          // Set requested fault flag
 
         // Flush the contents of the Transmit buffer
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          __HAL_I2C_CLEAR_FLAG(this->I2C_Handle, I2C_FLAG_TXE);
+          __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_TXE);
 
-        this->intReqFormCmplt();                                    // Complete the current
-                                                                    // request form
-        this->I2CInterruptStart();                                  // Check if any new requests
-                                                                    // remain
+        intReqFormCmplt();          // Complete the current request form
+        startInterrupt();           // Check if any new requests remain
     }
 }
 
-void I2CPeriph:: IRQErrorHandle(void) {
+void I2CPeriph:: handleErrorIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the I2C errors within the I2C class.
@@ -1244,10 +1230,9 @@ void I2CPeriph:: IRQErrorHandle(void) {
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    if ( (this->BusErroChk() & this->BusErrorITChk()) == 0x01) {    // If Bus Error
-                                                                    // triggered
-        this->ClearBusEr();                                         // Clear the Bus Error
-        *(this->curForm.Flt)    = DevFlt::BUS_ERROR;                // Set requested fault flag
+    if ( (busErroChk() & busErrorITChk()) == 0x01) {// If Bus Error triggered
+        clearBusEr();                               // Clear the Bus Error
+        *(_cur_form_.Flt)    = DevFlt::kBus_Error;  // Set requested fault flag
     }
 }
 

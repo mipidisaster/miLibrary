@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        SPIPeriph.h
  * @author      Thomas
- * @version     V3.3
- * @date        22 Sept 2018
  * @brief       Header file for the Generic SPIPeriph Class handle
  **************************************************************************************************
  @ attention
@@ -39,43 +37,43 @@
  *                                    receive an array data location.
  *                                    (input varies for GPIO or hardware managed Chip Select)
  *
- *          ".SPIInterruptStart"    - Check to see if the SPI bus is free, and a new request form
+ *          ".startInterrupt"       - Check to see if the SPI bus is free, and a new request form
  *                                    is available. Then trigger a communication run (enables
  *                                    Transmit Empty/Receive interrupts)
  *          ".intReqFormCmplt"      - Function will go through tidy up procedure for the current
  *                                    Request Form
- *          ".IRQHandle"            - Functions to be placed within the relevant Interrupt Vector
+ *          ".handleIRQ"            - Functions to be placed within the relevant Interrupt Vector
  *                                    call, so as to handle the SPI interrupt
  *
  *      Following functions are protected so will only work for classes which inherit from this
  *      one, and are not visible external to this class. They contain the lower level handling
  *      of hardware, which the functions above rely upon to function (this is where a majority of
  *      the differences between the supported embedded devices will lie:
- *          ".Enable"/".Disable"    - Enabling and Disabling the SPI Peripheral
+ *          ".enable"/".disable"    - Enabling and Disabling the SPI Peripheral
  *
- *          ".DRRead"               - Will take data straight from hardware
- *          ".DRWrite"              - Will put data straight onto the hardware
+ *          ".readDR"               - Will take data straight from hardware
+ *          ".writeDR"              - Will put data straight onto the hardware
  *
- *          ".HardwareCS"           - Generate the struct as a Hardware Chip Select
- *          ".SoftwareGPIO"         - Generate the struct as a Software GPIO Chip Select
- *          ".ChipSelectHandle"     - Will handle selecting/deselecting the SPI device (using the
+ *          ".hardwareCS"           - Generate the struct as a Hardware Chip Select
+ *          ".softwareGPIO"         - Generate the struct as a Software GPIO Chip Select
+ *          ".chipSelectHandle"     - Will handle selecting/deselecting the SPI device (using the
  *                                    above structs)
  *
- *          ".TransmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
- *          ".ReceiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
- *          ".BusBusyChk"           - Check to see if the BUS is busy
- *          ".BusOverRunChk"        - Check to see if a BUS overrun has occurred
- *          ".BusModeFltChk"        - Check to see if a BUS mode fault has occurred
+ *          ".transmitEmptyChk"     - Check to see if the Transmit Empty buffer is empty
+ *          ".receiveToReadChk"     - Check to see if the Receive buffer is full (data to read)
+ *          ".busBusyChk"           - Check to see if the BUS is busy
+ *          ".busOverRunChk"        - Check to see if a BUS overrun has occurred
+ *          ".busModeFltChk"        - Check to see if a BUS mode fault has occurred
  *
- *          ".ClearBusOvrRun"       - Clear the BUS overrun fault (and manage the hardware)
- *          ".ClearBusModeFlt"      - Clear the BUS mode fault (and manage the hardware)
+ *          ".clearBusOvrRun"       - Clear the BUS overrun fault (and manage the hardware)
+ *          ".clearBusModeFlt"      - Clear the BUS mode fault (and manage the hardware)
  *
  *
- *          ".TransmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
+ *          ".transmitEmptyITChk"   - Indicates if the interrupt for Transmit Empty has been
  *                                    enabled
- *          ".ReceiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
+ *          ".receiveToReadITChk"   - Indicates if the interrupt for Receive buffer full has been
  *                                    enabled
- *          ".BusErrorITChk"        - Indicates if the interrupt for Bus error has been enabled
+ *          ".busErrorITChk"        - Indicates if the interrupt for Bus error has been enabled
  *
  *  [#] SPI Request Form System
  *      ~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,11 +91,11 @@
  *          SPI communication fault return flag
  *
  *      Function list (all are protected):
- *          ".GenericForm"          - Populate generic entries of the SPI Form (outputs structure)
- *          ".FormW8bitArray"       - Link form to a 8bit array location
+ *          ".genericForm"          - Populate generic entries of the SPI Form (outputs structure)
+ *          ".formW8bitArray"       - Link form to a 8bit array location
  *
- *          ".GetFormWriteData"     - Retrieve data from SPI Form's requested location
- *          ".PutFormReadData"      - Write data to location specified by current SPI Form
+ *          ".getFormWriteData"     - Retrieve data from SPI Form's requested location
+ *          ".putFormReadData"      - Write data to location specified by current SPI Form
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
@@ -107,7 +105,7 @@
 #include "FileIndex.h"
 #include <stdint.h>
 
-#include FilInd_GENBUF_HD               // Provide the template for the circular buffer class
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 #include FilInd_GPIO___HD               // Allow use of GPIO class, for Chip Select
 #include FilInd_DeMux__HD
 
@@ -144,29 +142,29 @@ class SPIPeriph {
 *************************************************************************************************/
 public:
     enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
-        None            = 0x00,     // Normal Operation
-        ModeFault       = 0x01,     // Mode fault
-        Overrun         = 0x02,     // Over run has occurred
-        FrameFormat     = 0x03,     // Frame format error
-        CRCError        = 0x04,     // CRC Error detected
-        DataSize        = 0x05,     // Error with the size request of data
+        kNone           = 0x00,     // Normal Operation
+        kMode_Fault     = 0x01,     // Mode fault
+        kOverrun        = 0x02,     // Over run has occurred
+        kFrame_Format   = 0x03,     // Frame format error
+        kCRC_Error      = 0x04,     // CRC Error detected
+        kData_Size      = 0x05,     // Error with the size request of data
 
-        Initialised     = 0xFF      // Just initialised
+        kInitialised    = 0xFF      // Just initialised
     };
 
     enum SPIMode : uint8_t {
-        MODE0 = 0,      // Clock Idles at 0, and capture on the rising edge
-        MODE1 = 1,      // Clock Idles at 0, and capture on the falling edge
-        MODE2 = 2,      // Clock Idles at 1, and captures on the falling edge
-        MODE3 = 3       // Clock Idles at 1, and captures on the rising edge
+        kMode0 = 0,     // Clock Idles at 0, and capture on the rising edge
+        kMode1 = 1,     // Clock Idles at 0, and capture on the falling edge
+        kMode2 = 2,     // Clock Idles at 1, and captures on the falling edge
+        kMode3 = 3      // Clock Idles at 1, and captures on the rising edge
     };
 
-    enum InterState : uint8_t {ITEnable, ITDisable};// Enumerate state for enabling/disabling
-                                                    // interrupts
-    enum CommLock : uint8_t {Communicating, Free};  // Enumerate state for indicating if device is
-                                                    // communicating
+    enum InterState : uint8_t {kIT_Enable, kIT_Disable};   // Enumerate state for enabling/
+                                                           // disabling interrupts
+    enum CommLock : uint8_t {kCommunicating, kFree};       // Enumerate state for indicating if
+                                                           // device iscommunicating
 
-    enum CSSelection : uint8_t  { Select, Deselect };
+    enum CSSelection : uint8_t  { kSelect, kDeselect };
         // Enumerate type used to indicate whether device needs to be selected or deselected
 
     typedef struct {                // Structure to manage the multiple types of Chip Selection
@@ -174,8 +172,8 @@ public:
         GPIO    *GPIO_CS;           // Software managed GPIO CS
 
         enum CSType : uint8_t {     // Enumerate type to indicate how Chip Select is managed
-            Hardware_Managed,       // Indicate that Hardware is manages the CS
-            Software_GPIO           // Indicate that the Chip Select is software managed
+            kHardware_Managed,      // Indicate that Hardware is manages the CS
+            kSoftware_GPIO          // Indicate that the Chip Select is software managed
         } Type;
     }   CSHandle;
 
@@ -200,16 +198,16 @@ public:
 *  Parameters required for the class to function.
 *************************************************************************************************/
     protected:
-    GenBuffer<Form>     FormQueue;      // Pointer to the class internal SPIForm buffer, which
+    GenBuffer<Form>     _form_queue_;   // Pointer to the class internal SPIForm buffer, which
                                         // is used to manage interrupt based communication.
                                         // Functions will add request forms to this buffer,
                                         // and interrupt then goes through them sequentially.
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        SPIMode     Mode;               // Selected mode of SPI Device
+        SPIMode     _mode_;             // Selected mode of SPI Device
 
-        uint16_t    curCount;           // Current communication packet count
-        Form        curForm;            // Current SPI request form
+        uint16_t    _cur_count_;        // Current communication packet count
+        Form        _cur_form_;         // Current SPI request form
 
     public:
         DevFlt      Flt;                // Fault state of the SPI Device
@@ -229,7 +227,7 @@ public:
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //==================================================================================================
     private:
-        SPI_HandleTypeDef   *SPI_Handle;    // Store the Handle for the SPI Device, from cubeMX
+        SPI_HandleTypeDef   *_spi_handle_;  // Store the Handle for the SPI Device, from cubeMX
 
     public:
         SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize);
@@ -240,7 +238,7 @@ public:
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //==================================================================================================
     private:
-        int SPIChannel;                         // Store the channel used for SPI
+        int _spi_channel_;              // Store the channel used for SPI
 
     public:
         SPIPeriph(int channel, int speed, _SPIMode Mode);
@@ -266,52 +264,52 @@ protected:  /*******************************************************************
              *  Functions allow direct access to the hardware/base functions of this class. Are
              *  not visible unless "friend" or "child"/inherited
              *************************************************************************************/
-    void Enable(void);                      // Enable the SPI device
-    void Disable(void);                     // Disable the SPI device
+    void enable(void);                      // Enable the SPI device
+    void disable(void);                     // Disable the SPI device
 
-    uint8_t DRRead(void);                   // Function to read direct from the hardware
-    void DRWrite(uint8_t data);             // Function to write direct to the hardware
+    uint8_t readDR(void);                   // Function to read direct from the hardware
+    void writeDR(uint8_t data);             // Function to write direct to the hardware
 
     // SPI Event status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyChk(void);         // Check state of transmission register (1 = empty)
-    uint8_t ReceiveToReadChk(void);         // Check state of receive data register (1 =  read)
+    uint8_t transmitEmptyChk(void);         // Check state of transmission register (1 = empty)
+    uint8_t receiveToReadChk(void);         // Check state of receive data register (1 =  read)
 
-    uint8_t BusBusyChk(void);               // Check if SPI bus is busy             (1 = BUSY)
+    uint8_t busBusyChk(void);               // Check if SPI bus is busy             (1 = BUSY)
 
     // SPI Error status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t BusOverRunChk(void);            // Check state of data over run         (1 = ovrun)
-    void ClearBusOvrRun(void);              // Clear the Bus Over run fault
+    uint8_t busOverRunChk(void);            // Check state of data over run         (1 = ovrun)
+    void clearBusOvrRun(void);              // Clear the Bus Over run fault
 
-    uint8_t BusModeFltChk(void);            // Check if there has been a mode fault (1 = fault)
-    void ClearBusModeFlt(void);             // Clear the Bus Mode fault
+    uint8_t busModeFltChk(void);            // Check if there has been a mode fault (1 = fault)
+    void clearBusModeFlt(void);             // Clear the Bus Mode fault
 
     // SPI Interrupt status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t TransmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t ReceiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
-    uint8_t BusErrorITChk(void);            // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t transmitEmptyITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t receiveToReadITChk(void);       // Check to see if interrupt is enabled (1 = enabled)
+    uint8_t busErrorITChk(void);            // Check to see if interrupt is enabled (1 = enabled)
 
     // SPI Chip Selection management
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CSHandle HardwareCS(void);
-    CSHandle SoftwareGPIO(GPIO *CS);
+    CSHandle hardwareCS(void);
+    CSHandle softwareGPIO(GPIO *CS);
 
-    void ChipSelectHandle(CSHandle selection, CSSelection Mode);
+    void chipSelectHandle(CSHandle selection, CSSelection Mode);
 
     // SPI Communication Request Form handling
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    static Form GenericForm(CSHandle devLoc, uint16_t size,
-                            volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
+    Form genericForm(CSHandle devLoc, uint16_t size,
+                     volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
-    static void FormW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData);
+    void formW8bitArray(Form *RequestForm, uint8_t *TxData, uint8_t *RxData);
 
-    static uint8_t GetFormWriteData(Form *RequestForm);
+    uint8_t getFormWriteData(Form *RequestForm);
     // Function will retrieve the next data entry from the source data specified within the
     // SPI "RequestForm"
 
-    static void PutFormReadData(Form *RequestForm, uint8_t readdata);
+    void putFormReadData(Form *RequestForm, uint8_t readdata);
     // Function will take the data read from the SPI Hardware, and put into the requested data
     // location specified within the "RequestForm" input
 
@@ -344,10 +342,10 @@ public:     /*******************************************************************
     // Above OVERLOADED function "intMasterTransfer" takes the input parameters and uses this to
     // populate a SPI Request Form, and then add this to the Device Queue.
 
-    void SPIInterruptStart(void);               // Enable communication if bus is free, otherwise
+    void startInterrupt(void);                  // Enable communication if bus is free, otherwise
                                                 // wait (doesn't actually wait)
     void intReqFormCmplt(void);                 // Closes out the input Request Form
-    void IRQHandle(void);                       // Interrupt Handle for SPI Device
+    void handleIRQ(void);                       // Interrupt Handle for SPI Device
 
         virtual ~SPIPeriph();
 };

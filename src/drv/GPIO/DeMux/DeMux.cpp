@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        DeMux.cpp
  * @author      Thomas
- * @version     V2.1
- * @date        21 Dec 2018
  * @brief       Source file for the Demultiplexor Class handle
  **************************************************************************************************
  @ attention
@@ -31,19 +29,19 @@ DeMux::DeMux(GPIO *High_Enable, GPIO *Low_Enable, GPIO Switches[], uint8_t Switc
  * Before completing construction of class, it will disable the Demultiplexor, by setting all
  * enabling conditions "OFF".
  *************************************************************************************************/
-    this->Mux_HEnable   = High_Enable;      // Pass the High ENABLE GPIO
-    this->Mux_LEnable   = Low_Enable;       // Pass the Low ENABLE GPIO
-    this->Mux_A         = Switches;         // Pass ARRAY of switches
+    _Mux_HEnable_   = High_Enable;      // Pass the High ENABLE GPIO
+    _Mux_LEnable_   = Low_Enable;       // Pass the Low ENABLE GPIO
+    _Mux_A_         = Switches;         // Pass ARRAY of switches
 
-    this->inputsize     = SwitchSize;       // Provide the number of switches to be controlled
-                                            // which is the size of the array
+    _input_size_     = SwitchSize;      // Provide the number of switches to be controlled which
+                                        // is the size of the array
 
-    this->Selection     = -1;               // Provide a Selection, however as just setup class
-                                            // should be an unrecognised entry "-1"
-    this->Flt           = DeMux_Initialised;// Set the fault status to "Initialised"
+    selection     = -1;                 // Provide a Selection, however as just setup class should
+                                        // be an unrecognised entry "-1"
+    flt           = DevFlt::kInitialised;   // Set the fault status to "Initialised"
 
     // Now that have populated the DeMux class, Disable the DeMux
-    this->disable();    // Call the disable function
+    disable();    // Call the disable function
 }
 
 void DeMux::enable(void) {
@@ -58,14 +56,14 @@ void DeMux::enable(void) {
  * If any of these have not been defined (i.e. __null will have been provided), then the function
  * will skip them.
  *************************************************************************************************/
-    if (this->Mux_HEnable != __null) {          // If a High Enable pin has been defined then
-        this->Mux_HEnable->setValue(GPIO::HIGH);// Set the Pin HIGH to enable DeMux
+    if (_Mux_HEnable_ != __null) {              // If a High Enable pin has been defined then
+        _Mux_HEnable_->setValue(GPIO::kHigh);   // Set the Pin HIGH to enable DeMux
     }
 
-    if (this->Mux_LEnable != __null) {          // If a Low Enable pin has been defined then
-        this->Mux_LEnable->setValue(GPIO::LOW); // Set the Pin LOW to enable DeMux
+    if (_Mux_LEnable_ != __null) {              // If a Low Enable pin has been defined then
+        _Mux_LEnable_->setValue(GPIO::kLow);    // Set the Pin LOW to enable DeMux
     }
-    this->Status = DeMux_Enabled;               // Update status to "Enabled"
+    status = DevState::kEnable;                 // Update status to "Enabled"
 }
 
 void DeMux::disable(void) {
@@ -80,46 +78,46 @@ void DeMux::disable(void) {
  * If any of these have not been defined (i.e. __null will have been provided), then the function
  * will skip them.
  *************************************************************************************************/
-    if (this->Mux_HEnable != __null) {         // If a High Enable pin has been defined then
-        this->Mux_HEnable->setValue(GPIO::LOW);// Set the Pin LOW to disable DeMux
+    if (_Mux_HEnable_ != __null) {              // If a High Enable pin has been defined then
+        _Mux_HEnable_->setValue(GPIO::kLow);    // Set the Pin LOW to disable DeMux
     }
 
-    if (this->Mux_LEnable != __null) {          // If a Low Enable pin has been defined then
-        this->Mux_LEnable->setValue(GPIO::HIGH);// Set the Pin HIGH to disable DeMux
+    if (_Mux_LEnable_ != __null) {              // If a Low Enable pin has been defined then
+        _Mux_LEnable_->setValue(GPIO::kHigh);   // Set the Pin HIGH to disable DeMux
     }
-    this->Status = DeMux_Disabled;              // Update status to "Disabled"
+    status = DevState::kDisable;               // Update status to "Disabled"
 }
-_DeMuxFlt DeMux::updateselection(uint8_t newselection)
+DeMux::DevFlt DeMux::updateSelection(uint8_t newselection)
 {
     uint8_t temp = 0;       // Temporary variable used within this function, for
                             //  -> Determining maximum size of Demultiplexor selection
                             //  -> Looping through input selection, to set corresponding switch
 
-    temp = ((1 << this->inputsize) - 1);    // Calculate the maximum size, by shifting 0x01 up by
+    temp = ((1 << _input_size_) - 1);       // Calculate the maximum size, by shifting 0x01 up by
                                             // number of switches provided. Then subtracting 1
                                             //      equivalent to (2^x) - 1.
 
-    if (newselection > temp) {                  // If the selection is greater than the number of
-                                                // switches can accommodate
-        this->Flt = DeMux_IncorrectSelection;   // Indicate fault with selection
-        return (this->Flt);                     // Return fault code
+    if (newselection > temp) {              // If the selection is greater than the number of
+                                            // switches can accommodate
+        flt = DevFlt::kIncorrect_Selection; // Indicate fault with selection
+        return (flt);                       // Return fault code
     }
 
     // If get to this point, then input selection is within capabilitys of the class setup
-    for (temp = 0; temp != (this->inputsize); temp++) {     // Now use temporary variable to loop
+    for (temp = 0; temp != (_input_size_); temp++) {     // Now use temporary variable to loop
         if (temp != 0) {                        // If not the first pass of loop then
             newselection >>= 1;                 // binary shift the input selection number by 1
         }                                       // to the right (make it smaller)
 
         if (newselection & 1)                       // If lowest bit is "1", then
-            this->Mux_A[temp].setValue(GPIO::HIGH); // Set corresponding switch "HIGH"
+            _Mux_A_[temp].setValue(GPIO::kHigh);    // Set corresponding switch "HIGH"
         else                                        // If lowest bit is "0", then
-            this->Mux_A[temp].setValue(GPIO::LOW);  // Set corresponding switch "LOW"
+            _Mux_A_[temp].setValue(GPIO::kLow);     // Set corresponding switch "LOW"
 
     }
 
-    this->Flt = DeMux_NoFault;  // If have gotten this far, then update has worked - Updated status
-    return(this->Flt);          // Provide positive return
+    flt = DevFlt::kNone;    // If have gotten this far, then update has worked - Updated status
+    return(flt);            // Provide positive return
 }
 
 DeMux::~DeMux()

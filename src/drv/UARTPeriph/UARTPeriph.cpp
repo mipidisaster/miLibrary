@@ -343,8 +343,8 @@ UARTPeriph::Form UARTPeriph::genericForm(uint8_t *data, uint16_t size,
 /**************************************************************************************************
  * Generate a UARTForm request, based upon the generic information provided as input.
  *************************************************************************************************/
-    UARTPeriph::Form request_form = { 0 };      // Generate the "UARTPeriph::Form" variable to
-                                                // provide as output
+    Form request_form = { 0 };                  // Generate the "Form" variable to provide as 
+                                                // output
 
     request_form.Buff           = data;         // Populate form with input data
     request_form.size           = size;         //
@@ -650,7 +650,7 @@ void UARTPeriph::intWrtePacket(uint8_t *wData, uint16_t size,
 /**************************************************************************************************
  * Function will generate a new form for the write UART communication
  *************************************************************************************************/
-    UARTPeriph::Form request_form = genericForm(wData, size, fltReturn, cmpFlag);
+    Form request_form = genericForm(wData, size, fltReturn, cmpFlag);
 
     _form_wrte_q_.inputWrite(request_form);
     // Add to queue
@@ -664,7 +664,7 @@ void UARTPeriph::intReadPacket(uint8_t *rData, uint16_t size,
 /**************************************************************************************************
  * Function will generate a new form for the read UART communication
  *************************************************************************************************/
-    UARTPeriph::Form request_form = genericForm(rData, size, fltReturn, cmpFlag);
+    Form request_form = genericForm(rData, size, fltReturn, cmpFlag);
 
     _form_read_q_.inputWrite(request_form);
     // Add to queue
@@ -840,7 +840,7 @@ void UARTPeriph::handleIRQ(void) {
  *      while() {};
  *      }
  *
- *      void UARTPeriph_IRQHandler(void) {  UARTPeriph->IRQHandle();  }
+ *      void UARTPeriph_IRQHandler(void) {  UARTPeriph->handleIRQ();  }
  *
  *  main.h
  *      extern "C" {
@@ -909,7 +909,7 @@ void UARTPeriph::handleIRQ(void) {
  *  uint8_t UARTReturn;
  *  while (1) {
  *      delay(100);
- *      MyUART->IRQHandle();
+ *      MyUART->handleIRQ();
  *  }
  *
  *  return 0;

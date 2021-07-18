@@ -57,6 +57,7 @@
 #include "FileIndex.h"
 #include <stdint.h>
 
+#include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 #include FilInd_USART__HD
 #include FilInd_DMAPe__HD
 

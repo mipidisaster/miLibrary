@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        DeMux.h
  * @author      Thomas
- * @version     V2.1
- * @date        21 Dec 2018
  * @brief       Header file for the Demultiplexor Class handle
  **************************************************************************************************
  @ attention
@@ -57,41 +55,48 @@
 #endif
 
 // Defines specific within this class
-//	--- Include any #defines within class - use similar naming as class
-//	--- keep this relatively light, large quantities should be within a seperate header file
-//	--- named <class_name>_defs.h
+// None
 
 // Types used within this class
-typedef enum {  // Enumerate type for showing status of the Demultiplexor
-        DeMux_Enabled = 0,              // Indicate that Demultiplexor is Enabled
-        DeMux_Disabled = !DeMux_Enabled // Indicate that Demultiplexor is Disabled
-} _DeMuxState;
-
-typedef enum {  // Enumerate type for showing status of the Demultiplexor
-        DeMux_NoFault = 0,              // No fault with Demultiplexor
-        DeMux_IncorrectSelection = 1,   // Fault with the setting of the Demultiplexor
-
-        DeMux_Initialised = -1          // If initialised, this flag is set
-} _DeMuxFlt;
+// Defined within the class, to ensure are contained within the correct scope
 
 class DeMux {
+/**************************************************************************************************
+ * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+ *   -----------
+ *  Following types are generated within this class. If needed outside of the class, need to
+ *  state "DeMux::" followed by the type.
+ *************************************************************************************************/
+public:
+    enum class DevFlt : uint8_t {       // Fault Type of the class (internal enumerate)
+        kNone                   = 0x00, // Normal Operation
+        kIncorrect_Selection    = 0x01, // Fault with the setting of the Demultiplexor
+
+        kInitialised            = 0xFF  // Just initialised
+    };
+
+    enum class DevState : uint8_t {     // Enumerate type for showing state of the Demultiplexor
+        kEnable     = 0x00,             //  Indicate that Demultiplexor is Enabled
+        kDisable    = 0xFF              //  Indicate that Demultiplexor is Disabled
+    };
+
     private:
-        GPIO            *Mux_LEnable;   // GPIO pin for Enabling Demux (Low enable)     [pointer]
-        GPIO            *Mux_HEnable;   // GPIO pin for Enabling Demux (High enable)    [pointer]
-        GPIO            *Mux_A;         // GPIO pin's for changing output of Demultiplexor
+        GPIO            *_Mux_LEnable_; // GPIO pin for Enabling Demux (Low enable)     [pointer]
+        GPIO            *_Mux_HEnable_; // GPIO pin for Enabling Demux (High enable)    [pointer]
+        GPIO            *_Mux_A_;       // GPIO pin's for changing output of Demultiplexor
                                         // this is expected to be an array              [pointer]
 
-        uint8_t         inputsize;      // Contain the number of input switches to Demux
+        uint8_t         _input_size_;   // Contain the number of input switches to Demux
 
     public:
-        _DeMuxState     Status;         // Indicate the status of the Demultiplexor
-        uint8_t         Selection;      // Indication of the current selected output
-        _DeMuxFlt       Flt;            // Fault status of the Demultiplexor
+        DevState        status;         // Indicate the status of the Demultiplexor
+        uint8_t         selection;      // Indication of the current selected output
+        DevFlt          flt;            // Fault status of the Demultiplexor
 
         DeMux(GPIO *High_Enable, GPIO *Low_Enable, GPIO Switches[], uint8_t SwitchSize);
         void enable(void);              // Enable the Demultiplexor
         void disable(void);             // Disable the Demultiplexor
-        _DeMuxFlt updateselection(uint8_t newselection);    // Update the selection
+        DevFlt updateSelection(uint8_t newselection);    // Update the selection
 
 
         virtual ~DeMux();
