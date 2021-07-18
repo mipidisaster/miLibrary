@@ -110,19 +110,19 @@
 #include FilInd_DeMux__HD
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 #include <wiringPiSPI.h>                // Include the wiringPi SPI library
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
@@ -225,7 +225,7 @@ public:
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     private:
         SPI_HandleTypeDef   *_spi_handle_;  // Store the Handle for the SPI Device, from cubeMX
 
@@ -236,7 +236,7 @@ public:
         // Class will then generate a GenBuffer item internally.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     private:
         int _spi_channel_;              // Store the channel used for SPI
 
@@ -244,7 +244,7 @@ public:
         SPIPeriph(int channel, int speed, _SPIMode Mode);
 
 #else
-//==================================================================================================
+//=================================================================================================
     public
         SPIPeriph();
 

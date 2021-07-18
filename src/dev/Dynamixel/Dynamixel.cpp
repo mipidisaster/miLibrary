@@ -11,7 +11,7 @@
 #include "Dynamixel/Dynamixel.h"
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, uint16_t size,
                      GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)
 /**************************************************************************************************
@@ -48,7 +48,7 @@ Dynamixel::Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, ui
 }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 Dynamixel::Dynamixel(const char *deviceloc, int baud, uint16_t size,
                      GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)
 /**************************************************************************************************
@@ -82,7 +82,7 @@ Dynamixel::Dynamixel(const char *deviceloc, int baud, uint16_t size,
 }
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
@@ -485,7 +485,7 @@ void Dynamixel::IRQHandle(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 /**************************************************************************************************
  * Example of call.
  *  As the main.h/main.c are included within the interrupt header and source file, the function
@@ -563,7 +563,7 @@ void Dynamixel::IRQHandle(void) {
     }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 /**************************************************************************************************
  * Example of call.
  *  As setting up a real interrupt for Raspberry Pi involves hacking the kernel, which I am not
@@ -660,7 +660,7 @@ void Dynamixel::IRQHandle(void) {
     }
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }

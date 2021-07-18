@@ -28,19 +28,19 @@
 
 #include <stdint.h>
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 #include <wiringPi.h>                   // Include the wiringPi library
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
@@ -78,7 +78,7 @@ public:
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     private:
         GPIO_TypeDef    *_port_address_;        // Store the Port Address of pin
 
@@ -86,7 +86,7 @@ public:
         GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     private:
         _GPIOValue      _pin_value_;            // Current value of pin
 
@@ -94,7 +94,7 @@ public:
     GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection);
 
 #else
-//==================================================================================================
+//=================================================================================================
     public:
         GPIO(uint32_t pinnumber, _GPIODirec pindirection);
 

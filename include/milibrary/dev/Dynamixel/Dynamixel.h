@@ -63,15 +63,15 @@
 #include "UARTDevice/UARTDevice.h"      // Allow use of UARTDevice class
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // Add includes specific to the STM32Fxx devices
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Add includes specific to the Raspberry Pi
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
@@ -127,7 +127,7 @@ class Dynamixel : public UARTDevice {
 
 // Device specific entries
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     public:
         Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, uint16_t size,
                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray);
@@ -135,14 +135,14 @@ class Dynamixel : public UARTDevice {
         // with fully defined arrays and "GenBuffers" for internal data management
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     public:
         Dynamixel(const char *deviceloc, int baud, uint16_t size,
                   GenBuffer<uint8_t> *receivearray, GenBuffer<uint8_t> *transmitarray)
         // Setup the Dynamixel interface by device location, and desired baudrate. Also requires
         // fully defined arrays and "GenBuffers" for internal data management
 #else
-//==================================================================================================
+//=================================================================================================
     public:
         UARTDevice();
 

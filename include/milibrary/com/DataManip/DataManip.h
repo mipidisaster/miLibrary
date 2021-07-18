@@ -20,19 +20,19 @@
 #include <stdint.h>                     // Include library for standard data types
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // Add includes specific to the STM32Fxx devices
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // Add includes specific to the STM32Lxx devices
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Add includes specific to the Raspberry Pi
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif

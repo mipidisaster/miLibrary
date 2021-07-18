@@ -42,11 +42,11 @@
 #include <string>       // std::string
 
 #if defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // As currently have only 1 Embedded Linux Device, this class will only work if the project has
 // been configured for RaspberryPi
 #else
-//==================================================================================================
+//=================================================================================================
 // Otherwise it is an unrecognised device
 #error "Unrecognised target device"
 

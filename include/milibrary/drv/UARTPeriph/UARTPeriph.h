@@ -110,49 +110,24 @@
 #include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 #include <wiringSerial.h>               // Include the wiringPi UART/Serial library
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
 
-// Defines specific within this class
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-// None
-
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
-// None
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-#define UARTD_ReceiveIntBit     0       // Define the bit position for enabling Receive interrupt
-#define UARTD_TransmtIntBit     1       // Define the bit position for enabling Transmit interrupt
-#define UARTD_TransCmIntBit     2       // Define the bit position for enabling Transmit Complete
-
-#define UARTD_EnabInter(reg, bit)  ((reg) |=  (0x01 << bit))    // Enable specified bit
-#define UARTD_DisaInter(reg, bit)  ((reg) &= ~(0x01 << bit))    // Disable specified bit
-
-#else
-//==================================================================================================
-// None
-
-#endif
-
-// Types used within this class
-// Defined within the class, to ensure are contained within the correct scope
+//=================================================================================================
 
 class UARTPeriph {
 /**************************************************************************************************
@@ -224,7 +199,7 @@ public:
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     protected:
         UART_HandleTypeDef  *_uart_handle_;     // Store the UART handle
 
@@ -236,7 +211,7 @@ public:
         // Class will then generate a GenBuffer item internally.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     private:
         int                 _uart_handle_;      // Stores the device to communicate too
         const char          *_device_loc_;      // Store location file for UART device
@@ -254,7 +229,7 @@ public:
         // outside of class
 
 #else
-//==================================================================================================
+//=================================================================================================
     public:
         UARTPeriph();
 

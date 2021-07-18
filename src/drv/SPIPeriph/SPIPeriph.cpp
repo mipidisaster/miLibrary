@@ -28,7 +28,7 @@ void SPIPeriph::popGenParam(void) {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
 SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for the STM32 device
@@ -57,7 +57,7 @@ SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t For
     enable();                     // Enable the SPI device
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi
@@ -82,7 +82,7 @@ SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
         // Enable SPI interface for selected SPI channel, speed and mode
 }
 #else
-//==================================================================================================
+//=================================================================================================
 SPIPeriph::SPIPeriph() {
 }
 #endif
@@ -93,19 +93,19 @@ void SPIPeriph::enable(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     // Done in initial call.
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -116,19 +116,19 @@ void SPIPeriph::disable(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     // Done in initial call.
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -139,23 +139,23 @@ uint8_t SPIPeriph::readDR(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     return ((uint8_t) _spi_handle_->Instance->DR);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // STM32L4 uses a RXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
     return( (uint8_t) _spi_handle_->Instance->DR );
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
     return 0;
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -166,11 +166,11 @@ void SPIPeriph::writeDR(uint8_t data) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     _spi_handle_->Instance->DR = data;
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // STM32L4 uses a TXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
 // To ensure only 8bits is transmitted, need to ensure that we cast the Data Register (DR) to
@@ -178,12 +178,12 @@ void SPIPeriph::writeDR(uint8_t data) {
     *(uint8_t *)&_spi_handle_->Instance->DR = data;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 #endif
@@ -195,27 +195,27 @@ uint8_t SPIPeriph::transmitEmptyChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
     return (0);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -226,27 +226,27 @@ uint8_t SPIPeriph::receiveToReadChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
     return (0);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -257,27 +257,27 @@ uint8_t SPIPeriph::busBusyChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
     return (0);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -288,27 +288,27 @@ uint8_t SPIPeriph::busOverRunChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
     return (0);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -319,25 +319,25 @@ void SPIPeriph::clearBusOvrRun(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // To clear the Bus Over run status form STM32F, the DR register needs to be read, followed by a
 // read of the Status Register.
     __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // To clear the Bus Over run status form STM32L, the DR register needs to be read, followed by a
 // read of the Status Register.
     __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -348,26 +348,26 @@ uint8_t SPIPeriph::busModeFltChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0x00 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -378,25 +378,25 @@ void SPIPeriph::clearBusModeFlt(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
     __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
     __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -407,26 +407,26 @@ uint8_t SPIPeriph::transmitEmptyITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -438,26 +438,26 @@ uint8_t SPIPeriph::receiveToReadITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -468,26 +468,26 @@ uint8_t SPIPeriph::busErrorITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -597,7 +597,7 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     enable();                       // Ensure that the device has been enabled
 
     SET_BIT(_spi_handle_->Instance->CR2, SPI_RXFIFO_THRESHOLD_QF);
@@ -650,7 +650,7 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
     disable();                      // Ensure that the device has been disable
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     uint16_t i = 0;
 
     for (i = 0; i != size; i++)         // Cycle through the data to be written
@@ -661,7 +661,7 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         // Using wiringPiSPI function, transfer data from RaspberryPi to selected device
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 
@@ -727,11 +727,11 @@ void SPIPeriph::configTransmtIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_TXE);  // Then enable the interrupt
     }
@@ -741,11 +741,11 @@ void SPIPeriph::configTransmtIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -757,11 +757,11 @@ void SPIPeriph::configReceiveIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_RXNE); // Then enable the interrupt
     }
@@ -771,11 +771,11 @@ void SPIPeriph::configReceiveIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -787,11 +787,11 @@ void SPIPeriph::configBusErroIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
 
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_ERR);  // Then enable the interrupt
     }
@@ -801,11 +801,11 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }

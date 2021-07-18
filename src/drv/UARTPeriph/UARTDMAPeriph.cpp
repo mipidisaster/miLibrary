@@ -86,19 +86,19 @@ void UARTDMAPeriph::startInterrupt(void) {
 
             __HAL_DMA_DISABLE(_dma_tx_);// Disable DMA
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
             popDMARegisters(_dma_tx_,  (uint32_t) _cur_wrte_form_.Buff,
                                                   (uint32_t)&_uart_handle_->Instance->DR,
                                                   _cur_wrte_form_.size);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
             popDMARegisters(_dma_tx_,  (uint32_t) _cur_wrte_form_.Buff,
                                                   (uint32_t)&_uart_handle_->Instance->TDR,
                                                   _cur_wrte_form_.size);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
             SET_BIT(_uart_handle_->Instance->CR3, USART_CR3_DMAT);  // Link USART to DMA
@@ -162,19 +162,19 @@ void UARTDMAPeriph::startInterrupt(void) {
              */
             __HAL_DMA_DISABLE(_dma_rx_);    // Disable DMA
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
             popDMARegisters(_dma_rx_,  (uint32_t)&_uart_handle_->Instance->DR,
                                                  (uint32_t) _cur_read_form_.Buff,
                                                  _cur_read_form_.size);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
             popDMARegisters(_dma_rx_,  (uint32_t)&_uart_handle_->Instance->RDR,
                                                  (uint32_t) _cur_read_form_.Buff,
                                                  _cur_read_form_.size);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
             SET_BIT(_uart_handle_->Instance->CR3, USART_CR3_DMAR);  // Link USART to DMA

@@ -50,7 +50,7 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
 }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
                        Form *WrteForm, uint16_t WrteFormSize,
                        Form *ReadForm, uint16_t ReadFormSizey) {
@@ -85,7 +85,7 @@ int  UARTPeriph::AnySerDataAvil(void) {
 }
 
 #else
-//==================================================================================================
+//=================================================================================================
 UARTPeriph::UARTPeriph() {
 
 }
@@ -97,19 +97,19 @@ uint8_t UARTPeriph::readDR(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     return ((uint8_t)_uart_handle_->Instance->DR);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     return ((uint8_t)_uart_handle_->Instance->RDR);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     return((uint8_t) serialGetchar(_uart_handle_));
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -120,19 +120,19 @@ void UARTPeriph::writeDR(uint8_t data) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     _uart_handle_->Instance->DR = data;
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     _uart_handle_->Instance->TDR = data;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     serialPutchar(_uart_handle_, (unsigned char) data);
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -143,25 +143,25 @@ uint8_t UARTPeriph::transmitEmptyChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -172,25 +172,25 @@ uint8_t UARTPeriph::transmitComptChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -201,25 +201,25 @@ uint8_t UARTPeriph::receiveToReadChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_FLAG(_uart_handle_, UART_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -230,19 +230,19 @@ void UARTPeriph::clearComptChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_UART_CLEAR_FLAG(_uart_handle_, UART_FLAG_TC); // Clear status register
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     __HAL_UART_CLEAR_FLAG(_uart_handle_, UART_CLEAR_TCF); // Clear status register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -253,26 +253,26 @@ uint8_t UARTPeriph::transmitEmptyITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -283,26 +283,26 @@ uint8_t UARTPeriph::transmitComptITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_TC) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -314,26 +314,26 @@ uint8_t UARTPeriph::receiveToReadITChk(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if ( __HAL_UART_GET_IT_SOURCE(_uart_handle_, UART_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 // Unable to get to this level of granularity using the wiringPi library. Function will not be
 // called by upper level functions
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -384,7 +384,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     // Ensure that the UART interface has been enabled
     if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
         __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
@@ -396,7 +396,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
     return (readDR());  // Retrieve the read data, and pass out of function
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     // Ensure that the UART interface has been enabled
     if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
         __HAL_UART_ENABLE(_uart_handle_); // Enable the UART interface if not enabled
@@ -408,7 +408,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
     return (readDR());  // Retrieve the read data, and pass out of function
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     int read_back_data = -1;        // Create a variable which will contain the read contents of
                                     // the UART device
                                     // Set this to -1, as this indicates that there is no data to
@@ -422,7 +422,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
     return ((uint8_t) read_back_data);  // If get to this point data has been read from UART,
                                         // therefore return read value
 #else
-//==================================================================================================
+//=================================================================================================
     return(0);
 #endif
 }
@@ -434,7 +434,7 @@ void UARTPeriph::poleSingleTransmit(uint8_t data) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     // Ensure that the UART interface has been enabled
     if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
         __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
@@ -448,7 +448,7 @@ void UARTPeriph::poleSingleTransmit(uint8_t data) {
 
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     // Ensure that the UART interface has been enabled
     if ((_uart_handle_->Instance->CR1 & USART_CR1_UE) != USART_CR1_UE)
         __HAL_UART_ENABLE(_uart_handle_);   // Enable the UART interface if not enabled
@@ -461,11 +461,11 @@ void UARTPeriph::poleSingleTransmit(uint8_t data) {
     writeDR(data);      // Now put the selected data onto the Data Register (DR) for transmission.
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     writeDR(data);      // Send data via UART
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -483,7 +483,7 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     while (size > 0) {                      // Whilst there is data to be transferred
         poleSingleTransmit(*pData);   // Transmit the single point of data
         pData += sizeof(uint8_t);           // Increment pointer by the size of the data to be
@@ -495,7 +495,7 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
     while (transmitComptChk() == 0) {}
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     char *new_pa;                       // Create a character pointer
     uint16_t i;                         // Loop variable to go through contents of array
 
@@ -510,7 +510,7 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
     delete [] new_pa;                   // Delete the new array, such as to clear up resources
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 
@@ -526,7 +526,7 @@ void UARTPeriph::configTransmtIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TXE);   // Then enable the interrupt
     }
@@ -535,7 +535,7 @@ void UARTPeriph::configTransmtIT(InterState intr) {
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TXE);   // Then enable the interrupt
     }
@@ -545,7 +545,7 @@ void UARTPeriph::configTransmtIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransmtIntBit);
         // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
@@ -556,7 +556,7 @@ void UARTPeriph::configTransmtIT(InterState intr) {
     }
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -568,7 +568,7 @@ void UARTPeriph::configTransCmIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TC);    // Then enable the interrupt
     }
@@ -577,7 +577,7 @@ void UARTPeriph::configTransCmIT(InterState intr) {
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_TC);    // Then enable the interrupt
     }
@@ -587,7 +587,7 @@ void UARTPeriph::configTransCmIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransCmIntBit);
         // Enable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
@@ -598,7 +598,7 @@ void UARTPeriph::configTransCmIT(InterState intr) {
     }
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -610,7 +610,7 @@ void UARTPeriph::configReceiveIT(InterState intr) {
  *************************************************************************************************/
 
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_RXNE);  // Then enable the interrupt
     }
@@ -619,7 +619,7 @@ void UARTPeriph::configReceiveIT(InterState intr) {
     }
 
 #elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_UART_ENABLE_IT(_uart_handle_, UART_IT_RXNE);  // Then enable the interrupt
     }
@@ -629,7 +629,7 @@ void UARTPeriph::configReceiveIT(InterState intr) {
 
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         UARTD_EnabInter(_pseudo_interrupt_, UARTD_ReceiveIntBit);
         // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
@@ -640,7 +640,7 @@ void UARTPeriph::configReceiveIT(InterState intr) {
     }
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -820,7 +820,7 @@ void UARTPeriph::handleIRQ(void) {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
 /**************************************************************************************************
  * Example of call.
  *  As the main.h/main.c are included within the interrupt header and source file, the function
@@ -880,7 +880,7 @@ void UARTPeriph::handleIRQ(void) {
     }
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 /**************************************************************************************************
  * Example of call.
  *  As setting up a real interrupt for Raspberry Pi involves hacking the kernel, which I am not
@@ -944,7 +944,7 @@ void UARTPeriph::handleIRQ(void) {
     }
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }
@@ -956,14 +956,14 @@ UARTPeriph::~UARTPeriph() {
  *************************************************************************************************/
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     serialClose(_uart_handle_);     // Close the UART interface
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 }

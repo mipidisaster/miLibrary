@@ -13,7 +13,7 @@
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
 GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
 /**************************************************************************************************
  * Create a GPIO class specific for the STM32F device
@@ -26,7 +26,7 @@ GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
     _pin_direction_   = direction;      //
 }
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
 GPIO::GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection) {
 /**************************************************************************************************
  * Create a GPIO class specific for the Raspberry Pi
@@ -44,7 +44,7 @@ GPIO::GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection) {
     }
 }
 #else
-//==================================================================================================
+//=================================================================================================
 GPIO::GPIO(uint32_t pinnumber, _GPIODirec pindirection) {
     pinnumber     = pinnumber;      //
     pindirection  = direction;      //
@@ -62,18 +62,18 @@ uint8_t GPIO::toggleOutput() {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     _port_address_->ODR  ^= _pin_number_;   // Toggle specific pin
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     if (_pin_value_ == GPIO_LOW)    // If the Pin is set at LOW
         setValue(GPIO_HIGH);        // Update to HIGH, function also updates the "pinvalue"
     else                            // If the Pin is set at HIGH
         setValue(GPIO_LOW);         // Update to LOW, function also updates the "pinvalue"
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 
@@ -91,7 +91,7 @@ uint8_t GPIO::setValue(State value) {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     if (value == State::kLow)           // If demand is to set it LOW
         _port_address_->BSRR     =   (uint32_t)_pin_number_ << 16U;
             // Set the corresponding RESET bit within the BSRR register (shifted up by 16bits)
@@ -100,7 +100,7 @@ uint8_t GPIO::setValue(State value) {
             // Set the corresponding SET bit within the BSRR register
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     if (value == GPIO_LOW)                      // If demand for Pin is set for LOW - GPIO_LOW
         digitalWrite((int)_pin_number_, LOW);   // Drive the pin LOW
     else
@@ -109,7 +109,7 @@ uint8_t GPIO::setValue(State value) {
     pinvalue      = value;                    // Update pin value
 
 #else
-//==================================================================================================
+//=================================================================================================
 
 #endif
 
@@ -126,7 +126,7 @@ GPIO::State GPIO::getValue() {
 
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
 
     if (( _port_address_->IDR & _pin_number_ ) != 0 )
             // Check the state of the pin, and if it is set (i.e. not equal to zero), then output
@@ -136,10 +136,10 @@ GPIO::State GPIO::getValue() {
         return State::kLow;
 
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
+//=================================================================================================
     return GPIO_LOW;
 #else
-//==================================================================================================
+//=================================================================================================
     return LOW;
 #endif
 }
