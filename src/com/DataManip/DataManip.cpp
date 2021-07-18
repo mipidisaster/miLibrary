@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        DataManip.cpp
  * @author      Thomas
- * @version     V0.2
- * @date        22 Jun 2019
  * @brief       Source file for the universal data manipulator functions
  **************************************************************************************************
   @ attention

@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        DataManip.h
  * @author      Thomas
- * @version     V0.1
- * @date        22 Jun 2019
  * @brief       Header file for the universal data manipulator functions
  **************************************************************************************************
   @ attention

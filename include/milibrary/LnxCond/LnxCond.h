@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        LnxCond.h
  * @author      thomas
- * @version     V0.3
- * @date        1 June 2018
  * @brief       Header file for the Linux Embedded Device Operating Conditions
  **************************************************************************************************
  @ attention
