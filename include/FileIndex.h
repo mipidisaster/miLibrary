@@ -1,8 +1,6 @@
 /**************************************************************************************************
  * @file        FileIndex.h
  * @author      Thomas
- * @version     V1.1
- * @date        28 Sept 2019
  * @brief       File index for my code and functions
  **************************************************************************************************
   @ attention
@@ -49,8 +47,8 @@
  * All of the defines below are for "Common" code - examples: Buffers, Math, etc.
  * These would be contained within a "com" folder
  *************************************************************************************************/
-#define FilInd_GENBUF_HD    "milibrary/com/GenBuffer/GenBuffer.h"   // File for the Generic Buffer
-#define FilInd_GENBUF_Cp    "milibrary/com/GenBuffer/GenBuffer.cpp" // header and code
+#define FilInd_GENBUF_TP    "milibrary/com/GenBuffer/GenBuffer.cpp" // File for the Generic Buffer
+                                                                    // template
 
 #define FilInd_DATMngrHD    "milibrary/com/DataManip/DataManip.h"   // File for Data Manipulator
 
