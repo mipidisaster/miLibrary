@@ -124,6 +124,8 @@ public:
                   Form *ReadForm, uint16_t ReadFormSize,
                   DMA_HandleTypeDef *DMA_Rx_Handle, DMA_HandleTypeDef *DMA_Tx_Handle);
 
+    virtual ~UARTDMAPeriph();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -150,8 +152,6 @@ public:     /*******************************************************************
 // USART/DMA specific functions
     void handleDMATxIRQ(void);            // Interrupt handler for DMA Transmit
     void handleDMARxIRQ(void);            // Interrupt handler for DMA Receive
-
-    virtual ~UARTDMAPeriph();
 };
 
 #endif /* UARTDMAPERIPH_H_ */

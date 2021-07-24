@@ -112,6 +112,8 @@ public:
         // is not required, therefore a fully defined array is to be provided, and used within
         // the class.
 
+        virtual ~GenBuffer();               // Destructor of class
+
         void flush(void);                   // Clear the data within the buffer
         void qFlush(void);                  // Clear buffer, by setting pointers to 0
 
@@ -147,8 +149,6 @@ public:
         // the specified pointers will be setup such that:
         //  input_pointer will be set to bring the buffer to "FULL"
         //  output_pointer will be set to bring the buffer to "EMPTY"
-
-        virtual ~GenBuffer();               // Destructor of class
 
 // Device specific entries
 // None

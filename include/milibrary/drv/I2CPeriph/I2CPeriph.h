@@ -254,6 +254,8 @@ public:
 
 #endif
 
+        virtual ~I2CPeriph();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -357,8 +359,6 @@ public:     /*******************************************************************
     void intReqFormCmplt(void);             // Closes out the input Request Form
     void handleEventIRQ(void);              // Interrupt I2C Event handler
     void handleErrorIRQ(void);              // Interrupt I2C Error handler
-
-        virtual ~I2CPeriph();
 };
 
 #endif /* I2CPeriph_H_ */

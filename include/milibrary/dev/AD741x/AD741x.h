@@ -263,6 +263,8 @@ public:
     public:
         AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
 
+        virtual ~AD741x();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -333,8 +335,6 @@ public:     /*******************************************************************
 
     void intCheckCommStatus(uint8_t *rBuff, uint16_t size);
     // Will take the input parameters and decode the specified number of entries
-
-    virtual ~AD741x();
 };
 
 #endif /* AD741X_H_ */

@@ -100,12 +100,12 @@ public:
         DevFlt          flt;            // Fault status of the Demultiplexor
 
         DeMux(GPIO *High_Enable, GPIO *Low_Enable, GPIO Switches[], uint8_t SwitchSize);
+
+        virtual ~DeMux();
+
         void enable(void);              // Enable the Demultiplexor
         void disable(void);             // Disable the Demultiplexor
         DevFlt updateSelection(uint8_t newselection);    // Update the selection
-
-
-        virtual ~DeMux();
 };
 
 #endif /* DEMUX_H_ */

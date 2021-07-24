@@ -245,6 +245,8 @@ public:
 
 #endif
 
+        virtual ~UARTPeriph();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -330,8 +332,6 @@ public:     /*******************************************************************
                                    volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);
 
     virtual void handleIRQ(void);               // Interrupt handler
-
-        virtual ~UARTPeriph();
 };
 
 #endif /* UART_UART_H_ */

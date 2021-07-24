@@ -255,6 +255,8 @@ public:
 
 #endif
 
+    virtual ~SPIPeriph();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -351,8 +353,6 @@ public:     /*******************************************************************
                                                 // wait (doesn't actually wait)
     void intReqFormCmplt(void);                 // Closes out the input Request Form
     void handleIRQ(void);                       // Interrupt Handle for SPI Device
-
-        virtual ~SPIPeriph();
 };
 
 #endif /* SPIPeriph_H_ */

@@ -111,6 +111,8 @@ public:
 
 #endif
 
+        virtual ~GPIO();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -133,7 +135,6 @@ public:     /*******************************************************************
 
         // Input controls
         virtual State getValue();
-        virtual ~GPIO();
 };
 
 #endif /* GPIO_H_ */

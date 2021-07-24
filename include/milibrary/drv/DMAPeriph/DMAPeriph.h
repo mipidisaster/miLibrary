@@ -88,6 +88,8 @@ protected:
 public:
     DMAPeriph();        // Construct class - No internals
 
+    virtual ~DMAPeriph();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -101,8 +103,6 @@ protected:
                                 uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength);
         // Update the DMA registers with the required data, so that it can be enabled
         //      Enabling/Disabling not covered by this function
-
-    virtual ~DMAPeriph();
 };
 
 #endif /* DMAPERIPH_H_ */

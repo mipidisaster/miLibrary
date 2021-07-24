@@ -246,6 +246,8 @@ public:
     // Setup the AS5x4x device, by providing the device type, as well as array pointer(s) to be
     // used as the internal write and read buffers.
 
+    virtual ~AS5x4x();
+
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
@@ -325,8 +327,6 @@ public:     /*******************************************************************
 
     static void intSingleTransmit(SPIPeriph *hal_SPI, GPIO *CS, Daisy *chain,
                            uint8_t *rBuff, uint8_t *wBuff);
-
-    virtual ~AS5x4x();
 };
 
 #endif /* AS5X4X_H_ */
