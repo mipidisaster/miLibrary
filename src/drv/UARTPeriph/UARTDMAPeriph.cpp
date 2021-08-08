@@ -118,8 +118,7 @@ void UARTDMAPeriph::startInterrupt(void) {
                     5a] Clear the Transmit Complete flag, for DMA utilisation
                 6] Enable DMA
              */
-
-            __HAL_DMA_DISABLE(_dma_tx_);// Disable DMA
+            disableDMA(_dma_tx_);
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_tx_,  (uint32_t) _cur_wrte_form_.Buff,
@@ -139,12 +138,12 @@ void UARTDMAPeriph::startInterrupt(void) {
             SET_BIT(_uart_handle_->Instance->CR3, USART_CR3_DMAT);  // Link USART to DMA
 
             // Also enable the Complete Transmission Interrupt
-            __HAL_DMA_ENABLE_IT(_dma_tx_, DMA_IT_TC);
-            __HAL_DMA_ENABLE_IT(_dma_tx_, DMA_IT_TE);   // Enable DMA error interrupt
+            configDMACmpltTransmtIT(_dma_tx_, DMAInterState::kIT_Enable);
+            configDMAErrorIT(_dma_tx_, DMAInterState::kIT_Enable);
 
             clearComptChk();
 
-            __HAL_DMA_ENABLE(_dma_tx_); // Enable DMA
+            enableDMA(_dma_tx_);
         }
     }
     else if ( (wrte_comm_state == CommLock::kFree) &&
@@ -195,7 +194,7 @@ void UARTDMAPeriph::startInterrupt(void) {
                     5a] Clear the Transmit Complete flag, for DMA utilisation
                 6] Enable DMA
              */
-            __HAL_DMA_DISABLE(_dma_rx_);    // Disable DMA
+            disableDMA(_dma_rx_);
 #if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_rx_,  (uint32_t)&_uart_handle_->Instance->DR,
@@ -216,9 +215,9 @@ void UARTDMAPeriph::startInterrupt(void) {
 
             // This version assumes that the Recieve DMA is in circular mode, and therefore
             // no interrupt is required, as will ALWAYS push data to the desired array
-            //__HAL_DMA_ENABLE_IT(DMA_Rx, DMA_IT_TC);
-            __HAL_DMA_ENABLE_IT(_dma_rx_, DMA_IT_TE);   // Enable DMA error interrupt
-            __HAL_DMA_ENABLE(_dma_rx_);     // Enable DMA
+            //configDMACmpltTransmtIT(_dma_rx_, DMAInterState::kIT_Enable);
+            configDMAErrorIT(_dma_rx_, DMAInterState::kIT_Enable);
+            enableDMA(_dma_rx_);
         }
     }
     else if ( (read_comm_state == CommLock::kFree) &&
@@ -245,9 +244,10 @@ void UARTDMAPeriph::intWrteFormCmplt(void) {
                         (_cur_wrte_form_.size - __HAL_DMA_GET_COUNTER(_dma_tx_));
             // Indicate how many data points have been transfered (curCount should be 0)
 
-        __HAL_DMA_DISABLE(_dma_tx_);                // Disable DMA
-        __HAL_DMA_DISABLE_IT(_dma_tx_, DMA_IT_TC);  // Disable DMA complete interrupt
-        __HAL_DMA_DISABLE_IT(_dma_tx_, DMA_IT_TE);  // Disable DMA error interrupt
+        disableDMA(_dma_tx_);                       // Disable DMA
+        // Disable interrupt flags
+        configDMACmpltTransmtIT(_dma_tx_, DMAInterState::kIT_Disable);
+        configDMAErrorIT(_dma_tx_, DMAInterState::kIT_Disable);
     }
 
     configTransmtIT(InterState::kIT_Disable);       // Disable Transmit empty buffer interrupt
@@ -275,9 +275,10 @@ void UARTDMAPeriph::intReadFormCmplt(void) {
                         (_cur_read_form_.size - __HAL_DMA_GET_COUNTER(_dma_rx_));
             // Indicate how many data points have been transfered (curCount should be 0)
 
-        __HAL_DMA_DISABLE(_dma_rx_);                // Disable DMA
-        __HAL_DMA_DISABLE_IT(_dma_rx_, DMA_IT_TC);  // Disable DMA complete interrupt
-        __HAL_DMA_DISABLE_IT(_dma_rx_, DMA_IT_TE);  // Disable DMA error interrupt
+        disableDMA(_dma_rx_);                       // Disable DMA
+        // Disable interrupt flags
+        configDMACmpltTransmtIT(_dma_rx_, DMAInterState::kIT_Disable);
+        configDMAErrorIT(_dma_rx_, DMAInterState::kIT_Disable);
     }
 
     configReceiveIT(InterState::kIT_Disable);       // Disable Receive buffer full interrupt
@@ -344,18 +345,16 @@ void UARTDMAPeriph::handleDMATxIRQ(void) {
  *      No other interrupts are currently supported.
  *************************************************************************************************/
     // Check to see if there are ANY status updates for the DMA
-    if (__HAL_DMA_GET_FLAG(_dma_tx_, __HAL_DMA_GET_GI_FLAG_INDEX(_dma_tx_)) != 0) {
+    if (globalDMAChk(_dma_tx_) != 0) {
         // If an interrupt has been detected, then...
         // Now check to see which interrupt has been triggered:
         // 1 - Error(s)
-        if ( (__HAL_DMA_GET_IT_SOURCE(_dma_tx_, DMA_IT_TE) != 0) &&
-             (__HAL_DMA_GET_FLAG(_dma_tx_, __HAL_DMA_GET_TE_FLAG_INDEX(_dma_tx_)) != 0) ) {
-
-            __HAL_DMA_CLEAR_FLAG(_dma_tx_, __HAL_DMA_GET_TE_FLAG_INDEX(_dma_tx_));
+        if ( (transmitDMAErrorITChk(_dma_tx_) != 0) && (transmitDMAErrorChk(_dma_tx_) != 0) ) {
+            clearTransmitDMAErrorFlg(_dma_tx_);
                 // Clear the interrupt flag
 
-            __HAL_DMA_DISABLE(_dma_tx_);    // This type of error will already have disabled
-                                            // DMA, however this is to enforce within code
+            disableDMA(_dma_tx_);       // This type of error will already have disabled DMA,
+                                        // however this is to enforce within code
             *(_cur_wrte_form_.Flt) = DevFlt::kDMA_Tx_Error; // Indicate fault (Tx_Error)
 
             // Essentially if there are any DMA error faults, then cancel all Transmissions
@@ -363,17 +362,16 @@ void UARTDMAPeriph::handleDMATxIRQ(void) {
 
         // 2 - Half Transmission - Not utilised within this class set
         // 3 - Full Transmission
-        if ( (__HAL_DMA_GET_IT_SOURCE(_dma_tx_, DMA_IT_TC) != 0) &&
-             (__HAL_DMA_GET_FLAG(_dma_tx_, __HAL_DMA_GET_TC_FLAG_INDEX(_dma_tx_)) != 0) ) {
+        if ( (comptDMATransmitITChk(_dma_tx_) != 0) && (comptDMATransmitChk(_dma_tx_) != 0) ) {
             configTransCmIT(InterState::kIT_Enable);        // Enable Transmission complete
                                                             // interrupt, such that "IRQHandle"
                                                             // is able to progress transmission
-            __HAL_DMA_CLEAR_FLAG(_dma_tx_, __HAL_DMA_GET_TC_FLAG_INDEX(_dma_tx_));
+            clearComptDMATransmitFlg(_dma_tx_);
                 // Clear the interrupt flag
         }
 
         // Use global clear flag, to clear all interrupts (if not already done so)
-        __HAL_DMA_CLEAR_FLAG(_dma_tx_, __HAL_DMA_GET_GI_FLAG_INDEX(_dma_tx_));
+        clearGlobalDMAFlg(_dma_tx_);
     }
 
 }
@@ -399,18 +397,16 @@ void UARTDMAPeriph::handleDMARxIRQ(void) {
  *      No other interrupts are currently supported.
  *************************************************************************************************/
     // Check to see if there are ANY status updates for the DMA
-    if (__HAL_DMA_GET_FLAG(_dma_rx_, __HAL_DMA_GET_GI_FLAG_INDEX(_dma_rx_)) != 0) {
+    if (globalDMAChk(_dma_rx_) != 0) {
         // If an interrupt has been detected, then...
         // Now check to see which interrupt has been triggered:
         // 1 - Error(s)
-        if ( (__HAL_DMA_GET_IT_SOURCE(_dma_rx_, DMA_IT_TE) != 0) &&
-             (__HAL_DMA_GET_FLAG(_dma_rx_, __HAL_DMA_GET_TE_FLAG_INDEX(_dma_rx_)) != 0) ) {
-
-            __HAL_DMA_CLEAR_FLAG(_dma_rx_, __HAL_DMA_GET_TE_FLAG_INDEX(_dma_rx_));
+        if ( (transmitDMAErrorITChk(_dma_rx_) != 0) && (transmitDMAErrorChk(_dma_rx_) != 0) ) {
+            clearTransmitDMAErrorFlg(_dma_rx_);
                 // Clear the interrupt flag
 
-            __HAL_DMA_DISABLE(_dma_rx_);    // This type of error will already have disabled
-                                            // DMA, however this is to enforce within code
+            disableDMA(_dma_rx_);       // This type of error will already have disabled DMA,
+                                        // however this is to enforce within code
             *(_cur_wrte_form_.Flt) = DevFlt::kDMA_Rx_Error; // Indicate fault (Rx_Error)
 
             // Essentially if there are any DMA error faults, then cancel all Transmissions
@@ -418,9 +414,8 @@ void UARTDMAPeriph::handleDMARxIRQ(void) {
 
         // 2 - Half Transmission - Not utilised within this class set
         // 3 - Full Transmission
-        if ( (__HAL_DMA_GET_IT_SOURCE(_dma_rx_, DMA_IT_TC) != 0) &&
-             (__HAL_DMA_GET_FLAG(_dma_rx_, __HAL_DMA_GET_TC_FLAG_INDEX(_dma_rx_)) != 0) ) {
-            __HAL_DMA_CLEAR_FLAG(_dma_rx_, __HAL_DMA_GET_TC_FLAG_INDEX(_dma_rx_));
+        if ( (comptDMATransmitITChk(_dma_rx_) != 0) && (comptDMATransmitChk(_dma_rx_) != 0) ) {
+            clearComptDMATransmitFlg(_dma_rx_);
                 // Clear the interrupt flag
 
             intReadFormCmplt(); // Complete the current request form (no faults)
@@ -428,7 +423,7 @@ void UARTDMAPeriph::handleDMARxIRQ(void) {
         }
 
         // Use global clear flag, to clear all interrupts (if not already done so)
-        __HAL_DMA_CLEAR_FLAG(_dma_rx_, __HAL_DMA_GET_GI_FLAG_INDEX(_dma_rx_));
+        clearGlobalDMAFlg(_dma_rx_);
     }
 }
 
