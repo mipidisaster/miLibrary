@@ -44,6 +44,154 @@
 
 //=================================================================================================
 
+void DMAPeriph::enableDMA(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Enable the input DMA interface
+ *************************************************************************************************/
+    __HAL_DMA_ENABLE(hdma);
+}
+
+void DMAPeriph::disableDMA(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Disable the input DMA interface
+ *************************************************************************************************/
+    __HAL_DMA_DISABLE(hdma);
+}
+
+
+void DMAPeriph::configDMAErrorIT(DMA_HandleTypeDef *hdma, DMAInterState intr) {
+/**************************************************************************************************
+ * Configure the DMA interrupt bit for Transmit Errors
+ *************************************************************************************************/
+    if (intr == DMAInterState::kIT_Enable) {                // If request is to enable
+        __HAL_DMA_ENABLE_IT(hdma, DMA_IT_TE);               // Enable interrupt
+    }
+    else {                                                  // If request is to disable
+        __HAL_DMA_DISABLE_IT(hdma, DMA_IT_TE);              // Then disable interrupt
+    }
+}
+
+void DMAPeriph::configDMAHalfTransmtIT(DMA_HandleTypeDef *hdma, DMAInterState intr) {
+/**************************************************************************************************
+ * Configure the DMA interrupt bit for Half Transmit complete
+ *************************************************************************************************/
+    if (intr == DMAInterState::kIT_Enable) {                // If request is to enable
+        __HAL_DMA_ENABLE_IT(hdma, DMA_IT_HT);               // Enable interrupt
+    }
+    else {                                                  // If request is to disable
+        __HAL_DMA_DISABLE_IT(hdma, DMA_IT_HT);              // Then disable interrupt
+    }
+}
+
+void DMAPeriph::configDMACmpltTransmtIT(DMA_HandleTypeDef *hdma, DMAInterState intr) {
+/**************************************************************************************************
+ * Configure the DMA interrupt bit for Transmit complete
+ *************************************************************************************************/
+    if (intr == DMAInterState::kIT_Enable) {                // If request is to enable
+        __HAL_DMA_ENABLE_IT(hdma, DMA_IT_TC);               // Enable interrupt
+    }
+    else {                                                  // If request is to disable
+        __HAL_DMA_DISABLE_IT(hdma, DMA_IT_TC);              // Then disable interrupt
+    }
+}
+
+uint8_t DMAPeriph::halfDMATransmitITChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check to see whether the Transmit half complete interrupt has been enabled
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_HT) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
+uint8_t DMAPeriph::comptDMATransmitITChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check to see whether the Transmit complete interrupt has been enabled
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TC) != 0 )
+        return (1);
+    else
+        return (0);
+}
+uint8_t DMAPeriph::transmitDMAErrorITChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check to see whether the Transmit complete interrupt has been enabled
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TE) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
+void DMAPeriph::clearGlobalDMAFlg(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Clear the Interrupt register for hdma - Global Interrupt flag
+ *************************************************************************************************/
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_GI_FLAG_INDEX(hdma));
+}
+
+void DMAPeriph::clearHalfDMATransmitFlg(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Clear the Interrupt register for hdma - Transmit Half complete Interrupt flag
+ *************************************************************************************************/
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma));
+}
+
+void DMAPeriph::clearComptDMATransmitFlg(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Clear the Interrupt register for hdma - Transmit complete Interrupt flag
+ *************************************************************************************************/
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma));
+}
+
+void DMAPeriph::clearTransmitDMAErrorFlg(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Clear the Interrupt register for hdma - Transmit error Interrupt flag
+ *************************************************************************************************/
+    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TE_FLAG_INDEX(hdma));
+}
+
+uint8_t DMAPeriph::globalDMAChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check the status of DMA global interrupt flag is set
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_GI_FLAG_INDEX(hdma)) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
+uint8_t DMAPeriph::halfDMATransmitChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check the status of DMA half transmit interrupt flag is set
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma)) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
+uint8_t DMAPeriph::comptDMATransmitChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check the status of DMA transmit complete interrupt flag is set
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma)) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
+uint8_t DMAPeriph::transmitDMAErrorChk(DMA_HandleTypeDef *hdma) {
+/**************************************************************************************************
+ * Check the status of DMA transmit error interrupt flag is set
+ *************************************************************************************************/
+    if ( __HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TE_FLAG_INDEX(hdma)) != 0 )
+        return (1);
+    else
+        return (0);
+}
+
 void DMAPeriph::popDMARegisters(DMA_HandleTypeDef *hdma,
                                 uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength) {
 /**************************************************************************************************

@@ -71,6 +71,9 @@ protected:
         kEnable     = 0x01              // DMA is enabled
     };
 
+    enum DMAInterState : uint8_t {kIT_Enable, kIT_Disable};     // Enumerate state for enabling/
+                                                               // disabling interrupts
+
 /**************************************************************************************************
 * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
 *   -----------
@@ -99,6 +102,32 @@ public:
  *  embedded devices.
  *************************************************************************************************/
 protected:
+    static void enableDMA(DMA_HandleTypeDef *hdma);
+    static void disableDMA(DMA_HandleTypeDef *hdma);
+
+    // Configure the Interrupt enabling registers/bits
+    void configDMAErrorIT(DMA_HandleTypeDef *hdma, DMAInterState intr);
+    void configDMAHalfTransmtIT(DMA_HandleTypeDef *hdma, DMAInterState intr);
+    void configDMACmpltTransmtIT(DMA_HandleTypeDef *hdma, DMAInterState intr);
+
+    uint8_t halfDMATransmitITChk(DMA_HandleTypeDef *hdma);  // Check to see if interrupt is enabled
+    uint8_t comptDMATransmitITChk(DMA_HandleTypeDef *hdma); // Check to see if interrupt is enabled
+    uint8_t transmitDMAErrorITChk(DMA_HandleTypeDef *hdma); // Check to see if interrupt is enabled
+
+    void clearGlobalDMAFlg(DMA_HandleTypeDef *hdma);        // Clear Interrupt flags
+    void clearHalfDMATransmitFlg(DMA_HandleTypeDef *hdma);  // Clear Interrupt flags
+    void clearComptDMATransmitFlg(DMA_HandleTypeDef *hdma); // Clear Interrupt flags
+    void clearTransmitDMAErrorFlg(DMA_HandleTypeDef *hdma); // Clear Interrupt flags
+
+    uint8_t globalDMAChk(DMA_HandleTypeDef *hdma);          // Check state of the global interrupt
+                                                            // flag
+    uint8_t halfDMATransmitChk(DMA_HandleTypeDef *hdma);    // Check state of the half transmit
+                                                            // interrupt flag
+    uint8_t comptDMATransmitChk(DMA_HandleTypeDef *hdma);   // Check state of the transmit
+                                                            // complete interrupt flag
+    uint8_t transmitDMAErrorChk(DMA_HandleTypeDef *hdma);   // Check state of the transmit error
+                                                            // flag
+
     static void popDMARegisters(DMA_HandleTypeDef *hdma,
                                 uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength);
         // Update the DMA registers with the required data, so that it can be enabled
