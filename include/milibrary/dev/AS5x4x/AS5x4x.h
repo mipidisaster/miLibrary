@@ -159,10 +159,6 @@
 
 #define AS5x4x_MAXChain     10          // Define the maximum number of AS5x4x devices in a chain
 
-#ifndef PI
-#define PI                 3.14159265358979f
-#endif
-
 // Types used within this class
 
 

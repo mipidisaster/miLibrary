@@ -14,6 +14,7 @@
 // C System Header(s)
 // ------------------
 #include <stdint.h>
+#include <math.h>
 
 // C++ System Header(s)
 // --------------------
@@ -91,9 +92,8 @@ uint8_t AS5x4x::evenParityCheck(uint16_t packet) {
  * Otherwise will not return 0 = ODD parity
  *************************************************************************************************/
     uint8_t count = 0;
-    uint8_t i = 0;
 
-    for (i = 0; i != 16; i++) {         // Cycle through each bit in the data packet
+    for (uint8_t i = 0; i != 16; i++) { // Cycle through each bit in the data packet
         if (packet & 0x01) count++;     // If the lower bit is "1", increment count
         packet >>= 1;                   // Shift data down by 1 (/2)
     }
@@ -139,7 +139,6 @@ uint16_t AS5x4x::writeSPIChain(AS5x4x *targdevice, uint16_t numchain, uint8_t *w
  *
  * Function will then return the number of SPI write (8bit) array entries used.
  *************************************************************************************************/
-    uint16_t packet_data = 0;           // Variable to store the packet to transmit
     uint8_t  break_out_condition = 1;   // Variable to break out of function if there is no data to
                                         // transmit (initialise to "break out" = 1)
     uint16_t i = 0;                     // Variable to loop through the devices attached in the
@@ -170,6 +169,8 @@ uint16_t AS5x4x::writeSPIChain(AS5x4x *targdevice, uint16_t numchain, uint8_t *w
             targdevice[i].constructNOP();
             // This will ensure that the "ReadDataPacket" will still function correctly
         }
+
+        uint16_t packet_data = 0;           // Variable to store the packet to transmit
 
         targdevice[i]._wrte_buff_.outputRead(&packet_data); // Read from internal buffer (no need
                                                             // to check state, as already checked
@@ -230,7 +231,7 @@ void AS5x4x::deconstructAS5048A(uint16_t Address, uint16_t packetdata) {
     else if (Address == AS5048_ANGLE) {     // If ANGLE then
         //=========================================================================================
         angular_steps = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
-        angle         = (((float)angular_steps) * PI * 2) / 16383;
+        angle         = (float) ( (((float) angular_steps) * M_PI * 2) / 16383 );
             // Convert to radians
     }
     else {}
@@ -277,7 +278,7 @@ void AS5x4x::deconstructAS5047D(uint16_t Address, uint16_t packetdata) {
     else if (Address == AS5047_ANGLE) {     // If ANGLE then
         //=========================================================================================
         angular_steps = (packetdata & AS5x4x_DataMask);       // Retrieve the Angle value
-        angle         = (((float)angular_steps) * PI * 2) / 16383;
+        angle         = (float) ( (((float) angular_steps) * M_PI * 2) / 16383 );
             // Convert to radians
     }
     else {}
@@ -307,14 +308,6 @@ uint8_t AS5x4x::readSPIChain(AS5x4x *targdevice, uint16_t numchain,
  * value again, to ensure that they are equal - function has worked correctly, will therefore
  * return "0". Otherwise a fault has occurred = "-1".
  *************************************************************************************************/
-    uint8_t MSB = 0;            // Variables to store the Upper (MSB) and Lower (LSB) byte of data
-    uint8_t LSB = 0;            //
-    uint16_t array_size = 0;    // Variable to store the number of SPI array entries read
-                                // -> To be compared with input "size" to ensure no overflow.
-
-    uint16_t i = 0;             // Variable to loop through the devices attached in the chain and
-                                // link the read data to internal buffers
-
     if (size == 0)              // If the input size is zero (i.e. nothing in array)
         return(-1);             // return "-1"
 
@@ -322,8 +315,12 @@ uint8_t AS5x4x::readSPIChain(AS5x4x *targdevice, uint16_t numchain,
                                             // Multiplied by 2
         return(-1);                         // Then there is a request fault
 
+    uint8_t MSB = 0;            // Variables to store the Upper (MSB) and Lower (LSB) byte of data
+    uint8_t LSB = 0;            //
+    uint16_t array_size = 0;    // Variable to store the number of SPI array entries read
+                                // -> To be compared with input "size" to ensure no overflow.
     while(array_size != size) {
-        for (i = 0; i != numchain; i++) {
+        for (uint16_t i = 0; i != numchain; i++) {
             MSB = *rddata;              // The first entry will be the "MSB", so link to MSB
                                         // variable
             array_size++; rddata += sizeof(uint8_t);    // Increment calculated array size
@@ -444,19 +441,20 @@ void AS5x4x::readDataPacket(void) {
  *************************************************************************************************/
     uint16_t sent_packet = 0;       // Variable to store the data/command sent to the AS5x4x
                                     // for which the read data is linked (off by 1)
-    uint16_t temp_req = 0;          // Variable to store the 16bit temporarily (Request)
-    uint16_t temp_read = 0;         // Variable to store the 16bit temporarily (Read back)
 
     _GenBufState exit_loop = _read_buff_.state();   // Get current state of buffer
 
     while(exit_loop != kGenBuffer_Empty) {
         // Retrieve the position of the current readback, and then loop back a previous entry
         if (_read_buff_.output_pointer == 0)        // If start of buffer
-            sent_packet = _read_buff_.length - 1;   // Look at end of buffer
+            sent_packet = (uint16_t) ( _read_buff_.length - 1 );    // Look at end of buffer
         else                // Otherwise loop back
-            sent_packet = (_read_buff_.output_pointer - 1) % _read_buff_.length;
+            sent_packet = (uint16_t) ( (_read_buff_.output_pointer - 1) % _read_buff_.length );
 
+        uint16_t temp_req = 0;          // Variable to store the 16bit temporarily (Request)
         temp_req = _wrte_buff_.pa[sent_packet];         // Retrieve the requested data
+
+        uint16_t temp_read = 0;         // Variable to store the 16bit temporarily (Read back)
         exit_loop = _read_buff_.outputRead(&temp_read); // Read back the Read data (and determine
                                                         // state of buffer)
 
@@ -482,26 +480,22 @@ AS5x4x::Daisy AS5x4x::constructDaisy(AS5x4x *targdevice, uint16_t numchain) {
 /**************************************************************************************************
  * Construct the Daisy Chain structure to hold the AS5x4x device array, and size number.
  *************************************************************************************************/
-    AS5x4x::Daisy newchain = { 0 };             // Generate the "AS5x4x::Daisy" structure with
-                                                // default values of zero.
+    AS5x4x::Daisy new_chain = {
+            .Devices    = targdevice,
+            .numDevices = numchain,
+            .Flt        = SPIPeriph::DevFlt::kNone,
+            .Cmplt      = 0,
+            .Trgt       = 0
+    };
 
-    newchain.Devices    = targdevice;           // Link input pointer to "Daisy"
-    newchain.numDevices = numchain;             // Put chain size into "Daisy"
-
-    newchain.Flt    = SPIPeriph::DevFlt::kNone; // Default all status indicators to "0"/"None"
-    newchain.Trgt   = 0;                        //
-    newchain.Cmplt  = 0;                        //
-
-    return (  newchain  );      // Return chain
+    return (  new_chain  );      // Return chain
 }
 
 uint8_t AS5x4x::checkDaisyRequest(AS5x4x::Daisy *chain) {
 /**************************************************************************************************
  * Check all of the devices in the chain, and see if there is any new requests in any of them
  *************************************************************************************************/
-    uint16_t i = 0;         // Clear loop variable
-
-    for (i = 0; i != chain->numDevices; i++) {                      // Loop through devices
+    for (uint16_t i = 0; i != chain->numDevices; i++) {             // Loop through devices
         if (chain->Devices[i].checkDataRequest() == 1) {            // If data is present
             return (1);                 // Return (1) if there is some data in any device on chain
     } }
@@ -514,9 +508,7 @@ void AS5x4x::readDaisyPackets(AS5x4x::Daisy *chain) {
 /**************************************************************************************************
  * Loop through all the devices within the Daisy chain, and read any of the stored packets
  *************************************************************************************************/
-    uint16_t i = 0;
-
-    for (i = 0; i != chain->numDevices; i++) {
+    for (uint16_t i = 0; i != chain->numDevices; i++) {
         chain->Devices[i].readDataPacket();
     }
 }
