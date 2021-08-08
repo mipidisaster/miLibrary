@@ -1,7 +1,7 @@
 /**************************************************************************************************
- * @file        GenBuffer.cpp
+ * @file        GenBuffer.hpp
  * @author      Thomas
- * @brief       Source file for the Generic GenBuffer Class handle (template)
+ * @brief       Header file for the Generic GenBuffer Class handle (template)
  **************************************************************************************************
  @ attention
 
@@ -277,10 +277,11 @@ void GenBuffer<Typ>::inputWrite(Typ newdata) {
     pa[input_pointer] = newdata;                    // Add the input data into the buffer
 
     if (state() == kGenBuffer_Full) {
-        output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
-                                                        // limited to size "length"
+        output_pointer = (uint16_t) ( (output_pointer + 1) % length );
+            // Increase the output pointer by 1, limited to size "length"
     }
-    input_pointer = (input_pointer + 1) % length;   // Increment the input pointer, then take the
+    input_pointer = (uint16_t) ( (input_pointer + 1) % length );
+        // Increment the input pointer, then take the
 
     // Modulus of this. This will then cause the input_pointer to be circled round if it equal to
     // the length.
@@ -316,8 +317,8 @@ _GenBufState GenBuffer<Typ>::outputRead(Typ *readdata) {
                                                 // data be read
         *readdata = pa[output_pointer];         // Update the output with the latest entry from
                                                 // buffer
-        output_pointer = (output_pointer + 1) % length; // Increase the output pointer by 1,
-                                                        // limited to size "length"
+        output_pointer = (uint16_t) ( (output_pointer + 1) % length );
+            // Increase the output pointer by 1, limited to size "length"
         return(return_entry);               // Return state of buffer prior to read
     }
     else                                    // If state is equal to "Empty"
