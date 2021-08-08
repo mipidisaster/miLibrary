@@ -529,10 +529,10 @@ SPIPeriph::CSHandle SPIPeriph::hardwareCS(void) {
  * Generate a CSHandle struct variable with the parameters configured to indicate that SPI device
  * communication is to be done via the Hardware Chip Select (no software interaction required)
  *************************************************************************************************/
-    CSHandle temp_struct = { 0 };                       // Initialise structure
+    CSHandle temp_struct = { .GPIO_CS = __null,
+                             .Type = CSHandle::CSType::kHardware_Managed
+    };
 
-    temp_struct.Type  = CSHandle::CSType::kHardware_Managed;    // Indicate that SPI device is
-                                                                // hardware managed
     return (temp_struct);                               // Return build structure
 }
 
@@ -541,11 +541,10 @@ SPIPeriph::CSHandle SPIPeriph::softwareGPIO(GPIO *CS) {
  * Generate a CSHandle struct variable with the parameters configured to indicate that SPI device
  * communication is to be done via software selection of input GPIO pin.
  *************************************************************************************************/
-    CSHandle temp_struct = { 0 };                       // Initialise structure
+    CSHandle temp_struct = {.GPIO_CS = CS,
+                            .Type    = CSHandle::CSType::kSoftware_GPIO
+    };
 
-    temp_struct.GPIO_CS  = CS;                          // Link input Chip Select to struct
-    temp_struct.Type  = CSHandle::CSType::kSoftware_GPIO;   // Indicate that SPI device is software
-                                                            // managed
     return (temp_struct);                               // Return build structure
 }
 
@@ -571,15 +570,14 @@ SPIPeriph::Form SPIPeriph::genericForm(CSHandle devLoc, uint16_t size,
 /**************************************************************************************************
  * Generate a SPIForm request, based upon the generic information provided as input.
  *************************************************************************************************/
-    Form request_form = { 0 };                  // Generate the "Form" variable to provide as 
-                                                // output
-
-    request_form.devLoc          = devLoc;      // Populate form with input data
-    request_form.size            = size;        //
-
-    // Indications used for source functionality to get status of requested communication
-    request_form.Flt             = fltReturn;   // Populate return fault flag
-    request_form.Cmplt           = cmpFlag;     // Populate complete communication indication
+    Form request_form = {               // Initialise the "Form" variable with input
+            .devLoc     = devLoc,
+            .size       = size,
+            .TxBuff     = __null,
+            .RxBuff     = __null,
+            .Cmplt      = cmpFlag,
+            .Flt        = fltReturn
+    };
 
     return (request_form);
 }
