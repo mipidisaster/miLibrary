@@ -282,7 +282,7 @@ protected:  /*******************************************************************
              *  (which are public), rely upon these functions to operate.
              *  Are protected, as the upper level functions will not need to use these.
              *************************************************************************************/
-    void getAddress(void);          // Determine the Address from provided device number
+    void getI2CAddress(void);       // Determine the Address from provided device number
     Form addressForm(uint8_t newAdd, Form::Dir Direction);
 
     uint8_t updateAddressPointer(uint8_t *buff, uint8_t newval);

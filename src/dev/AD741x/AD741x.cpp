@@ -61,7 +61,7 @@ void AD741x::popGenParam(DevPart DeviceNum, AddrBit ASPin) {
 
     _i2c_address = 0x0000;              // Populate I2C address, with 0. Will be updated
                                         // correctly, by next function call
-    getAddress();   // Determine the I2C address from provided parameters
+    getI2CAddress();    // Determine the I2C address from provided parameters
 
     flt           = DevFlt::kInitialised;   // Set fault to initialised
 
@@ -90,7 +90,7 @@ AD741x::AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormS
     reInitialise();       // Ensure that the internal mechanics of the class have been reset
 }
 
-void AD741x::getAddress(void) {
+void AD741x::getI2CAddress(void) {
 /**************************************************************************************************
  * Function will bring in the PartNumber and _address_pin_ provided to the class, and determine what
  * the I2C address is.
@@ -211,10 +211,11 @@ uint8_t AD741x::lastAddresPointRqst(void) {
     uint16_t last_entry = 0;                    // Variable to retain pointer
 
     if (_address_buff_.input_pointer == 0)      // If last entry, then previous entry is
-        last_entry = _address_buff_.length - 1; // update variable to bottom of Buffer array
+        last_entry = (uint16_t) ( _address_buff_.length - 1 );
+            // update variable to bottom of Buffer array
 
     else
-        last_entry = (_address_buff_.input_pointer - 1) % _address_buff_.length;
+        last_entry = (uint16_t) ( (_address_buff_.input_pointer - 1) % _address_buff_.length );
 
     return(_address_buff_.pa[last_entry].AddrPoint);    // Return the last Address request
 }
@@ -244,12 +245,14 @@ void AD741x::decodeTempReg(uint8_t *pData) {
  *************************************************************************************************/
     uint16_t raw_data = 0;
 
-    raw_data = (pData[0] << 8) | pData[1];      // Pack together the 2 Temperature Registers
+    raw_data = (uint16_t) ( (pData[0] << 8) | pData[1] );
+        // Pack together the 2 Temperature Registers
+
     raw_data = ((raw_data & AD741x_TempLowerMask) >> AD741x_TempShift);
                 // Capture only the Temperature values, and shift down
 
-    temp_reg = (raw_data & ~AD741x_SignBit);    // Only capture the data values (i.e. ignore sign
-                                                // bit)
+    temp_reg = (int16_t) ( (raw_data & ~AD741x_SignBit) );
+            // Only capture the data values (i.e. ignore sign bit)
 
     if ((raw_data & AD741x_SignBit) == AD741x_SignBit)  // If sign bit is set, then convert to
         temp_reg -= 512;                                // two's complement equivalent
@@ -338,7 +341,7 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
  * the contents of the Configuration Register, and then copy contents into Class.
  *************************************************************************************************/
     uint8_t rData[1] = { 0 };           // Array to contain the Temperature values
-    uint16_t packet_size = 0;           // Variable to store the number of bytes to read/write
+    uint8_t packet_size = 0;            // Variable to store the number of bytes to read/write
 
     if ( (flt == DevFlt::kInitialised) || (_address_pointer_ != AD741x_ConfigReg) ) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
@@ -373,9 +376,8 @@ AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *hal_I2C,
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Configuration Register, and then copy contents into Class.
  *************************************************************************************************/
-    uint8_t rData[2] = { 0 };                   // Array to contain the Temperature values
-
-    uint16_t packet_size = 0;            // Variable to store the number of bytes to read/write
+    uint8_t rData[2] = { 0 };           // Array to contain the Temperature values
+    uint8_t packet_size = 0;            // Variable to store the number of bytes to read/write
 
     packet_size = updateConfigReg(&rData[0], Mode, Filt, Conv);
         // Request a write of the Configuration register
@@ -394,8 +396,7 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
  * the contents of the Temperature Register, and then calculate the actual reading.
  *************************************************************************************************/
     uint8_t rData[2] = { 0 };           // Array to contain the Temperature values
-
-    uint16_t packet_size = 0;            // Variable to store the number of bytes to read/write
+    uint8_t packet_size = 0;            // Variable to store the number of bytes to read/write
 
     if ( (flt == DevFlt::kInitialised) || (_address_pointer_ != AD741x_TemperatureReg) ) {
         // If Device class has just been created (fault = Initialised), or Address Pointer is not
