@@ -9,7 +9,7 @@ This library contains the support of a majority of devices/interaces which will 
 # Build Tree
 ![build tree](https://github.com/mipidisaster/Library/raw/master/_image/Build_tree.png)
 
-wip-#5
+wip-#5 (actual name - 'wip-#5-stepper-improvements')
 * Branch used to make improvements to the Stepper class, as part of fix for issue [#5](https://github.com/mipidisaster/miLibrary/issues/5)
 * Additionally, first time making use of branches - still learning and figuring out how to use it
 
