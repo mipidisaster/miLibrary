@@ -9,6 +9,12 @@ This library contains the support of a majority of devices/interaces which will 
 # Build Tree
 ![build tree](https://github.com/mipidisaster/Library/raw/master/_image/Build_tree.png)
 
+0.2.0
+* Architecture diagrams introduced into "_image"
+* Eclipse preferences captured
+* All major driver and device classes update to align with code style in wiki, as well as to remove version number and dates from top of source and header files
+   * Issue [#2](https://github.com/mipidisaster/miLibrary/issues/2) fixed for Stepper header
+
 0.1.1
 * README.md file image build updated to work correctly
 
