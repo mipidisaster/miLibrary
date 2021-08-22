@@ -168,14 +168,24 @@
 
 class Stepper : public DMAPeriph {
 private:
-     static const uint8_t   kdefault_profile_delay      = 50;
-     static const uint8_t   kdefault_profile_width      = 5;
+     static const uint16_t  kdefault_profile_width      = 5;
+     static const uint8_t   kprofile_array_pulse_depth  = 1;
 
      static const uint8_t   kform_size                  = 10;
      static const uint8_t   knumber_micro_pins          = 3;
-     /*  Default delay and width of the STEP pulse, units will be 'counts'
+
+     static const uint16_t  kmax_frequency              = 100;
+     static const uint16_t  kcount_limit                = 0xFFFF;
+     /*  Default width of the STEP pulse, units will be 'counts'
       *  Form size used for the internal buffer, for Stepper demands
       *  Number of pins used for defining the MicroSteps -> 1/2 step, 1/4 step, 1/8 step, etc.
+      *  Maximum Frequency that this class can support, it needs to be sized so as to allow
+      *  sufficient time to calculate the next pulse, and put into the DMA (so as to maintain
+      *  desired pulse). Additionally, it also needs to allow sufficient to for any other stepper
+      *  classes to calculate pulses at full speed.
+      *  Based upon logic analyser, the interrupt time is ~5us (going to 10us for a state change),
+      *  so with maximum pulse of 100 (assumed 'us') this will allow 20 Stepper classes to work
+      *  concurrently.
       */
 
 /**************************************************************************************************
@@ -258,12 +268,15 @@ public:
         Form            _form_arry_[kform_size];    // Array to contain the Stepper request forms
         GenBuffer<Form> _form_queue_;               // GenBuffer for the Forms
 
-        uint16_t    _shd_profile_[2];   // Profile to use for STEP pulse
+        uint16_t    _shd_profile_[kprofile_array_pulse_depth * 2];
+            // Profile to use for STEP pulse
+        uint8_t     _pulse_run_;        // Number of pulses that will occur in a single DMA
+                                        // transfer
         CountPanel  _shd_count_conf_;   // Shadow (active) Count configuration
         Form        _shd_form_;         // Shadow entry of the controlling signals which need to be
                                         // synced with the rising edge of STEP
     public:
-        int32_t    full_revolution; // Defines the maximum number of steps per revolution of
+        uint32_t   full_revolution; // Defines the maximum number of steps per revolution of
                                     // stepper (needs to include the driver smallest step rate,
                                     // i.e. Motor has 200 poles, driver can allow 1/16 step per
                                     // pulse, therefore this would be 200 x 16 = 3,200
@@ -339,6 +352,11 @@ protected:  /*******************************************************************
     void startInterrupt(void);          // Enable the STEP pulse generator interrupt, if the
                                         // system is currently "DISABLED". Otherwise leave in
                                         // buffer
+    void updatePulseDMA(uint16_t prevposition);          // Calculate the next pulse position, and implement in
+                                        // array
+    void updateModelPosition(void);     // Calculate the modelled position of the stepper motor
+    void disableMotor(void);            // Function to be called when transitioning from one
+                                        // position demand, to another
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>        CLASS INTERFACE FUNCTIONS        <<<
              *   -----------

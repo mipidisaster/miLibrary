@@ -9,20 +9,20 @@ This library contains the support of a majority of devices/interaces which will 
 # Build Tree
 ![build tree](https://github.com/mipidisaster/miLibrary/blob/wip-%235-stepper-improvements/_image/Build_tree.png)
 
-wip-#5 (actual name - 'wip-#5-stepper-improvements')
+v0.2.0 -> wip-#5 (actual name - 'wip-#5-stepper-improvements')
 * Branch used to make improvements to the Stepper class, as part of fix for issue [#5](https://github.com/mipidisaster/miLibrary/issues/5)
 * Additionally, first time making use of branches - still learning and figuring out how to use it
 
-0.2.0
+v0.2.0
 * Architecture diagrams introduced into "_image"
 * Eclipse preferences captured
 * All major driver and device classes update to align with code style in wiki, as well as to remove version number and dates from top of source and header files
    * Issue [#2](https://github.com/mipidisaster/miLibrary/issues/2) fixed for Stepper header
 
-0.1.1
+v0.1.1
 * README.md file image build updated to work correctly
 
-0.1.0
+v0.1.0
 * Initial release
 
 # Configuration

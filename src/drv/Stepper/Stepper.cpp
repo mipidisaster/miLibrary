@@ -72,9 +72,11 @@ void Stepper::popGenParam(void) {
                                                     // in default state
     }
 
-    _shd_profile_[0]    = kdefault_profile_delay;   // Put into profile delay for rising edge
-    _shd_profile_[1]    = kdefault_profile_delay + kdefault_profile_width;
-        // Then calculate the time (in counts) for the width of the STEP pulse
+    for (uint8_t i = 0; i != kprofile_array_pulse_depth * 2; i++) {
+        _shd_profile_[i]    = 0x0000;
+    }
+        // Reset pulse shadow profile, to zero. This will be calculated correctly when movement
+        // demands are made
 
     _form_queue_.create(&_form_arry_[0], kform_size);
 
@@ -125,36 +127,8 @@ Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint3
 
     calc_position   = 0;                    // Initialise the calculated position to 0
 
-    // Configure Timer hardware for use with this Stepper class:
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Configure Timer and Linked DMA
+    // Ensure that the DMA is disabled for now, and that the interrupt flag is off
     disableDMA(_dma_stp_);              // Ensure that DMA is disabled for initial setup
-    popDMARegisters(_dma_stp_,
-                    (uint32_t)&_shd_profile_[0],
-                    _hardware_config_.PulseDMAAddress,
-                    2);
-    // Link DMA to the internal Shadow Profile, use Hardware setup DMA Address to link to correct
-    // Timer hardware register (Memory to Peripheral setup is required)
-    //                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // DMA also needs to be configured as a circular buffer
-    //                                      ~~~~~~~~~~~~~~~
-
-    __HAL_TIM_ENABLE_DMA(_step_, _hardware_config_.EnbTIMDMA);
-        // Enable the link between Timer and DMA
-    enableDMA(_dma_stp_);           // Then enable the DMA
-
-    __HAL_TIM_SET_AUTORELOAD(_step_, 0);    // Ensure that the frequency is set to zero
-
-    // Now trigger an update of the TIMER hardware shadow registers (by driving the EGR bits True)
-    //  This needs to be done with the DMA enabled, such that when the first threshold is achieved
-    //  DMA will then update the Output Compare threshold with the next - completing the PULSE
-
-    _step_->Instance->EGR =
-            ( TIM_EGR_UG | _hardware_config_.PulsEGRBit );
-    // Trigger an update of the Top level counter (EGR_UR), as well as the Pulse Generator
-    // "PulsEGRBit" - to get DMA 1st entry copied, as well as the Counter Interrupt
-
-    __HAL_TIM_CLEAR_FLAG(_step_, TIM_FLAG_UPDATE);              // Clear the update bit
     __HAL_TIM_CLEAR_FLAG(_step_, _hardware_config_.PulsSRBit);  // Clear the STEP pulse
                                                                 // generator bit
 
@@ -165,7 +139,7 @@ Stepper::Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint3
         __HAL_TIM_MOE_ENABLE(_step_);
     }
 
-    __HAL_TIM_ENABLE(_step_);
+    __HAL_TIM_ENABLE(_step_);   // Enable the counter if not already on
 }
 
 void Stepper::setShadowGPIO(void) {
@@ -183,6 +157,77 @@ void Stepper::setShadowGPIO(void) {
     // Set at same time as GPIO, to ensure count is synched correctly.
 }
 
+void Stepper::disableMotor(void) {
+/**************************************************************************************************
+ * Function will put the Stepper class into an idle state - "Disabled", this mode is entered if
+ * there is a new "Position" request, or the motor has completed a "Position" request.
+ *
+ * This will disable the interrupts, the DMA and switch off the Output Compare channel
+ *
+ *************************************************************************************************/
+    _shd_form_.cMode     = Stepper::kDisabled;
+    configDMACmpltTransmtIT(_dma_stp_, DMAInterState::kIT_Disable);
+    configDMAErrorIT(_dma_stp_, DMAInterState::kIT_Disable);
+    disableDMA(_dma_stp_);
+
+    _step_->Instance->CCER &= ~(_output_compare_channel_);
+}
+
+void Stepper::updatePulseDMA(uint16_t prevposition) {
+/**************************************************************************************************
+ * Function will calculate what he next pulse position needs to be so as to get the desired
+ * frequency of PULSE.
+ *   Note, functions 'newPosition'/'newVelocity' will already limit the maximum pulse speed, so
+ *   this doesn't need to be done here.
+ *************************************************************************************************/
+    _pulse_run_ = kprofile_array_pulse_depth;
+
+    if ( (_shd_form_.StpCount < kprofile_array_pulse_depth) &&
+         (_shd_form_.cMode == Mode::kPosition) )
+    {
+        _pulse_run_ = (uint8_t) _shd_form_.StpCount;
+    }
+
+    for (uint8_t i = 0; i != _pulse_run_*2; i = i + 2) {
+        if (i == 0) {
+            _shd_profile_[0] = (prevposition + _shd_form_.Freq) % kcount_limit;
+            _shd_profile_[1] = (_shd_profile_[0] + kdefault_profile_width) % kcount_limit;
+        }
+        else {
+            _shd_profile_[i]     = (_shd_profile_[i-2] + _shd_form_.Freq)
+                                           % kcount_limit;
+            _shd_profile_[i + 1] = (_shd_profile_[i] + kdefault_profile_width)
+                                           % kcount_limit;
+        }
+    }
+
+    disableDMA(_dma_stp_);
+    __HAL_TIM_DISABLE_DMA(_step_, _hardware_config_.EnbTIMDMA);
+    popDMARegisters(_dma_stp_,
+                    (uint32_t)&_shd_profile_[0],
+                    _hardware_config_.PulseDMAAddress,
+                    _pulse_run_ * 2);
+    // Link DMA to the internal Shadow Profile, use Hardware setup DMA Address to link to correct
+    // Timer hardware register (Memory to Peripheral setup is required)
+    //                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    __HAL_TIM_ENABLE_DMA(_step_, _hardware_config_.EnbTIMDMA);
+    enableDMA(_dma_stp_);
+
+    /* Dis-connect the DMA from the selected TIMER compare channel, re-apply the DMA
+     * Memory->Peripheral connection, and the re-connect the DMA to TIMER.
+     * Configure the DMA interrupts - Transmit complete, and error
+     *
+     * Enable DMA
+     */
+
+    _step_->Instance->EGR = ( _hardware_config_.PulsEGRBit );
+    // Trigger an update of the Compare Channel (Pulse Generator - "PulsEGRBit"), so that DMA
+    // has read the new pulse position.
+
+    __HAL_TIM_CLEAR_FLAG(_step_, _hardware_config_.PulsSRBit);
+        // Clear the STEP Pulse generator bit
+}
+
 void Stepper::startInterrupt(void) {
 /**************************************************************************************************
  * Function checks state of the class mode, and as to whether there is any new movement requests
@@ -197,34 +242,9 @@ void Stepper::startInterrupt(void) {
         _form_queue_.outputRead( &_shd_form_ ); // Retrieve next request and put into shadow form
         setShadowGPIO();                        // Setup GPIOs are per active form
 
-        __HAL_TIM_SET_AUTORELOAD(_step_, _shd_form_.Freq);   // Update with the requested frequency
-        // Now go about updating the timer shadow registers, assumes that the interrupts and
-        // outputs are already switched off, so now:
-        //  1st Disable link to DMA (do not want timer update to trigger a DMA request)
-
-        __HAL_TIM_DISABLE_DMA(_step_, _hardware_config_.EnbTIMDMA);
-
-        //  2nd trigger a TIMER register update:
-        _step_->Instance->EGR =
-                ( TIM_EGR_UG | _hardware_config_.PulsEGRBit );
-        // Trigger an update of the Top level counter (EGR_UR), as well as the Pulse Generator
-        // "PulsEGRBit" - to get DMA 1st entry copied, as well as the Counter Interrupt
-
-        __HAL_TIM_CLEAR_FLAG(_step_, _hardware_config_.PulsSRBit);
-            // Clear the STEP Pulse generator bit
-
-        // Note that both the Pulse and Count status bits are cleared. The update flag is not
-        // cleared as depending upon the timing of the hardware, the update interrupt will be
-        // triggered. So system designed such that this interrupt is expected - no action will
-        // occur as, specified step count would not be achieved.
-        // 3rd re-enable all TIMER registers and DMAs
-        __HAL_TIM_ENABLE_DMA(_step_, _hardware_config_.EnbTIMDMA);  // Link DMA again
-
-        __HAL_TIM_CLEAR_IT(_step_, TIM_FLAG_UPDATE);
-        __HAL_TIM_ENABLE_IT(_step_, TIM_IT_UPDATE);
-        //__HAL_TIM_ENABLE_IT(_step_, _hardware_config_.CounIntBit);
-            // Only enable the counter interrupt. The TIM overflow interrupt, will be enabled
-            // by the counter interrupt; this saves on CPU resources
+        updatePulseDMA(__HAL_TIM_GET_COUNTER(_step_));
+        configDMACmpltTransmtIT(_dma_stp_, DMAInterState::kIT_Enable);
+        configDMAErrorIT(_dma_stp_, DMAInterState::kIT_Enable);
 
         _step_->Instance->CCER  |= _output_compare_channel_;
             // Enable STEP pulse Output Compare
@@ -286,6 +306,9 @@ void Stepper::newPosition(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq, uint
     tmp_form.CountConf.Pol           = Pol;         // Copy across both Polarity and Count per
     tmp_form.CountConf.stpAmount     = StpprPul;    // step into Form Counter Configuration
 
+    if (Freq < kmax_frequency) { Freq = kmax_frequency; };
+        // If the desired speed is faster than can be support, saturate
+
     tmp_form.Freq        = Freq;                    // Copy across Frequency into form
     tmp_form.StpCount    = PulseCount;              // Copy across number of pulses into form
     tmp_form.cMode       = Mode::kPosition;         // Set mode to "Position"
@@ -330,6 +353,9 @@ void Stepper::newVelocity(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq,
     tmp_form.CountConf.Pol           = Pol;         // Copy across both Polarity and Count per
     tmp_form.CountConf.stpAmount     = StpprPul;    // step into Form Counter Configuration
 
+    if (Freq < kmax_frequency) { Freq = kmax_frequency; };
+        // If the desired speed is faster than can be support, saturate
+
     tmp_form.Freq        = Freq;                    // Copy across Frequency into form
     tmp_form.StpCount    = 0;                       // As in "Velocity" mode no step count is
                                                     // required
@@ -337,6 +363,28 @@ void Stepper::newVelocity(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq,
 
     _form_queue_.inputWrite( tmp_form );    // Put temporary form into queue
     startInterrupt();                       // Call interrupt setup function
+}
+
+void Stepper::updateModelPosition(void) {
+/**************************************************************************************************
+ * Calculate the 'modelled' poisition of the stepper motor, based upon the expected step amount
+ * per pulse (from the shadow form)
+ *************************************************************************************************/
+
+    if (_shd_count_conf_.Pol == CountPanel::Polarity::kUp) {
+    // If current Count Configuration is count "UP"
+        calc_position = (calc_position + (_shd_count_conf_.stpAmount *_pulse_run_))
+                        % full_revolution;
+            // Then add the specified count per STEP to the "calcPos". This is then limited to
+            // the maximum number of steps per revolution
+    }
+    else {  // OTHERWISE polarity is "DOWN"
+        calc_position = ( (calc_position - (_shd_count_conf_.stpAmount *_pulse_run_))
+                          + full_revolution )
+                          % full_revolution;
+            // Then subtract the specified count per STEP to the "calcPos". This is then
+            // limited to the maximum number of steps per revolution
+    }
 }
 
 void Stepper::handleTIMxUpIRQ(void) {
@@ -375,78 +423,65 @@ void Stepper::handleTIMxUpIRQ(void) {
  *      No other interrupts are currently supported. However function will not run if the
  *      interrupt was not caused by a 'TIM_IT_UPDATE' event
  *************************************************************************************************/
-    if (  (__HAL_TIM_GET_IT_SOURCE(_step_, TIM_IT_UPDATE) == SET)  &&
-          (__HAL_TIM_GET_FLAG(_step_, TIM_FLAG_UPDATE) != 0)  ) {
-
-        if (_shd_form_.StpCount != 0) {         // So long as the Shadow step count is not zero
-            _shd_form_.StpCount--;              // subtract by 1
+    if (globalDMAChk(_dma_stp_) != 0) {
+        if ( (transmitDMAErrorITChk(_dma_stp_) != 0) && (transmitDMAErrorChk(_dma_stp_) != 0) ) {
+            clearTransmitDMAErrorFlg(_dma_stp_);
+                                // Clear the interrupt flag
+            disableMotor();     // Disable the motor for now
         }
 
-        if (_shd_count_conf_.Pol == CountPanel::Polarity::kUp) {
-        // If current Count Configuration is count "UP"
-            calc_position = (calc_position + _shd_count_conf_.stpAmount) % full_revolution;
-                // Then add the specified count per STEP to the "calcPos". This is then limited to
-                // the maximum number of steps per revolution
-        }
-        else {  // OTHERWISE polarity is "DOWN"
-            calc_position = ( (calc_position - _shd_count_conf_.stpAmount) + full_revolution )
-                               % full_revolution;
-                // Then subtract the specified count per STEP to the "calcPos". This is then
-                // limited to the maximum number of steps per revolution
-        }
+        if ( (comptDMATransmitITChk(_dma_stp_) != 0) && (comptDMATransmitChk(_dma_stp_) != 0) ) {
+            clearComptDMATransmitFlg(_dma_stp_);
+                // Clear the interrupt flag
+            if (_shd_form_.StpCount != 0) {         // So long as the Shadow step count is not zero
+                _shd_form_.StpCount -= _pulse_run_; // Decrement the number of pulses per DMA cycle
+               // _shd_form_.StpCount--;              // subtract by 1
 
-        // Check to see if the 'TIM_IT_UPDATE' interrupt has been enabled, and the interrupt has
-        // occurred 'TIM_FLAG_UPDATE' (note different name, as different registers!) then...
-        if (_shd_form_.StpCount == 0) {                     // If Shadow Form step count is zero
-            //__HAL_TIM_DISABLE_IT(_step_, TIM_IT_UPDATE);    // disable this interrupt
+                updatePulseDMA(_shd_profile_[(_pulse_run_ * 2) - 1]);
 
-            if (_shd_form_.cMode == Mode::kVelocity) {            // If mode is "Velocity"
-                // Assumes that for the current setup, GPIOs demand haven't changed, therefore no
-                // need to re-call 'setShadowGPIO'...yet.
+            }
+            updateModelPosition();  // Update the modelled position
+//=================================================================================================
+            if (_shd_form_.StpCount == 0) {
+                // Enter condition only when the desired number of pulses has been achieved
+                // (Position mode), or every time if in Velocity mode.
+                if (_shd_form_.cMode == Mode::kVelocity) {
+                    if (_form_queue_.state() != kGenBuffer_Empty) {
+                    // Check for any new movement requests
+                        uint16_t prevpoint = _form_queue_.output_pointer;
+                            // Capture current position (so as to rewind queue)
+                        _form_queue_.outputRead( &_shd_form_ );   // Read new data
 
-                if (_form_queue_.state() != kGenBuffer_Empty) {
-                // Check for any new movement requests
-                    uint16_t prevpoint = _form_queue_.output_pointer;
-                        // Capture current position (so as to rewind queue)
-                    _form_queue_.outputRead( &_shd_form_ );   // Read new data
+                        if (_shd_form_.cMode != Mode::kVelocity) {
+                            // If new movement demand is anything other than 'Velocity' mode...
+                            disableMotor();     // Disable motor
+                            _form_queue_.output_pointer      = prevpoint;
+                                // Rewind Form Queue (as has just been read)
 
-                    if (_shd_form_.cMode != Mode::kVelocity) {  // If anything but "Velocity" mode
-                        _shd_form_.cMode     = Stepper::kDisabled;
-                        __HAL_TIM_DISABLE_IT(_step_, TIM_IT_UPDATE);
-                            // Disable Stepper Controller, and Step Count interrupt(s), and mark
-                            // the mode of the device as "kDisabled"
-
-                        _step_->Instance->CCER &= ~(_output_compare_channel_);
-                                // Clear the output enabling pin for the STEP pulse
-
-                        _form_queue_.output_pointer      = prevpoint;   // Rewind Form Queue
-                        startInterrupt();     // Re-check for any other move requests
+                            startInterrupt();     // Re-check for any other move requests
+                        }
+                        else {  // Otherwise mode is Velocity, so update the GPIOs as per new shadow
+                                // setup, and load new frequency.
+                            updatePulseDMA(_shd_profile_[(_pulse_run_ * 2) - 1]);
+                            setShadowGPIO();
+                    } }
+                    // If no change in movement is required, then recalculate DMA pulse
+                    else {
+                        updatePulseDMA(_shd_profile_[(_pulse_run_ * 2) - 1]);
                     }
-                    else {  // Otherwise mode is Velocity, so update the GPIOs as per new shadow
-                            // setup, and load new frequency.
-                        __HAL_TIM_SET_AUTORELOAD(_step_, _shd_form_.Freq);
-                        setShadowGPIO();
+                }
+                else {
+                // If mode is not velocity - then disable everything, and check for any new requests.
+                    disableMotor();
 
-                        // Force an update of the registers
-                        _step_->Instance->EGR = TIM_EGR_UG;
-                } }
-            }
-            else {
-            // If mode is not velocity - then disable everything, and check for any new requests.
-                _shd_form_.cMode     = Stepper::kDisabled;
-                __HAL_TIM_DISABLE_IT(_step_, TIM_IT_UPDATE);
-                    // Disable Stepper Controller, and Step Count interrupt(s), and mark
-                    // the mode of the device as "kDisabled"
-
-                _step_->Instance->CCER &= ~(_output_compare_channel_);
-                        // Clear the output enabling pin for the STEP pulse
-
-                startInterrupt();   // Check for any other move requests
+                    startInterrupt();   // Check for any other move requests
+                }
             }
         }
 
-        __HAL_TIM_CLEAR_IT(_step_, TIM_FLAG_UPDATE);    // Clear the interrupt bit for the Stepper
-                                                        // controller interrupt
+        // Ensure that all interrupts flags for this DMA are disabled
+        clearGlobalDMAFlg(_dma_stp_);
+
     }
 }
 
