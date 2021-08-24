@@ -583,18 +583,18 @@ end
 
 
 
-This graph shows some useful information. As expected the interrupt time per pulse greatly reduces with the DMA version, and this quickly goes below the TIM's fastest time with a Array Depth of \textasciitilde{}6 -> 8. Additionally, with the -O3 optimisation, DMA array depths of less than \textasciitilde{}6 are well below the TIM's -O0 max time.
+This graph shows some useful information. As expected the interrupt time per pulse greatly reduces with the DMA version, and this quickly goes below the TIM's fastest time with a Array Depth of ~6 -> 8. Additionally, with the -O3 optimisation, DMA array depths of less than ~6 are well below the TIM's -O0 max time.
 
 
 # Conclusion
 
 
-The take away is that the DMA interrupt takes up more time, compared to the TIM version. Due to the extra calculations needed within the interrupt to determine were the next "x" pulses need to occur (where "x" = number of pulses per interrupt). All the plots above are just multiple ways to show this, as compared to the TIM -O0 takes \textasciitilde{}20us (max) to complete, however DMA (depth = 1) takes \textasciitilde{}40us (max) - basically double the TIM. However, DMA does provide extra hardware functionality (as mentioned above).
+The take away is that the DMA interrupt takes up more time, compared to the TIM version. Due to the extra calculations needed within the interrupt to determine were the next "x" pulses need to occur (where "x" = number of pulses per interrupt). All the plots above are just multiple ways to show this, as compared to the TIM -O0 takes ~20us (max) to complete, however DMA (depth = 1) takes ~40us (max) - basically double the TIM. However, DMA does provide extra hardware functionality (as mentioned above).
 
 
 
 
-The last lot of plots, shows one of the extra improvements of the DMA route; that of with a larger DMA array, this can reduce the interrupt time per pulse - with depth of 20, the maximum time to complete interrupt is \textasciitilde{}73us, however per pulse this comes down to \textasciitilde{}3.7us, which is below the Median time of TIM with most optimisation!
+The last lot of plots, shows one of the extra improvements of the DMA route; that of with a larger DMA array, this can reduce the interrupt time per pulse - with depth of 20, the maximum time to complete interrupt is ~73us, however per pulse this comes down to ~3.7us, which is below the Median time of TIM with most optimisation!
 
 
 
@@ -614,7 +614,7 @@ The depth of the array has been selected as **10**. The reason for this is:
 
 
    1.  At all optimisation levels, the number of pulses per interrupt just below the TIM median with -O3 optimisation. Note, DMA with -O0 it can be seen that the maximum time is still just above the TIM median, however this is acceptable. 
-   \item{ The maximum time to complete interrupt is \textasciitilde{}50us (-O0), which drops to \textasciitilde{}25us with -O3. The median is \textasciitilde{}30us, and \textasciitilde{}15us. }
+   2.  The maximum time to complete interrupt is ~50us (-O0), which drops to ~25us with -O3. The median is ~30us, and ~15us.
 
 
 
