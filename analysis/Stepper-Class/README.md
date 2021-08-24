@@ -498,16 +498,16 @@ end
 ![](/_image/analysis/Stepper-Class/figure_0.png)
 
 
-![](/README_images/figure_1.png)
+![](/_image/analysis/Stepper-Class/figure_1.png)
 
 
-![](/README_images/figure_2.png)
+![](/_image/analysis/Stepper-Class/figure_2.png)
 
 
-![](/README_images/figure_3.png)
+![](/_image/analysis/Stepper-Class/figure_3.png)
 
 
-![](/README_images/figure_4.png)
+![](/_image/analysis/Stepper-Class/figure_4.png)
 
 # Timing with multiple pulses per interrupt (DMA)
 
@@ -572,10 +572,10 @@ end
 ```
 
 
-![](/README_images/figure_5.png)
+![](/_image/analysis/Stepper-Class/figure_5.png)
 
 
-![](/README_images/figure_6.png)
+![](/_image/analysis/Stepper-Class/figure_6.png)
 
 
 
