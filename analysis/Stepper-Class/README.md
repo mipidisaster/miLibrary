@@ -2,6 +2,8 @@
 
 
 At the time of writing this script, there are two routes that the Stepper class can be desired around.
+>*Note, this script has since been converted into a README file (markdown format) such that it would be visible in github. The actual data used for this anaylsis is NOT stored in github as the size would be too big, hence only the README file is contained within this folder location. However, this README file can be copied into a MATLAB livescript, and it would work as required to generate similar results.
+The location of the data can be modified in the first code call of this, however the source data needs to be a textfile (sourced from a PulseView image), and the textfile needs to contain the timing(s) of the interrupts of the TIM/DMA (I just set a GPIO pin ON/OFF whilst running interrupts).*
 
 
 
@@ -22,7 +24,7 @@ The differences between the two routes is one of MCU hardware utilisation, as we
 
 
 
-This flexibility comes from the sorting within the DMA multiples "PULSES" to transmit per interrupt (i.e. 1, 2, 3, 4, 5, 10, etc.); this obviously takes up a level of processor time.
+This flexibility comes from the sorting within the DMA multiple "PULSES" to transmit per interrupt (i.e. 1, 2, 3, 4, 5, 10, etc.); this obviously takes up a level of processor time. However, reduces the number of times that the interrupt would be triggered, reducing utilisation overall
 
 
 
@@ -54,7 +56,7 @@ Array depths to be anaylsed:
 
 
 
-1, 2, 4, 5, 10, 20, 50
+1, 2, 4, 5, 10, 20, ~~50~~
 
 
 
@@ -486,7 +488,9 @@ Generate figure plot, for the heatmap. Showing Time on the Y-axis, and Data sour
     H = heatmap(histogram_contents(:, tmp).Variables);
     H.YData = seconds( histogram_contents.Time );
     H.XData = histogram_contents.Properties.VariableNames(tmp);
-    H.YDisplayData = num2cell(  nbuckets(1) : 2 : nbuckets(end)  );
+    H.ColorLimits = [1, 11.5];
+    YLabels = string(nbuckets);     YLabels(mod(nbuckets, 1) ~= 0) = " ";
+    H.YDisplayLabels = YLabels;
         % Change resolution of the Ydata, so as to be easier to see in output file
     
     H.ColorScaling = 'log'; %H.GridVisible = 'off';
