@@ -495,19 +495,19 @@ end
 ```
 
 
-![figure_0_png.jpg](/README_images/figure_0.jpg)
+![](/README_images/figure_0.jpg)
 
 
-![figure_1_png.jpg](/README_images/figure_1.jpg)
+![](/README_images/figure_1.jpg)
 
 
-![figure_2_png.jpg](/README_images/figure_2.jpg)
+![](/README_images/figure_2.jpg)
 
 
-![figure_3_png.jpg](/README_images/figure_3.jpg)
+![](/README_images/figure_3.jpg)
 
 
-![figure_4_png.jpg](/README_images/figure_4.jpg)
+![](/README_images/figure_4.jpg)
 
 # Timing with multiple pulses per interrupt (DMA)
 
@@ -572,10 +572,10 @@ end
 ```
 
 
-![figure_5_png.jpg](/README_images/figure_5.jpg)
+![](/README_images/figure_5.jpg)
 
 
-![figure_6_png.jpg](/README_images/figure_6.jpg)
+![](/README_images/figure_6.jpg)
 
 
 
