@@ -137,7 +137,14 @@ protected:
      static const uint8_t   kprofile_array_pulse_depth  = 10;
 
      static const uint16_t  kcount_limit                = 0xFFFF;
-     /*  EXPLAIN MEE!!
+     /* Pulse depth, is the number of pulses that will be stored within the linked DMA array, value
+      * has been determined from analysis captured within the "analysis" folder of miLibrary.
+      * Values as per commit - 'df6760d' (wip-#5-stepper-improvements branch)
+      *
+      * This value is the maximum 'count' that the TIM will achieve before overflowing (or
+      * triggering an update event.
+      * Used to calculate what the linked DMA array values need to be to get the required pulse
+      * frequency.
       */
 
 /**************************************************************************************************
