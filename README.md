@@ -9,6 +9,10 @@ This library contains the support of a majority of devices/interaces which will 
 # Build Tree
 ![build tree](/_image/Build_tree.png)
 
+v0.2.1
+* Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
+* Issue [#5](https://github.com/mipidisaster/miLibrary/issues/5) closed at this tag
+
 v0.2.0 -> wip-#5 (actual name - 'wip-#5-stepper-improvements')
 * Branch used to make improvements to the Stepper class, as part of fix for issue [#5](https://github.com/mipidisaster/miLibrary/issues/5)
 * Additionally, first time making use of branches - still learning and figuring out how to use it
@@ -39,4 +43,4 @@ Eclipse settings/preferences (or at least my preferences), can be located in the
 The wiki for this can be found within the Github repository for this - https://github.com/mipidisaster/miLibrary/wiki
 
 # Issues
-If you find any issues with this library, please capture them within the Github repository issue area - https://github.com/mipidisaster/miLibrary/issues. Issue numbering system is still a bit TBD at this point...
+If you find any issues with this library, please capture them within the Github repository issue area - https://github.com/mipidisaster/miLibrary/issues.
