@@ -28,8 +28,10 @@
                                                                     // code
 #define FilInd_DeMux__HD    "milibrary/drv/GPIO/DeMux/DeMux.h"      // File for the DeMultiplexor
                                                                     // driver
-#define FilInd_Stppr__HD    "milibrary/drv/Stepper/Stepper.h"       // File for the Stepper driver
-
+#define FilInd_StpCOREHD    "milibrary/drv/Stepper/StepperCore.h"   // File for the Stepper driver
+                                                                    // Core
+#define FilInd_StpDMA_HD    "milibrary/drv/Stepper/StepperDMA.h"    // DMA controlled version
+#define FilInd_StpTIM_HD    "milibrary/drv/Stepper/StepperTIM.h"    // TIM controlled version
 
 #define FilInd_USART__HD    "milibrary/drv/UARTPeriph/UARTPeriph.h" // File for the USART driver
                                                                     // code
