@@ -7,18 +7,26 @@ This library contains the support of a majority of devices/interaces which will 
    * All STM32 devices require basic configuration via STM32CubeMX -v6.2.1 - https://www.st.com/en/development-tools/stm32cubemx.html
 
 # Build Tree
-![build tree](https://github.com/mipidisaster/miLibrary/blob/master/_image/Build_tree.png)
+![build tree](/_image/Build_tree.png)
 
-0.2.0
+v0.2.1
+* Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
+* Issue [#5](https://github.com/mipidisaster/miLibrary/issues/5) closed at this tag
+
+v0.2.0 -> wip-#5 (actual name - 'wip-#5-stepper-improvements')
+* Branch used to make improvements to the Stepper class, as part of fix for issue [#5](https://github.com/mipidisaster/miLibrary/issues/5)
+* Additionally, first time making use of branches - still learning and figuring out how to use it
+
+v0.2.0
 * Architecture diagrams introduced into "_image"
 * Eclipse preferences captured
 * All major driver and device classes update to align with code style in wiki, as well as to remove version number and dates from top of source and header files
    * Issue [#2](https://github.com/mipidisaster/miLibrary/issues/2) fixed for Stepper header
 
-0.1.1
+v0.1.1
 * README.md file image build updated to work correctly
 
-0.1.0
+v0.1.0
 * Initial release
 
 # Configuration
@@ -35,4 +43,4 @@ Eclipse settings/preferences (or at least my preferences), can be located in the
 The wiki for this can be found within the Github repository for this - https://github.com/mipidisaster/miLibrary/wiki
 
 # Issues
-If you find any issues with this library, please capture them within the Github repository issue area - https://github.com/mipidisaster/miLibrary/issues. Issue numbering system is still a bit TBD at this point...
+If you find any issues with this library, please capture them within the Github repository issue area - https://github.com/mipidisaster/miLibrary/issues.

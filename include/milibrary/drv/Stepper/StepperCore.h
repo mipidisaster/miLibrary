@@ -1,7 +1,7 @@
 /**************************************************************************************************
- * @file        Stepper.h
+ * @file        StepperCore.h
  * @author      Thomas
- * @brief       Header file for the Stepper Driver Class handle
+ * @brief       Header file for the Stepper Driver Class handle (Core control)
  **************************************************************************************************
  @ attention
 
@@ -15,9 +15,16 @@
  * the series of devices.
  *  >> Note support for Raspberry Pi is unlikely however, might happen WATCH THIS SPACE!! <<
  *
- *      Call Class Stepper to initialise the class, the arguments requires for construction are:
+ *      This is the core functionality of the Stepper class, and is intended NOT to be called
+ *      outright. It is expected to be called via the top level versions - "StepperDMA", or
+ *      "StepperTIM". The difference between these is the way that the Stepper Pulses are managed;
+ *      "StepperDMA" makes use of the DMA Transmit Complete interrupt, whereas "StepperTIM" makes
+ *      use of the Timers Overflow interrupt - look into each of these to see which implementation
+ *      is best for your application.
+ *
+ *      This CORE class requires the following arguments for construction (which is the same as
+ *      the top levels):
  *          Timer/DMA/Output Compare output for "Pulse"
- *          Output Compare channel to count number of "Pulses" (Interrupt)
  *          Reset/Direction/Microstep pins (based upon the GPIO class)
  *          Number of poles per revolution of the stepper motor (this includes the smallest
  *          rotation per step, i.e. 1/16 step per PULSE)
@@ -29,101 +36,53 @@
  *          ".newPosition"          - Request a new position (number of steps, at a specific
  *                                    frequency)
  *          ".newVelocity"          - Request a new velocity (just a frequency of steps)
- *          ".handleTIMxUpIRQ"      - Interrupt handler to be placed within the "TIMx_UP" request
- *                                    used to handle transitions between new requests + majority
- *                                    of control for stepper
- *          ".handleTimxCCIRQ"      - Interrupt handler to be placed within the "TIMx_CC" request
- *                                    used to handle counting of the pulses generated.
+ *         V".handleIRQ"            - This is a blank virtual function, and will be populated by
+ *                                    the top level versions.
  *
  *      Following functions are protected so will only work for class internals. They contain
  *      basic handling of the hardware:
  *          ".setShadowGPIO"        - Setup GPIOs are per current request
- *          ".startInterrupt"       - Check for any new movement requests, whilst class is
- *                                    "Disabled"
+ *         V".startInterrupt"       - This is a blank virtual function, and will be populated by
+ *                                    the top level versions.
+ *          ".updateModelPosition"  - This function is called to calculate the expected position
+ *                                    of the stepper motor, based upon how many pulses have been
+ *                                    triggered, and how much of a "step" each is.
+ *                                    Note - Maximum number of pulses per rotation will be based
+ *                                    on the smallest step possible.
+ *      i.e. motor has 200 poles, but driver can provide a step of 1/16
+ *              "full_revolution"  = 200 x 16 = 3,200 steps
+ *
+ *         V".disableMotor"         - This is a blank virtual function, and will be populated by
+ *                                    the top level versions.
  *
  *      Class is based/relient upon the use of interrupts - which are used to manage the change
  *      between new movement requests, as well as counting number of pulses.
  *
  *  [#] How Stepper PULSE is generated, and managed
  *      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *      So as to minimise the amount of CPU usage for management of interfacing with a Stepper
- *      driver, the STM32 embedded devices needs to be configured with the following:
- *          Linked TIMER needs to be dedicated solely to the Stepper Driver (other channels of
- *          timer cannot be used for anything else....yet)
- *          Output Compare - Driving the specific GPIO connected to driver "STEP" input
- *          Output Compare - None Output, this will be used within the class internals to be
- *                           triggered at the same time as the rising edge of the "PULSE"
+ *      So as to minimise the amount of CPU usage for management of interfacing with a Stepper IC,
+ *      The STM32 embedded devices needs to be configured with the following:
+ *          Linked TIMER, with the Output Compare option enabled (in Toggle mode)
+ *          DMA to be linked to the channel of Output Compare, so as to populate with the new time
+ *          to toggle the output.
  *
- *      The class system is based upon an interrupt being triggered at the base TIMER overflow,
- *      as well as for the interrupt triggered by the "Output Compare" to count pulses - 
- *      Referred to as "Counter Interrupt".
+ *      The CORE functionality will make use of an interrupt to count how many pulses have been
+ *      triggered, as well as to determine if there are any new movement requests (as well as any
+ *      other tasks which are needed to manage the hardware correctly, the specific details of
+ *      which will be within the specific top level class).
  *
- *      If the class is in "Position" mode, then the Overflow interrupt will do nothing (it is
- *      actually disabled) until the specific number of steps have been achieved (counted by 
- *      "Counter Interrupt"). Once specified step count has been achieved, the "Counter Interrupt"
- *      will enable the Overflow interrupt, which will then disable all outputs/interrupts and
- *      check for any new movement requests.
+ *      The basics of the interrupt as such that:
+ *          If in the "Position" mode, then the interrupt will count the number of pulses, and
+ *          once this number reaches the desired number of steps, it will then disable all
+ *          outputs/interrupts and check for any new movement requests.
  *
- *      If the class is in "Velocity" mode, again the Overflow interrupt will be disabled; the
- *      system assumes that the GPIOs will not need to be driven continually. The "Counter 
- *      Interrupt" will still be counting the pulses (similar to "Position" mode), it will also
- *      be checking that there are no new movement requests. Once it detects any new requests, it
- *      will then enable the Overflow interrupt, which will setup the new request - note however
- *      when a new velocity is triggered the GPIO values for the request will not be set until the
- *      NEXT pulse (to ensure that the requested configuration aligns with the new pulse
- *      frequency; it will take 1 update of the TIMER before new frequency is used).
- *
- *      DIAGRAM OF OUTPUT PULSES:
- *                                      __                                  __
- * 11 |                              __|  |                              __|  |
- * 10 |                           __|     |                           __|     |
- *  9 |                        __|        |                        __|        |
- *  8 |                     __|           |                     __|           |
- *  7 |                  __|              |                  __|              |
- *  6 |               __|                 |               __|                 |               __|
- *  5 |            __|                    |            __|                    |            __|
- *  4 |         __|                       |         __|                       |         __|
- *  3 |      __|                          |      __|                          |      __|
- *  2 |   __|                             |   __|                             |   __|
- *  1 |__|________________________________|__|________________________________|__|______________
- *       |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
- *              __                                  __                                  __
- * PULSE  _____|  |________________________________|  |________________________________|  |_____
- *
- * OvFlo  ________________________________|___________________________________|_________________
- *
- * CInt   _____|___________________________________|___________________________________|________
- *
- * Count    0  |     1                             |     2                             |     3
- *        ________________________________       _____________________________       ___________
- * Auxi   ________________________________X-----X_____________________________X-----X___________
- *
- * Pulse configured such that first toggle occurs when TIMER = 50, and second toggle occurs when
- * it equals 55 (DMA manages this)
- * CInt     - Counter Interrupt, triggers at same time as rising edge of PULSE. Where the count is
- *            updated
- *            Additionally, the CPU will take some time to manage this interrupt, as well as
- *            compute the step count. Therefore the Fastest Frequency needs to allow sufficient
- *            time for this to occur.
- *
- * OvFlo    - Interrupt will only be called when the current position has been achieved or a new
- *            movement request has been made. Note that there is a delay between the interrupt 
- *            occuring and the hardware state updating. This delay needs to be accounted for in
- *            the time taken for the rising edge of PULSE.
- *
- * >> Additional note <<
- * Due to the hardware timer running faster then the CPU, there is a possibility that the Overflow
- * interrupt will be triggered twice, during the phase of disabling and then re-enabling
- * interrupts. This has been accounted for within the design of the Stepper class - hence the
- * "Counter Interrupt" and "OvFlo" being based upon this count.
- * So real world plot of the above, will include additional "OvFlo" pulses during phases of change
- * of mode - Position and Disabled. Velocity to Velocity, no double tap will appear.
- *
- * The fastest frequency is user imposed as 100 counts.
+ *          If in the "Velocity" mode, then it will once again count the number of pulses (so as to
+ *          determine the expected position), however, once it detects a new movement request, it
+ *          will apply this new request straight away.
  * 
  *************************************************************************************************/
-#ifndef STEPPER_H_
-#define STEPPER_H_
+#ifndef STEPPERCORE_H_
+#define STEPPERCORE_H_
 
 #include "FileIndex.h"
 // C System Header(s)
@@ -158,7 +117,6 @@
 // -----------------
 #include FilInd_GENBUF_TP               // Allow use of GenBuffer template class
 #include FilInd_GPIO___HD               // Allow use of GPIO class
-#include FilInd_DMAPe__HD               // Allow use of the DMA class
 
 //=================================================================================================
 
@@ -166,23 +124,29 @@
 // None
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
-class Stepper : public DMAPeriph {
-private:
-     static const uint8_t   kdefault_profile_delay      = 50;
-     static const uint8_t   kdefault_profile_width      = 5;
+class StepperCore {
+protected:
+     static const uint16_t  kdefault_profile_width      = 5;
 
      static const uint8_t   kform_size                  = 10;
      static const uint8_t   knumber_micro_pins          = 3;
-     /*  Default delay and width of the STEP pulse, units will be 'counts'
+
+     static const uint16_t  kmax_frequency              = 100;
+     /*  Default width of the STEP pulse, units will be 'counts'
+      *
       *  Form size used for the internal buffer, for Stepper demands
       *  Number of pins used for defining the MicroSteps -> 1/2 step, 1/4 step, 1/8 step, etc.
+      *
+      *  Maximum Frequency that this class can support, it needs to be sized so as to allow
+      *  sufficient time to calculate the next pulse, and put into the DMA (so as to maintain
+      *  desired pulse). Additionally, it also needs to allow sufficient to for any other stepper
+      *  classes to calculate pulses at full speed.
       */
-
 /**************************************************************************************************
  * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
  *   -----------
  *  Following types are generated within this class. If needed outside of the class, need to
- *  state "Stepper::" followed by the type.
+ *  state "StepperCore::" followed by the type.
  *************************************************************************************************/
 public:
         enum Mode     : uint8_t { kDisabled = 0, kPosition = 1, kVelocity = 2 };
@@ -243,7 +207,7 @@ public:
  *   -----------
  *  Parameters required for the class to function.
  *************************************************************************************************/
-    private:
+    protected:
         // The following GPIO pins, are synchronous with the rising edge of the STEP pin.
         GPIO        *_nreset_pin_;  // Provide a pointer to the GPIO class, which is connected to
                                     // the RESET pin -  "LOW" = RESET
@@ -253,17 +217,16 @@ public:
                                     // connected to the MS/MicroStep pins
         uint8_t     _micro_step_size_;          // Number of pins used for Microstep
 
-    public:     // Following are shadow values which are the current active state of the Stepper
+                // Following are shadow values which are the current active state of the Stepper
                 // driver
         Form            _form_arry_[kform_size];    // Array to contain the Stepper request forms
         GenBuffer<Form> _form_queue_;               // GenBuffer for the Forms
 
-        uint16_t    _shd_profile_[2];   // Profile to use for STEP pulse
         CountPanel  _shd_count_conf_;   // Shadow (active) Count configuration
         Form        _shd_form_;         // Shadow entry of the controlling signals which need to be
                                         // synced with the rising edge of STEP
     public:
-        int32_t    full_revolution; // Defines the maximum number of steps per revolution of
+        uint32_t   full_revolution; // Defines the maximum number of steps per revolution of
                                     // stepper (needs to include the driver smallest step rate,
                                     // i.e. Motor has 200 poles, driver can allow 1/16 step per
                                     // pulse, therefore this would be 200 x 16 = 3,200
@@ -283,7 +246,7 @@ public:
 #if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
-    private:
+    protected:
         TIM_HandleTypeDef   *_step_;    // Hardware controlled TIMER configured in "Output
                                         // Compare" mode, toggling the STEP GPIO pin
         DMA_HandleTypeDef   *_dma_stp_; // DMA linked to the specific TIM + channel for the
@@ -296,16 +259,14 @@ public:
         HrdSetup    _hardware_config_;  // Defined at class construction time
 
     public:
-        Stepper(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
-                GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
-                int32_t FullRev, HrdSetup Config);
+        StepperCore(TIM_HandleTypeDef *STEP_TIM, DMA_HandleTypeDef *STEP_DMA, uint32_t OCChannel,
+                    GPIO *nReset, GPIO *DIR, GPIO *MicStp, uint8_t McrStp,
+                    int32_t FullRev, HrdSetup Config);
         /******************************************************************************************
          *   Pretty big constructor, as it contains:
          *      - Timer/DMA/channel to manage the STEP pulse (hardware)
          *         Note the "OCChannel" needs to be the Channel state shifted by the output
          *         channel
-         *      - Interrupt channel, used for pulse management
-         *         This channel doesn't need to contain the channel state (as not an output!)
          *      - The Reset and Direction pins
          *      - Step resolution pins (Microstep[], and size)
          *      - Define the maximum number of steps per Rev (to include smaller rotation per step
@@ -324,8 +285,8 @@ public:
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
- *  The following are functions scoped within the "Stepper" class, which are generic; this means
- *  are used by ANY of the embedded devices supported by this class.
+ *  The following are functions scoped within the "StepperCore" class, which are generic; this
+ *  means are used by ANY of the embedded devices supported by this class.
  *  The internals of the class, will then determine how it will be managed between the multiple
  *  embedded devices.
  *************************************************************************************************/
@@ -336,9 +297,17 @@ protected:  /*******************************************************************
              * class is designed to "hide"
              *************************************************************************************/
     void setShadowGPIO(void);           // Set the GPIO pins as per shadow.
-    void startInterrupt(void);          // Enable the STEP pulse generator interrupt, if the
-                                        // system is currently "DISABLED". Otherwise leave in
-                                        // buffer
+    virtual void startInterrupt(void) {};   // Enable the STEP pulse generator interrupt, if the
+                                            // system is currently "DISABLED". Otherwise leave in
+                                            // buffer
+                                            // (BLANK IN THIS CLASS)
+
+    void updateModelPosition(uint8_t number_pulses);    // Calculate the modelled position of the
+                                                        // stepper motor
+
+    virtual void disableMotor(void) {}; // Function to be called when transitioning from one
+                                        // position demand, to another
+                                        // (BLANK IN THIS CLASS)
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>        CLASS INTERFACE FUNCTIONS        <<<
              *   -----------
@@ -358,10 +327,10 @@ public:     /*******************************************************************
         // Build a new request to move stepper at a specific velocity (indefinitely).
         // Puts class into "Velocity" mode
 
-    void handleTIMxUpIRQ(void);         // Interrupt handler to be placed within the "TIMx_UP"
-                                        // interrupt request, or interrupt triggered at base timer
-                                        // overflow
-    virtual ~Stepper();
+    virtual void handleIRQ(void) {};    // Interrupt Handle for Stepper Device
+                                        // (BLANK IN THIS CLASS)
+
+    virtual ~StepperCore();
 };
 
-#endif /* STEPPER_H_ */
+#endif /* STEPPERCORE_H_ */
