@@ -186,6 +186,8 @@ protected:
          * to be
          *****************************************************************************************/
 
+        virtual ~StepperDMA();
+
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //=================================================================================================
 
@@ -224,8 +226,6 @@ public:     /*******************************************************************
              *************************************************************************************/
     void handleIRQ(void);               // Interrupt Handle for Stepper Device (based on DMA
                                         // transmit complete)
-
-    virtual ~StepperDMA();
 };
 
 #endif /* STEPPERDMA_H_ */

@@ -274,6 +274,8 @@ public:
          *      - Hardware configuration (DMA address link, etc).
          *****************************************************************************************/
 
+        virtual ~StepperCore();
+
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //=================================================================================================
 
@@ -329,8 +331,6 @@ public:     /*******************************************************************
 
     virtual void handleIRQ(void) {};    // Interrupt Handle for Stepper Device
                                         // (BLANK IN THIS CLASS)
-
-    virtual ~StepperCore();
 };
 
 #endif /* STEPPERCORE_H_ */

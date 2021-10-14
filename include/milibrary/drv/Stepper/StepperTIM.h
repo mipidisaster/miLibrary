@@ -177,6 +177,8 @@ protected:
          * to be
          *****************************************************************************************/
 
+        virtual ~StepperTIM();
+
 #elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
 //=================================================================================================
 
@@ -213,8 +215,6 @@ public:     /*******************************************************************
              *************************************************************************************/
     void handleIRQ(void);               // Interrupt Handle for Stepper Device (based on TIM
                                         // transmit complete)
-
-    virtual ~StepperTIM();
 };
 
 #endif /* STEPPERTIM_H_ */
