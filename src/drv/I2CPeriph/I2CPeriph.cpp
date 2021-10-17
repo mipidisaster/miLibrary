@@ -20,15 +20,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+#error "Unrecognised target device"
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 #error "Unrecognised target device"
 
@@ -79,15 +84,15 @@ uint8_t I2CPeriph::readDR(void) {
  * Read from the I2C hardware
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     return ((uint8_t) _i2c_handle_->Instance->RXDR);    // Read from the RX Data Register
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -102,15 +107,15 @@ void I2CPeriph::writeDR(uint8_t data) {
  * Write to the I2C hardware
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     _i2c_handle_->Instance->TXDR = data;                // Put data onto the TX Data Register
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -125,24 +130,23 @@ uint8_t I2CPeriph::transmitEmptyChk(void) {
  * Check the status of the Hardware Transmit buffer (if empty, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 //  The STM32L device has two bits which can be used to determine if the Transmit buffer is empty,
 //  they are TXE = Transmit Buffer empty bit, and the TXIE = Transmit Buffer status
 //     TXIE is used to trigger the interrupt
 //  Both are used within this function call.
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TXE)  != 0 ) || \
          (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TXIS) != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -157,22 +161,21 @@ uint8_t I2CPeriph::transmitComptChk(void) {
  * Check the status of the Hardware Transmit communication (if completed, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // I2C communication for STM32L has two "Transmission Complete" flags, one is generic, the other
 // is used for Complete transmission for I2C Reload
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TC)   != 0 ) || \
          (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_TCR)  != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -187,19 +190,18 @@ uint8_t I2CPeriph::receiveToReadChk(void) {
  * Check the status of the Hardware Receive buffer (if not empty "data to read", output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_RXNE) != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -214,19 +216,18 @@ uint8_t I2CPeriph::busNACKChk(void) {
  * Check to see if peripheral has NOT acknowledge the packet (if NACK, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_AF)   != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -241,16 +242,15 @@ void I2CPeriph::clearNACK(void) {
  * Clear the NACK bit in the status register
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_AF);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -265,19 +265,18 @@ uint8_t I2CPeriph::busStopChk(void) {
  * Check to see if the I2C bus has been "STOPPED" (if bus is STOP, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_STOPF) != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -292,16 +291,15 @@ void I2CPeriph::clearStop(void) {
  * Clear the Bus STOP bit status
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_STOPF);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -316,19 +314,18 @@ uint8_t I2CPeriph::busBusyChk(void) {
  * Check to see if the I2C bus is already communicating (if bus is busy, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_BUSY) != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -343,19 +340,18 @@ uint8_t I2CPeriph::busErroChk(void) {
  * Check to see if there has been an incorrect START/STOP bit sent (if fault, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if ( (__HAL_I2C_GET_FLAG(_i2c_handle_, I2C_FLAG_BERR) != 0 ) )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -370,16 +366,15 @@ void I2CPeriph::clearBusEr(void) {
  * Clear the Bus error status bit
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_BERR);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -394,19 +389,18 @@ uint8_t I2CPeriph::transmitEmptyITChk(void) {
  * Check to see whether the Transmit Empty Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_TXI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -421,19 +415,18 @@ uint8_t I2CPeriph::transmitComptITChk(void) {
  * Check to see whether the Transmit Complete Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_TCI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -449,19 +442,18 @@ uint8_t I2CPeriph::receiveToReadITChk(void) {
  * output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_RXI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -477,19 +469,18 @@ uint8_t I2CPeriph::busNACKITChk(void) {
  * output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_NACKI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -504,19 +495,18 @@ uint8_t I2CPeriph::busStopITChk(void) {
  * Check to see whether the STOP bus interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_STOPI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -531,19 +521,18 @@ uint8_t I2CPeriph::busErrorITChk(void) {
  * Check to see whether the Bus Error interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-
     if (__HAL_I2C_GET_IT_SOURCE(_i2c_handle_, I2C_IT_ERRI) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -565,11 +554,11 @@ void I2CPeriph::requestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
  * however.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // Not populated yet
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // For the STM32Lx device the configuration of I2C for data transmission/reception is straight
 // forward, all that is required is to populate the CR2 hardware register with Device Address
@@ -623,7 +612,7 @@ void I2CPeriph::requestTransfer(uint16_t devAddress, uint8_t size, CommMode mode
         _i2c_handle_->Instance->CR2 |= (uint32_t)(I2C_CR2_STOP);
         // Set the STOP bit
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 // Not populated yet
 
@@ -710,7 +699,7 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterTransmit(uint16_t devAddress, uint8_t *pd
     // Indicate that the bus is not free
     comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     //Enable();                     // Ensure that the device has been enabled
@@ -753,7 +742,7 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterTransmit(uint16_t devAddress, uint8_t *pd
 
     //Disable();                    // Ensure that the device has been disable
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 // Not populated yet
 #else
@@ -779,7 +768,7 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterReceive(uint16_t devAddress, uint8_t *pda
     // Indicate that the bus is not free
     comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     //Enable();                     // Ensure that the device has been enabled
@@ -822,7 +811,7 @@ I2CPeriph::DevFlt I2CPeriph::poleMasterReceive(uint16_t devAddress, uint8_t *pda
 
     //Disable();                    // Ensure that the device has been disable
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 // Not populated yet
 #else
@@ -879,11 +868,11 @@ void I2CPeriph::configTransmtIT(InterState intr) {
  * This will enable/disable the Transmit Buffer Empty interrupt.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_TXI);      // Then enable the interrupt
@@ -893,7 +882,7 @@ void I2CPeriph::configTransmtIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -909,11 +898,11 @@ void I2CPeriph::configTransCmIT(InterState intr) {
  * This will enable/disable the Transmit Complete interrupt.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_TCI);      // Then enable the interrupt
@@ -923,7 +912,7 @@ void I2CPeriph::configTransCmIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -939,11 +928,11 @@ void I2CPeriph::configReceiveIT(InterState intr) {
  * This will enable/disable the Receive buffer full interrupt.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_RXI);      // Then enable the interrupt
@@ -953,7 +942,7 @@ void I2CPeriph::configReceiveIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -969,11 +958,11 @@ void I2CPeriph::configBusNACKIT(InterState intr) {
  * This will enable/disable the Bus NACK interrupt
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_NACKI);    // Then enable the interrupt
@@ -983,7 +972,7 @@ void I2CPeriph::configBusNACKIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -999,11 +988,11 @@ void I2CPeriph::configBusSTOPIT(InterState intr) {
  * This will enable/disable the Bus STOP interrupt
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_STOPI);    // Then enable the interrupt
@@ -1013,7 +1002,7 @@ void I2CPeriph::configBusSTOPIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
@@ -1029,11 +1018,11 @@ void I2CPeriph::configBusErroIT(InterState intr) {
  * This will enable/disable the Bus Error interrupt
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
         __HAL_I2C_ENABLE_IT(_i2c_handle_, I2C_IT_ERRI);     // Then enable the interrupt
@@ -1043,7 +1032,7 @@ void I2CPeriph::configBusErroIT(InterState intr) {
     }
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 
