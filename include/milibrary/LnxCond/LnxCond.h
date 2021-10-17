@@ -41,7 +41,8 @@
 #include <sstream>      // std::stringstream
 #include <string>       // std::string
 
-#if defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+
+#if   (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 // As currently have only 1 Embedded Linux Device, this class will only work if the project has
 // been configured for RaspberryPi

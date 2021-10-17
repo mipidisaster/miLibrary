@@ -118,7 +118,7 @@ public:
 
 #endif
 
-        virtual ~GPIO();
+    virtual ~GPIO();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
