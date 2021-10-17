@@ -10,9 +10,10 @@ This library contains the support of a majority of devices/interaces which will 
 ![build tree](/_image/Build_tree.png)
 
 develop
-d0.2.1.1
+d0.2.1.1 ([370fff5](https://github.com/mipidisaster/miLibrary/commit/370fff5c7c8afe60d7818f0641e5b5403ae21538)
 * Worked issue [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
-* RaspberryPi enabled functions (zz__MiEmbedType__zz  =  10) updated to work with change to code (wasn't modified/tested as part of the updates to v0.1.0 -> v0.2.1)
+* RaspberryPi enabled functions (zz__MiEmbedType__zz  =  10) updated for GPIO to work with latest changes to repository (wasn't modified as part of the updates v0.1.0 -> v0.2.1)
+> Other classes to be updated as part of next devel build.
 
 v0.2.1
 * Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
