@@ -35,7 +35,9 @@
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// None
+    const char *return_message = {"No Hardware Attached"};
+    const uint8_t message_size = 20;
+    uint8_t return_message_pointer = 0;
 
 #else
 //=================================================================================================
@@ -87,14 +89,41 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
     _form_read_q_.create(ReadForm, ReadFormSize);
 }
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
 UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
-                       Form *WrteForm, uint16_t WrteFormSize,
-                       Form *ReadForm, uint16_t ReadFormSizey) {
+                       uint16_t WrteFormSize, uint16_t ReadFormSize) {
 /**************************************************************************************************
- * Create a UART class specific for the Raspberry Pi
- *  Requires pointers to the Write/Read UART Form system and sizes
+ * Create a UART class specific for the Raspberry Pi, to simplify the RaspberryPi version (and as
+ * size is less of a constraint) function will create arrays for the internal Form buffers.
+ *
+ *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
+ *  as to provide the Raspberry Pi the same function use as other embedded devices.
+ *  The Receive and Transmit buffers size will be as per input "BufferSize"
+ *************************************************************************************************/
+    popGenParam();                      // Populate generic class parameters
+
+    _device_loc_      = deviceloc;      // Capture the folder location of UART device
+    _baud_rate_       = baud;           // Capture the desired baud rate
+    _pseudo_interrupt_= 0x00;           // pseudo interrupt register used to control the UART
+                                        // interrupt for Raspberry Pi
+
+    // Configure both the Write and Read Buffers to be the size as per input
+    _form_wrte_q_.create(new Form[WrteFormSize], WrteFormSize);
+    _form_read_q_.create(new Form[ReadFormSize], ReadFormSize);
+
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
+    _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
+            // Open the serial interface
+#endif
+}
+
+UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
+                       Form *WrteForm, uint16_t WrteFormSize,
+                       Form *ReadForm, uint16_t ReadFormSize) {
+/**************************************************************************************************
+ * Create a UART class specific for the Raspberry Pi, to simplify the RaspberryPi version
+ *  This version requires pointers to the Write/Read UART Form system and sizes
  *
  *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
  *  as to provide the Raspberry Pi the same function use as other embedded devices.
@@ -111,22 +140,46 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
     _form_wrte_q_.create(WrteForm, WrteFormSize);
     _form_read_q_.create(ReadForm, ReadFormSize);
 
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
     _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
             // Open the serial interface
+#endif
 }
 
-int  UARTPeriph::AnySerDataAvil(void) {
+int  UARTPeriph::anySerDataAvil(void) {
 /**************************************************************************************************
-* RaspberryPi specific function to determine amount of data within the hardware
-*************************************************************************************************/
-   return(serialDataAvail(UART_Handle));
+ * RaspberryPi specific function to determine amount of data within the hardware
+ *************************************************************************************************/
+#if   (zz__MiEmbedType__zz == 10)       // If configured for RaspberryPi, then use wiringPi
+    return(serialDataAvail(_uart_handle_));
+#elif (zz__MiEmbedType__zz ==  0)       // If configured for No Hardware then
+    return ((int) 1);                   // Return '1' so as to ensure that no hardware message is
+                                        // captured
+#endif
 }
 
-#else
-//=================================================================================================
-UARTPeriph::UARTPeriph() {
 
+void UARTPeriph::pseudoRegisterSet(uint8_t *pseudoregister, uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function set the desired 'entry' of the input 'pseudoregister'
+ *************************************************************************************************/
+    *pseudoregister |= entry;
 }
+
+void UARTPeriph::pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function clear the desired 'entry' of the input 'pseudoregister'
+ *************************************************************************************************/
+    *pseudoregister &= ~(entry);
+}
+
+uint8_t UARTPeriph::pseudoStatusChk(uint8_t pseudoregister, uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function see if the desired 'entry' of the input 'pseudoregister' is set
+ *************************************************************************************************/
+    return ( pseudoregister & entry );
+}
+
 #endif
 
 uint8_t UARTPeriph::readDR(void) {
@@ -148,7 +201,13 @@ uint8_t UARTPeriph::readDR(void) {
 
 #else
 //=================================================================================================
+    // So as to ensure that any downstream messages get something if this function is called,
+    // return the message "No Hardware Attached" in byte steps
+    uint8_t temp_char = (uint8_t) return_message[return_message_pointer];
 
+    return_message_pointer = ( (return_message_pointer + 1) % message_size );
+
+    return ( temp_char );
 #endif
 }
 
@@ -171,6 +230,7 @@ void UARTPeriph::writeDR(uint8_t data) {
 
 #else
 //=================================================================================================
+// Do nothing
 
 #endif
 }
@@ -194,12 +254,10 @@ uint8_t UARTPeriph::transmitEmptyChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    return (1);                         // Return a positive output, such that any downstream will
+                                        // continue as if entry is set
 
 #endif
 }
@@ -223,12 +281,10 @@ uint8_t UARTPeriph::transmitComptChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    return (1);                         // Return a positive output, such that any downstream will
+                                        // continue as if entry is set
 
 #endif
 }
@@ -252,12 +308,10 @@ uint8_t UARTPeriph::receiveToReadChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    return (1);                         // Return a positive output, such that any downstream will
+                                        // continue as if entry is set
 
 #endif
 }
@@ -275,12 +329,9 @@ void UARTPeriph::clearComptChk(void) {
 //=================================================================================================
     __HAL_UART_CLEAR_FLAG(_uart_handle_, UART_CLEAR_TCF); // Clear status register
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+// Do nothing...
 
 #endif
 }
@@ -304,13 +355,12 @@ uint8_t UARTPeriph::transmitEmptyITChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(_pseudo_interrupt_, ktransit_data_register_empty) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -334,13 +384,12 @@ uint8_t UARTPeriph::transmitComptITChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(_pseudo_interrupt_, ktransmit_complete) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -365,13 +414,12 @@ uint8_t UARTPeriph::receiveToReadITChk(void) {
     else
         return (0);
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(_pseudo_interrupt_, kread_data_register_not_empty) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -445,7 +493,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
 
     return (readDR());  // Retrieve the read data, and pass out of function
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     int read_back_data = -1;        // Create a variable which will contain the read contents of
                                     // the UART device
@@ -459,9 +507,7 @@ uint8_t UARTPeriph::poleSingleRead(void) {
 
     return ((uint8_t) read_back_data);  // If get to this point data has been read from UART,
                                         // therefore return read value
-#else
-//=================================================================================================
-    return(0);
+
 #endif
 }
 
@@ -504,6 +550,7 @@ void UARTPeriph::poleSingleTransmit(uint8_t data) {
 
 #else
 //=================================================================================================
+// Do nothing
 
 #endif
 }
@@ -534,21 +581,16 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-    char *new_pa;                       // Create a character pointer
-    uint16_t i;                         // Loop variable to go through contents of array
-
-    new_pa = new char[size];            // Define an array to contain the data in a char type
-
-    for (i = 0; i != size; i++) {       // Cycle through the size of the input array
-        new_pa[i] = *pData;             // Copy data into new array
-        pData += sizeof(uint8_t);       // Increment the input array pointer
+    while (size > 0) {                      // Whilst there is data to be transferred
+        poleSingleTransmit(*pData);   // Transmit the single point of data
+        pData += sizeof(uint8_t);           // Increment pointer by the size of the data to be
+                                            // transmitted
+        size--;                             // Decrement the size
     }
-
-    serialPuts(_uart_handle_, new_pa);  // Then send new data via UART
-    delete [] new_pa;                   // Delete the new array, such as to clear up resources
 
 #else
 //=================================================================================================
+// Do nothing
 
 #endif
 
@@ -582,19 +624,16 @@ void UARTPeriph::configTransmtIT(InterState intr) {
     }
 
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransmtIntBit);
+        pseudoRegisterSet(&_pseudo_interrupt_, ktransit_data_register_empty);
         // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
     else {                                                  // If request is to disable
-        UARTD_DisaInter(_pseudo_interrupt_, UARTD_TransmtIntBit);
+        pseudoRegisterClear(&_pseudo_interrupt_, ktransit_data_register_empty);
         // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
-
-#else
-//=================================================================================================
 
 #endif
 }
@@ -624,19 +663,16 @@ void UARTPeriph::configTransCmIT(InterState intr) {
     }
 
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        UARTD_EnabInter(_pseudo_interrupt_, UARTD_TransCmIntBit);
+        pseudoRegisterSet(&_pseudo_interrupt_, ktransmit_complete);
         // Enable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        UARTD_DisaInter(_pseudo_interrupt_, UARTD_TransCmIntBit);
+        pseudoRegisterClear(&_pseudo_interrupt_, ktransmit_complete);
         // Disable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
-
-#else
-//=================================================================================================
 
 #endif
 }
@@ -666,19 +702,16 @@ void UARTPeriph::configReceiveIT(InterState intr) {
     }
 
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        UARTD_EnabInter(_pseudo_interrupt_, UARTD_ReceiveIntBit);
+        pseudoRegisterSet(&_pseudo_interrupt_, kread_data_register_not_empty);
         // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        UARTD_DisaInter(_pseudo_interrupt_, UARTD_ReceiveIntBit);
+        pseudoRegisterClear(&_pseudo_interrupt_, kread_data_register_not_empty);
         // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
-
-#else
-//=================================================================================================
 
 #endif
 }
@@ -827,7 +860,7 @@ void UARTPeriph::readGenBufferLock(GenBuffer<uint8_t> *ReadArray,
  *************************************************************************************************/
     if (read_comm_state == CommLock::kFree) {       // If the UART Receive is free to be used
         *fltReturn = DevFlt::kNone;                 // Clear the linked fault flag
-        cmpFlag = 0;                                // Clear complete flag
+        *cmpFlag = 0;                               // Clear complete flag
 
         intReadPacket( ReadArray->pa, ReadArray->length, fltReturn, cmpFlag);
             // Request a new read back
@@ -908,7 +941,7 @@ void UARTPeriph::handleIRQ(void) {
     // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
     if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
         writeDR (  getFormWriteData( &(_cur_wrte_form_) )  );
-        // Retrieve next data point from the Request SPI Form, and put onto hardware queue
+        // Retrieve next data point from the Request UART Form, and put onto hardware queue
         _cur_wrte_count_--;         // Decrement the class global current count
 
         if (_cur_wrte_count_ == 0) {
@@ -917,7 +950,8 @@ void UARTPeriph::handleIRQ(void) {
         }
     }
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
 /**************************************************************************************************
  * Example of call.
@@ -956,31 +990,52 @@ void UARTPeriph::handleIRQ(void) {
  * Similar to the STM32 a pointer to the UARTPeriph will need to be made global to allow this
  * new thread to all the "IRQHandler"
  *************************************************************************************************/
-    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {}
+    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) { //
+        clearComptChk();            // Clear the Transmission complete flag
+
+        intWrteFormCmplt();         // Complete the current request form (no faults)
+        startInterrupt();           // Check if any new requests remain
+
+    }
 
     int buffer_contents = 0;            // Variable to store the amount of data in UART peripheral
 
-    // Check to see if Receive Interrupt bit has been set.
+    // If the Receive Data Interrupt has been triggered AND is enabled as Interrupt then ...
     if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
-        // If it has check to see if there is any data to be read
-        buffer_contents = serialDataAvail(_uart_handle_);   // Get the amount of data in UART
+        buffer_contents = anySerDataAvil();     // Get the amount of data in UART
 
         while (buffer_contents > 0) {
-            _form_read_Q_->inputWrite(readDR());
+            putFormReadData( &(_cur_read_form_) , readDR() );
+            // Put next data point into the area requested from the UART Form
+            _cur_read_count_--;         // Decrement the class global current count
+
+            if (_cur_read_count_ == 0) {
+                intReadFormCmplt();         // Complete the current request form (no faults)
+                startInterrupt();           // Check if any new requests remain
+            }
+
             buffer_contents--;
         }
     }
 
-    uint8_t temp_data = 0x00;
-
+    // If the Data Empty Interrupt has been triggered AND is enabled as Interrupt then...
     if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
-        while (_form_wrte_q_->outputRead(&temp_data) != kGenBuffer_Empty) {
-            writeDR(temp_data);
+
+        while (_cur_wrte_count_ != 0) { // Will loop continually so long as there is data to be
+                                        // transmitted.
+            // Call to 'startInterrupt' will ensure that '_cur_wrte_count_' is reset to != '0' if
+            // there is any other request in the system
+
+            writeDR (  getFormWriteData( &(_cur_wrte_form_) )  );
+            // Retrieve next data point from the Request UART Form, and put onto hardware queue
+            _cur_wrte_count_--;         // Decrement the class global current count
+
+            if (_cur_wrte_count_ == 0) {
+                intWrteFormCmplt();         // Complete the current request form (no faults)
+                startInterrupt();           // Check if any new requests remain
+            }
         }
-
-        configTransmtIT(InterState::ITDisable);
     }
-
 #else
 //=================================================================================================
 

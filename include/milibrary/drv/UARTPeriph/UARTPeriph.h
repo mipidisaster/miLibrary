@@ -18,8 +18,9 @@
  *          For STM32F devices, providing the address of the UART handler - from cubeMX
  *          For STM32L devices, providing the address of the UART handler - from cubeMX
  *          For RaspberryPi, provide the location of the serial interface, and the desired baudrate
- *          #### UPDATE TO THE FORM SYSTEM HAS NOT BEEN TESTED WITHIN RASPBERRY PI YET!
- *
+ *          For "Linux (No Hardware), provide same information as per RaspberryPi, all functions
+ *                                    will still work. However, when reading same output will be
+ *                                    provided, message saying - "No Hardware Attached" *
  *
  *          Additional to this the size of the UART buffer array is required.
  *
@@ -149,6 +150,18 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 class UARTPeriph {
+private:
+#if   ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+    static const uint8_t    ktransit_data_register_empty        = 0x01;
+    static const uint8_t    ktransmit_complete                  = 0x02;
+    static const uint8_t    kread_data_register_not_empty       = 0x04;
+    /* Such that the RaspberryPi functions work similarly to the STM versions, the above is the
+     * bit positions for the pseudo interrupt registers - emulating interrupt functions for
+     * RaspberryPi.
+     */
+#endif
 /**************************************************************************************************
 * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
 *   -----------
@@ -218,7 +231,7 @@ public:
 
 #if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
-//==================================================================================================
+//=================================================================================================
     protected:
         UART_HandleTypeDef  *_uart_handle_;     // Store the UART handle
 
@@ -229,26 +242,38 @@ public:
         // well as the size.
         // Class will then generate a GenBuffer item internally.
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
-//==================================================================================================
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
     private:
         int                 _uart_handle_;      // Stores the device to communicate too
         const char          *_device_loc_;      // Store location file for UART device
         int                 _baud_rate_;        // Store entered baudrate
         uint8_t             _pseudo_interrupt_; // Pseudo interrupt register
 
+    void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
+    void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
+    uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);
+    /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
+     */
+
     public:
         int  anySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
 
+        UARTPeriph(const char *deviceloc, int baud, uint16_t WrteFormSize, uint16_t ReadFormSize);
         UARTPeriph(const char *deviceloc, int baud, Form *WrteForm, uint16_t WrteFormSize,
                                                     Form *ReadForm, uint16_t ReadFormSize);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
         // as well the "GenBuffer" needing to be provided to the function, to be fully defined
         // outside of class
+        // OVERLOADED function, with a second version to allow for the class to automatically
+        // construct the internal Form buffer
+
+
 
 #else
-//==================================================================================================
+//=================================================================================================
     public:
         UARTPeriph();
 
