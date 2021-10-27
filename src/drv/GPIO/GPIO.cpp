@@ -35,7 +35,7 @@
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// None
+// None required
 
 #else
 //=================================================================================================
@@ -82,6 +82,18 @@ GPIO::GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection) {
     }
 #endif
 }
+
+void GPIO::piSetup(void) {
+/**************************************************************************************************
+ * Static function which wraps the 'wiringPiSetup' routines within my 'GPIO' class.
+ * Function is to only be called once, otherwise it will run out of file handles, so be careful
+ * when using
+ *************************************************************************************************/
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
+    wiringPiSetupGpio();
+#endif
+}
+
 #endif
 
 uint8_t GPIO::toggleOutput() {
@@ -174,7 +186,20 @@ GPIO::State GPIO::getValue() {
 #endif
 }
 
-GPIO::~GPIO()
-{
+GPIO::~GPIO() {
+/**************************************************************************************************
+ * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
+ * to avoid "memory leakage"
+ *************************************************************************************************/
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+//=================================================================================================
+// Nothing needs to be done
+
+#else   // Raspberry Pi or Default build configuration
+//=================================================================================================
+// Nothing needs to be done
+
+#endif
     // TODO Auto-generated destructor stub
 }

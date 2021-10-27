@@ -47,7 +47,7 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPi.h>                   // Include the wiringPi library
+// No specific includes are required in the header files
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
@@ -111,10 +111,12 @@ public:
 // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        State      _pin_value_;            // Current value of pin
+        State           _pin_value_;            // Current value of pin
 
     public:
         GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection);
+        static void piSetup(void);              // Static function, to be called only once; as
+                                                // calls the 'wiringPiSetup' routine
 
 #endif
 
