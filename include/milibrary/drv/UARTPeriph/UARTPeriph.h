@@ -162,6 +162,7 @@ private:
      * RaspberryPi.
      */
 #endif
+
 /**************************************************************************************************
 * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
 *   -----------
@@ -257,6 +258,10 @@ public:
     /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
      */
 
+    const char      *_return_message_;
+    uint8_t         _message_size_;
+    uint8_t         _return_message_pointer_;
+
     public:
         int  anySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
@@ -269,8 +274,6 @@ public:
         // outside of class
         // OVERLOADED function, with a second version to allow for the class to automatically
         // construct the internal Form buffer
-
-
 
 #else
 //=================================================================================================

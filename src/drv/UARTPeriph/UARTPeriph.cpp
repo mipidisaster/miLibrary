@@ -35,9 +35,7 @@
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-    const char *return_message = {"No Hardware Attached"};
-    const uint8_t message_size = 20;
-    uint8_t return_message_pointer = 0;
+// Nothing is needed in support of 'No Hardware'
 
 #else
 //=================================================================================================
@@ -115,6 +113,12 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
     _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
             // Open the serial interface
+
+#else
+    _return_message_ = {"No USART Hardware Attached"};
+    _message_size_ = 26;
+    _return_message_pointer_ = 0;
+
 #endif
 }
 
@@ -122,7 +126,7 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
                        Form *WrteForm, uint16_t WrteFormSize,
                        Form *ReadForm, uint16_t ReadFormSize) {
 /**************************************************************************************************
- * Create a UART class specific for the Raspberry Pi, to simplify the RaspberryPi version
+ * Create a UART class specific for the Raspberry Pi
  *  This version requires pointers to the Write/Read UART Form system and sizes
  *
  *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
@@ -143,6 +147,11 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
     _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
             // Open the serial interface
+#else
+    _return_message_ = {"No USART Hardware Attached"};
+    _message_size_ = 26;
+    _return_message_pointer_ = 0;
+
 #endif
 }
 
@@ -157,7 +166,6 @@ int  UARTPeriph::anySerDataAvil(void) {
                                         // captured
 #endif
 }
-
 
 void UARTPeriph::pseudoRegisterSet(uint8_t *pseudoregister, uint8_t entry) {
 /**************************************************************************************************
@@ -203,9 +211,9 @@ uint8_t UARTPeriph::readDR(void) {
 //=================================================================================================
     // So as to ensure that any downstream messages get something if this function is called,
     // return the message "No Hardware Attached" in byte steps
-    uint8_t temp_char = (uint8_t) return_message[return_message_pointer];
+    uint8_t temp_char = (uint8_t) _return_message_[_return_message_pointer_];
 
-    return_message_pointer = ( (return_message_pointer + 1) % message_size );
+    _return_message_pointer_ = ( (_return_message_pointer_ + 1) % _message_size_ );
 
     return ( temp_char );
 #endif
@@ -623,7 +631,6 @@ void UARTPeriph::configTransmtIT(InterState intr) {
         __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TXE);  // Then disable interrupt
     }
 
-
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
@@ -662,7 +669,6 @@ void UARTPeriph::configTransCmIT(InterState intr) {
         __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_TC);   // Then disable interrupt
     }
 
-
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
@@ -700,7 +706,6 @@ void UARTPeriph::configReceiveIT(InterState intr) {
     else {                                                  // If request is to disable
         __HAL_UART_DISABLE_IT(_uart_handle_, UART_IT_RXNE); // Then disable interrupt
     }
-
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
