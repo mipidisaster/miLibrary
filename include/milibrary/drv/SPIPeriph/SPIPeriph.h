@@ -123,7 +123,7 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPiSPI.h>                // Include the wiringPi SPI library
+// No specific includes are required in the header files
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
@@ -149,6 +149,19 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 class SPIPeriph {
+private:
+#if   ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+    static const uint8_t    ktransit_data_register_empty        = 0x01;
+    static const uint8_t    kread_data_register_not_empty       = 0x02;
+    static const uint8_t    kbus_error                          = 0x04;
+    /* Such that the RaspberryPi functions work similarly to the STM versions, the above is the
+     * bit positions for the pseudo interrupt registers - emulating interrupt functions for
+     * RaspberryPi.
+     */
+#endif
+
 /**************************************************************************************************
 * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
 *   -----------
@@ -250,13 +263,33 @@ public:
         // as the size.
         // Class will then generate a GenBuffer item internally.
 
-#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        int _spi_channel_;              // Store the channel used for SPI
+        int         _spi_channel_;              // Store the channel used for SPI
+        uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
+
+        void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
+        void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
+        uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);
+        /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
+         */
+
+        const char      *_return_message_;
+        uint8_t   _message_size_;
+        uint8_t         _return_message_pointer_;
 
     public:
-        SPIPeriph(int channel, int speed, _SPIMode Mode);
+        SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize);
+        SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint16_t FormSize);
+        // Setup the SPI class, by providing the channel to be used ('0'/'1' from
+        // '/dev/spidev0.x'), speed of data transmission, and the mode. Along with providing the
+        // "GenBuffer" which needs to be fully defined outside of this class.
+        // OVERLOADED function, with a second version to allow for the class to automatically
+        // construct the internal Form buffer
+
+        uint8_t dataWriteRead(uint8_t *data, int len);
 
 #else
 //=================================================================================================
