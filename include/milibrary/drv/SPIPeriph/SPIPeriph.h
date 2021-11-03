@@ -36,6 +36,7 @@
  *                                    (utilises the SPI form system, see below), expects to
  *                                    receive an array data location.
  *                                    (input varies for GPIO or hardware managed Chip Select)
+ *                                    {DeMux support not provided see issue #12 in github}
  *
  *          ".startInterrupt"       - Check to see if the SPI bus is free, and a new request form
  *                                    is available. Then trigger a communication run (enables
