@@ -268,7 +268,7 @@ public:
 // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        int         _spi_channel_;              // Store the channel used for SPI
+        int         _spi_handle_;               // Store the channel used for SPI
         uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
 
         void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
@@ -277,9 +277,11 @@ public:
         /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
          */
 
-        const char      *_return_message_;
-        uint8_t   _message_size_;
-        uint8_t         _return_message_pointer_;
+#if zz__MiEmbedType__zz ==  0
+    const char      *_return_message_;
+    uint8_t         _message_size_;
+    uint8_t         _return_message_pointer_;
+#endif
 
     public:
         SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize);

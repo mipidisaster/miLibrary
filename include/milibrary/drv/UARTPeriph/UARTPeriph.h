@@ -258,9 +258,11 @@ public:
     /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
      */
 
+#if zz__MiEmbedType__zz ==  0
     const char      *_return_message_;
     uint8_t         _message_size_;
     uint8_t         _return_message_pointer_;
+#endif
 
     public:
         int  anySerDataAvil(void);              // Function to provide the amount of data at
