@@ -103,8 +103,10 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize) {
  *************************************************************************************************/
     popGenParam();              // Populate generic class parameters
 
-    _mode_          = Mode;     // Copy across the selected Mode
-    _spi_channel_   = channel;  //
+    _mode_              = Mode;         // Copy across the selected Mode
+    _spi_handle_        = channel;      //
+    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
+                                        // interrupt for Raspberry Pi
 
     _form_queue_.create(new Form[FormSize], FormSize);
 
@@ -119,7 +121,7 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize) {
     else                                // If any other Mode is selected then
         tempMode = 0;                   // Default to "0"
 
-    wiringPiSPISetupMode(_spi_channel_, speed, tempMode);
+    wiringPiSPISetupMode(_spi_handle_, speed, tempMode);
         // Enable SPI interface for selected SPI channel, speed and mode
 
 #else
@@ -138,8 +140,10 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint
  *************************************************************************************************/
     popGenParam();              // Populate generic class parameters
 
-    _mode_          = Mode;     // Copy across the selected Mode
-    _spi_channel_   = channel;  //
+    _mode_              = Mode;         // Copy across the selected Mode
+    _spi_handle_        = channel;      //
+    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
+                                        // interrupt for Raspberry Pi
 
     _form_queue_.create(FormArray, FormSize);
 
@@ -154,7 +158,7 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint
     else                                // If any other Mode is selected then
        tempMode = 0;                    // Default to "0"
 
-    wiringPiSPISetupMode(_spi_channel_, speed, tempMode);
+    wiringPiSPISetupMode(_spi_handle_, speed, tempMode);
         // Enable SPI interface for selected SPI channel, speed and mode
 
 #else
@@ -172,7 +176,7 @@ uint8_t SPIPeriph::dataWriteRead(uint8_t *data, int len)
 {
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
 //=================================================================================================
-    return (  wiringPiSPIDataRW(_spi_channel_, data, len)  );
+    return (  wiringPiSPIDataRW(_spi_handle_, data, len)  );
 
 #else
 //=================================================================================================

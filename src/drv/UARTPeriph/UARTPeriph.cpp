@@ -101,9 +101,9 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
  *************************************************************************************************/
     popGenParam();                      // Populate generic class parameters
 
-    _device_loc_      = deviceloc;      // Capture the folder location of UART device
-    _baud_rate_       = baud;           // Capture the desired baud rate
-    _pseudo_interrupt_= 0x00;           // pseudo interrupt register used to control the UART
+    _device_loc_        = deviceloc;    // Capture the folder location of UART device
+    _baud_rate_         = baud;         // Capture the desired baud rate
+    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the UART
                                         // interrupt for Raspberry Pi
 
     // Configure both the Write and Read Buffers to be the size as per input
@@ -135,9 +135,9 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
  *************************************************************************************************/
     popGenParam();                      // Populate generic class parameters
 
-    _device_loc_      = deviceloc;      // Capture the folder location of UART device
-    _baud_rate_       = baud;           // Capture the desired baud rate
-    _pseudo_interrupt_= 0x00;           // pseudo interrupt register used to control the UART
+    _device_loc_        = deviceloc;    // Capture the folder location of UART device
+    _baud_rate_         = baud;         // Capture the desired baud rate
+    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the UART
                                         // interrupt for Raspberry Pi
 
     // Configure both the Write and Read Buffers to be the size as per input
