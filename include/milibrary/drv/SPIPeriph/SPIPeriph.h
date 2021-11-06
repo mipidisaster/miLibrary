@@ -161,6 +161,10 @@ private:
      * bit positions for the pseudo interrupt registers - emulating interrupt functions for
      * RaspberryPi.
      */
+
+    static const uint8_t    kSPI_bits_per_word                  = 8;
+    static const int        kSPI_delay                          = 0;
+
 #endif
 
 /**************************************************************************************************
@@ -268,9 +272,12 @@ public:
 // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        int         _spi_handle_;               // Store the channel used for SPI
+        int         _spi_handle_;               // Stores the device to communicate too
+        const char  *_device_loc_;              // Store location file for UART device
+        uint32_t    _spi_speed_;                // Speed of the SPI device
         uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
 
+        void errorMessage(const char *message, ...);
         void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
         void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
         uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);
@@ -284,15 +291,20 @@ public:
 #endif
 
     public:
-        SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize);
-        SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint16_t FormSize);
-        // Setup the SPI class, by providing the channel to be used ('0'/'1' from
-        // '/dev/spidev0.x'), speed of data transmission, and the mode. Along with providing the
-        // "GenBuffer" which needs to be fully defined outside of this class.
+        SPIPeriph(const char *deviceloc, int speed, SPIMode Mode, uint16_t FormSize);
+        SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
+                                         Form *FormArray, uint16_t FormSize);
+        // Setup the UART class, by providing the folder location of serial interface, and baudrate
+        // as well the "GenBuffer" needing to be provided to the function, to be fully defined
+        // outside of class
+
+        // Setup the SPI class, by providing the folder location of the serial interface, speed,
+        // and mode. Along with providing the "GenBuffer" which needs to be fully defined outside
+        // of this class.
         // OVERLOADED function, with a second version to allow for the class to automatically
         // construct the internal Form buffer
 
-        uint8_t dataWriteRead(uint8_t *data, int len);
+        uint8_t dataWriteRead(uint8_t *wData, uint8_t *rData, int len);
 
 #else
 //=================================================================================================

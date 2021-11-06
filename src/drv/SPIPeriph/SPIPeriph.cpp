@@ -30,7 +30,17 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPiSPI.h>                // Include the wiringPi SPI library
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
+
+#include <fcntl.h>                      // Needed for SPI port
+#include <unistd.h>                     //
+#include <sys/ioctl.h>                  //
+#include <linux/spi/spidev.h>           //
+// See  https://raspberry-projects.com/pi/programming-in-c/spi/using-the-spi-interface
+//      https://kernel.org/doc/Documentation/spi/spidev
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
@@ -95,7 +105,7 @@ SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t For
 }
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize) {
+SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi, to simplify the RaspberryPi version (and as
  * size is less of a constraint) function will create arrays for the internal Form buffers.
@@ -104,9 +114,10 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize) {
     popGenParam();              // Populate generic class parameters
 
     _mode_              = Mode;         // Copy across the selected Mode
-    _spi_handle_        = channel;      //
     _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
                                         // interrupt for Raspberry Pi
+    _device_loc_        = deviceloc;    // Capture the folder location of SPI device
+    _spi_speed_         = speed;
 
     _form_queue_.create(new Form[FormSize], FormSize);
 
@@ -121,18 +132,33 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, uint16_t FormSize) {
     else                                // If any other Mode is selected then
         tempMode = 0;                   // Default to "0"
 
-    wiringPiSPISetupMode(_spi_handle_, speed, tempMode);
-        // Enable SPI interface for selected SPI channel, speed and mode
+    _spi_handle_        = open(_device_loc_, O_RDWR);   // Open file to the SPI Device
+
+    if (_spi_handle_ < 0)
+        errorMessage("Unable to open SPI device: %s", _device_loc_);
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MODE, &tempMode)                       < 0)
+        errorMessage("SPI Mode Change failure");
+
+    uint8_t tempBPW = kSPI_bits_per_word;
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_BITS_PER_WORD, &tempBPW)               < 0)
+        errorMessage("SPI BPW Change failure");
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MAX_SPEED_HZ, &_spi_speed_)            < 0)
+        errorMessage("SPI Speed Change failure, cannot set speed to %dHz", _spi_speed_);
 
 #else
-    _return_message_ = {"No SPI Hardware Attached"};
-    _message_size_ = 24;
-    _return_message_pointer_ = 0;
+    _spi_handle_                = 0;
+    _return_message_            = {"No SPI Hardware Attached"};
+    _message_size_              = 24;
+    _return_message_pointer_    = 0;
 
 #endif
 }
 
-SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint16_t FormSize) {
+SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
+                                            Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi
  *  This version requires pointers to the Write/Read UART Form system and sizes
@@ -141,9 +167,10 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint
     popGenParam();              // Populate generic class parameters
 
     _mode_              = Mode;         // Copy across the selected Mode
-    _spi_handle_        = channel;      //
     _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
                                         // interrupt for Raspberry Pi
+    _device_loc_        = deviceloc;    // Capture the folder location of SPI device
+    _spi_speed_         = speed;
 
     _form_queue_.create(FormArray, FormSize);
 
@@ -156,10 +183,23 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint
     else if (_mode_ == SPIMode::kMode3) // If Mode 3 is selected then
         tempMode = 3;                   // Store "3"
     else                                // If any other Mode is selected then
-       tempMode = 0;                    // Default to "0"
+        tempMode = 0;                   // Default to "0"
 
-    wiringPiSPISetupMode(_spi_handle_, speed, tempMode);
-        // Enable SPI interface for selected SPI channel, speed and mode
+    _spi_handle_        = open(_device_loc_, O_RDWR);   // Open file to the SPI Device
+
+    if (_spi_handle_ < 0)
+        errorMessage("Unable to open SPI device: %s", deviceloc);
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MODE, &tempMode)                       < 0)
+        errorMessage("SPI Mode Change failure");
+
+    uint8_t tempBPW = kSPI_bits_per_word;
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_BITS_PER_WORD, &tempBPW)               < 0)
+        errorMessage("SPI BPW Change failure");
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MAX_SPEED_HZ, &_spi_speed_)            < 0)
+        errorMessage("SPI Speed Change failure, cannot set speed to %dHz", _spi_speed_);
 
 #else
     _return_message_ = {"No SPI Hardware Attached"};
@@ -169,14 +209,38 @@ SPIPeriph::SPIPeriph(int channel, int speed, SPIMode Mode, Form *FormArray, uint
 #endif
 }
 
-uint8_t SPIPeriph::dataWriteRead(uint8_t *data, int len)
+void SPIPeriph::errorMessage(const char *message, ...) {
+/**************************************************************************************************
+ * Set message for failure set, and include the specific error code.
+ *************************************************************************************************/
+    char buffer[1024];
+    va_list args;
+
+    va_start(args, message);                    // Capture the extra arguments in function input
+    vsnprintf(buffer, 1024, message, args);     //
+    perror(buffer);                             // Add the error code/message to string
+    va_end(args);
+
+    exit (EXIT_FAILURE);                        // Close down program
+}
+
+uint8_t SPIPeriph::dataWriteRead(uint8_t *wData, uint8_t *rData, int len)
 /**************************************************************************************************
  * Wrapper for the 'wiringPi' function 'wiringPiSPIDataRW'
  *************************************************************************************************/
 {
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
 //=================================================================================================
-    return (  wiringPiSPIDataRW(_spi_handle_, data, len)  );
+    struct spi_ioc_transfer spi = { 0 };
+
+    spi.tx_buf          = (unsigned long) wData;        // Construct SPI hardware parameters
+    spi.rx_buf          = (unsigned long) rData;
+    spi.len             = len;
+    spi.delay_usecs     = kSPI_delay;
+    spi.speed_hz        = _spi_speed_;
+    spi.bits_per_word   = kSPI_bits_per_word;
+
+    return (  ioctl (_spi_handle_,  SPI_IOC_MESSAGE(1), &spi)  );
 
 #else
 //=================================================================================================
@@ -738,13 +802,8 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    uint16_t i = 0;
 
-    for (i = 0; i != size; i++)         // Cycle through the data to be written
-        rData[i] = wData[i];            // and copy into the read data
-
-
-    dataWriteRead(rData, size);         // Transfer data
+    dataWriteRead(wData, rData, size);         // Transfer data
 
 #endif
 
@@ -1182,14 +1241,7 @@ void SPIPeriph::handleIRQ(void) {
         if ( ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01 )  ||
              ( (receiveToReadChk() & receiveToReadITChk()) == 0x01 ) ) {
             // If there is any new transmit/read requests, then ...
-            // - As function 'dataWriteRead' will read the input array and transmit, but will also
-            //   override this data with the read back data. Will therefore need to copy contents
-            //   of 'TxBuff' into 'RxBuff' before calling function.
-            for (uint16_t i = 0; i != _cur_form_.size; i++) {
-                _cur_form_.RxBuff[i] = _cur_form_.TxBuff[i];
-            }
-
-            dataWriteRead(_cur_form_.RxBuff, _cur_form_.size);
+            dataWriteRead(_cur_form_.TxBuff, _cur_form_.RxBuff, _cur_form_.size);
             // Will need to improve at some point, such that it will read whether the data has been
             // transfered or not. It is assumed here that it will ALWAYS work.
 
@@ -1230,8 +1282,23 @@ void SPIPeriph::handleIRQ(void) {
 #endif
 }
 
-SPIPeriph::~SPIPeriph()
-{
-    // TODO Auto-generated destructor stub
+SPIPeriph::~SPIPeriph() {
+/**************************************************************************************************
+ * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
+ * to avoid "memory leakage"
+ *************************************************************************************************/
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+//=================================================================================================
+
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+    if (close(_spi_handle_) < 0)
+        errorMessage("Error, unable to close SPI device - %s", _device_loc_);
+
+#else
+//=================================================================================================
+
+#endif
 }
 
