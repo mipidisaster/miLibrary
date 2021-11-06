@@ -13,6 +13,7 @@ develop
 d0.2.1.2 - WIP
 * USART class updated for RaspberryPi and Linux ([b3b090f](https://github.com/mipidisaster/miLibrary/commit/b3b090fcf656b145b522f79d89197556a35a3d6d))
 * SPI class updated for RaspberryPi and Linux ([48c4309](https://github.com/mipidisaster/miLibrary/commit/48c430900e36e70bc7a98534d7428043e016f9fd))
+  * Further changes made to the SPI Class to fix issue [#8](https://github.com/mipidisaster/miLibrary/issues/8) - [2f9bf35](https://github.com/mipidisaster/miLibrary/commit/2f9bf35f5435e8ca3b836a85adcc9af6aac31260)
 
 > Issues raised during phase : [#10](https://github.com/mipidisaster/miLibrary/issues/10), [#11](https://github.com/mipidisaster/miLibrary/issues/11), [#12](https://github.com/mipidisaster/miLibrary/issues/12)
 
