@@ -37,15 +37,19 @@
 
 #include <fcntl.h>                      // Needed for SPI port
 #include <unistd.h>                     //
-#include <sys/ioctl.h>                  //
-#include <linux/spi/spidev.h>           //
+#include <sys/ioctl.h>                  // Control of I/O devices
+#include <linux/spi/spidev.h>           // ioctl SPI specific parameters
 // See  https://raspberry-projects.com/pi/programming-in-c/spi/using-the-spi-interface
 //      https://kernel.org/doc/Documentation/spi/spidev
+//          https://linux.die.net/
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// Nothing is needed in support of 'No Hardware'
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
 
 #else
 //=================================================================================================
@@ -247,7 +251,7 @@ uint8_t SPIPeriph::dataWriteRead(uint8_t *wData, uint8_t *rData, int len)
     // So as to ensure that any downstream messages get something if this function is called,
     // return the message "No Hardware Attached" in byte steps
     for (int i = 0; i != len; i++) {
-        data[i] = (uint8_t) _return_message_[_return_message_pointer_];
+        rData[i] = (uint8_t) _return_message_[_return_message_pointer_];
         _return_message_pointer_ = ( (_return_message_pointer_ + 1) % _message_size_ );
     }
 
