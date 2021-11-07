@@ -11,16 +11,12 @@ This library contains the support of a majority of devices/interaces which will 
 
 develop
 d0.2.1.2 - WIP
-* USART class updated for RaspberryPi and Linux ([b3b090f](https://github.com/mipidisaster/miLibrary/commit/b3b090fcf656b145b522f79d89197556a35a3d6d))
-* SPI class updated for RaspberryPi and Linux ([48c4309](https://github.com/mipidisaster/miLibrary/commit/48c430900e36e70bc7a98534d7428043e016f9fd))
-  * Further changes made to the SPI Class to fix issue [#8](https://github.com/mipidisaster/miLibrary/issues/8) - [2f9bf35](https://github.com/mipidisaster/miLibrary/commit/2f9bf35f5435e8ca3b836a85adcc9af6aac31260)
-
+* Worked isse [#8](https://github.com/mipidisaster/miLibrary/issues/8)
+> See issue comments, for specific commits to correct issue
 > Issues raised during phase : [#10](https://github.com/mipidisaster/miLibrary/issues/10), [#11](https://github.com/mipidisaster/miLibrary/issues/11), [#12](https://github.com/mipidisaster/miLibrary/issues/12)
 
 d0.2.1.1 ([370fff5](https://github.com/mipidisaster/miLibrary/commit/370fff5c7c8afe60d7818f0641e5b5403ae21538))
 * Worked issue [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
-* RaspberryPi enabled functions (zz__MiEmbedType__zz  =  10) updated for GPIO to work with latest changes to repository (wasn't modified as part of the updates v0.1.0 -> v0.2.1)
-> Other classes to be updated as part of next devel build.
 
 v0.2.1
 * Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
