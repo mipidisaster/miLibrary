@@ -126,12 +126,12 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringSerial.h>               // Include the wiringPi UART/Serial library
+#include <termios.h>                    // Defines baudrate settings and 'speed_t'
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// None
+#include <termios.h>                    // Defines baudrate settings and 'speed_t'
 
 #else
 //=================================================================================================
@@ -247,11 +247,14 @@ public:
 // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        int                 _uart_handle_;      // Stores the device to communicate too
-        const char          *_device_loc_;      // Store location file for UART device
-        int                 _baud_rate_;        // Store entered baudrate
-        uint8_t             _pseudo_interrupt_; // Pseudo interrupt register
+        int         _uart_handle_;              // Stores the device to communicate too
+        const char  *_device_loc_;              // Store location file for UART device
+        int         _baud_rate_;                // Store entered baudrate
+        uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
 
+    speed_t configBaudrate(int baud);
+
+    void errorMessage(const char *message, ...);
     void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
     void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
     uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);

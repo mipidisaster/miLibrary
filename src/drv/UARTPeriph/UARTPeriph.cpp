@@ -30,12 +30,28 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringSerial.h>               // Include the wiringPi UART/Serial library
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
+
+#include <fcntl.h>                      // Needed for UART port
+#include <unistd.h>                     //
+#include <sys/ioctl.h>                  // Control of I/O devices
+#include <termios.h>                    // Defines baudrate settings and 'speed_t'
+
+// See  https://raspberry-projects.com/pi/programming-in-c/uart-serial-port/using-the-uart
+//      https://kernel.org/doc/Documentation/serial/driver.rst
+//          https://linux.die.net/
+//      http://pubs.opengroup.org/onlinepubs/007908799/xsh/termios.h.html
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// Nothing is needed in support of 'No Hardware'
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
 
 #else
 //=================================================================================================
@@ -89,6 +105,54 @@ UARTPeriph::UARTPeriph(UART_HandleTypeDef *UART_Handle,
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
+speed_t UARTPeriph::configBaudrate(int baud) {
+/**************************************************************************************************
+ * Simple function to take the input integer value, and select the correct baudrate entry.
+ * Replicated from wiringSerial.c for simplicity
+ *************************************************************************************************/
+    speed_t myBaud ;
+
+    switch (baud)
+    {
+      case      50:   myBaud =      B50 ; break ;
+      case      75:   myBaud =      B75 ; break ;
+      case     110:   myBaud =     B110 ; break ;
+      case     134:   myBaud =     B134 ; break ;
+      case     150:   myBaud =     B150 ; break ;
+      case     200:   myBaud =     B200 ; break ;
+      case     300:   myBaud =     B300 ; break ;
+      case     600:   myBaud =     B600 ; break ;
+      case    1200:   myBaud =    B1200 ; break ;
+      case    1800:   myBaud =    B1800 ; break ;
+      case    2400:   myBaud =    B2400 ; break ;
+      case    4800:   myBaud =    B4800 ; break ;
+      case    9600:   myBaud =    B9600 ; break ;
+      case   19200:   myBaud =   B19200 ; break ;
+      case   38400:   myBaud =   B38400 ; break ;
+      case   57600:   myBaud =   B57600 ; break ;
+      case  115200:   myBaud =  B115200 ; break ;
+      case  230400:   myBaud =  B230400 ; break ;
+      case  460800:   myBaud =  B460800 ; break ;
+      case  500000:   myBaud =  B500000 ; break ;
+      case  576000:   myBaud =  B576000 ; break ;
+      case  921600:   myBaud =  B921600 ; break ;
+      case 1000000:   myBaud = B1000000 ; break ;
+      case 1152000:   myBaud = B1152000 ; break ;
+      case 1500000:   myBaud = B1500000 ; break ;
+      case 2000000:   myBaud = B2000000 ; break ;
+      case 2500000:   myBaud = B2500000 ; break ;
+      case 3000000:   myBaud = B3000000 ; break ;
+      case 3500000:   myBaud = B3500000 ; break ;
+      case 4000000:   myBaud = B4000000 ; break ;
+
+      default:
+        errorMessage("UART Speed Change failure, cannot set speed to %dHz", baud);
+        return -2 ;
+    }
+
+    return myBaud;
+}
+
 UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
                        uint16_t WrteFormSize, uint16_t ReadFormSize) {
 /**************************************************************************************************
@@ -111,8 +175,67 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
     _form_read_q_.create(new Form[ReadFormSize], ReadFormSize);
 
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
-            // Open the serial interface
+    /* Open modem device for reading and writing and not as controlling tty because we don't want
+     * to get killed if linenoise sends CTRL-C!
+     *
+     * O_RWDR       -Open for reading and writing
+     * O_NOCTTY     - If set and path identifies a terminal device, open() will not cause the
+     *                terminal device to become the controlling terminal for the process
+     * O_NDELAY     - Enables nonblocking mode. When set read requests on the file can return
+     *                immediately with a failure status if there is no input immediately available
+     *                (instead of blocking). Likewise, write requests can also return immediately
+     *                with a failure status if the output can't be written immediately.
+     *                (same as O_NONBLOCK, used both as a 'just in case').
+     */
+    _uart_handle_ = open(deviceloc, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+
+    if (_uart_handle_ < 0)
+        errorMessage("Unable to open UART device: %s", deviceloc);
+    // Serial interface should now be open.
+    // Just need to confirm the interface now...
+    // For information see - http://pubs.opengroup.org/onlinepubs/007908799/xsh/termios.h.html
+
+    struct termios options;     // termios structure for configuring terminal
+    tcgetattr(_uart_handle_, &options);     // Retrieve current configuration.
+
+    cfmakeraw(&options);    // Will clean up the c_i/_o/_l flags to a 'default' configuration
+                            // Search to find this (linux.die.net)
+    cfsetispeed(&options, configBaudrate(_baud_rate_));
+    cfsetospeed(&options, configBaudrate(_baud_rate_));
+
+    /* 'c_cflag' fields describes the hardware control of the terminal
+     *  CS8         - 8bits
+     *  CREAD       - Enable Receive
+     *  CLOCAL      - Ignore modem status lines (included as was in example used)
+     */
+    options.c_cflag |= (CLOCAL | CREAD | CS8 | configBaudrate(_baud_rate_));
+    //options.c_cflag |= (CLOCAL | CREAD | CS8 );
+
+    /* 'c_iflag' field describes the basic terminal input control
+     *      - NONE USED -
+     */
+    options.c_iflag = 0;
+
+    /* 'c_oflag' field specifies the system treatment of output
+     *      - NONE USED -
+     */
+    options.c_oflag = 0;
+
+    /* 'c_lflag' field of the argument structure is used to control various terminal functions:
+     *      - NONE USED -
+     */
+    options.c_lflag = 0;
+
+    /* 'c_cc' control characters
+     * VMIN     = Minimum value
+     * VTIME    = Time
+     */
+    options.c_cc[VMIN]  =   0;
+    options.c_cc[VTIME] = 100;  // 100deciseconds
+
+    // Clean the modem line and activate the settings for port
+    tcflush(_uart_handle_, TCIFLUSH);               // Flush
+    tcsetattr(_uart_handle_, TCSANOW, &options);    // Enter settings
 
 #else
     _return_message_ = {"No USART Hardware Attached"};
@@ -145,8 +268,68 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
     _form_read_q_.create(ReadForm, ReadFormSize);
 
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    _uart_handle_ = serialOpen(_device_loc_, _baud_rate_);
-            // Open the serial interface
+    /* Open modem device for reading and writing and not as controlling tty because we don't want
+     * to get killed if linenoise sends CTRL-C!
+     *
+     * O_RWDR       -Open for reading and writing
+     * O_NOCTTY     - If set and path identifies a terminal device, open() will not cause the
+     *                terminal device to become the controlling terminal for the process
+     * O_NDELAY     - Enables nonblocking mode. When set read requests on the file can return
+     *                immediately with a failure status if there is no input immediately available
+     *                (instead of blocking). Likewise, write requests can also return immediately
+     *                with a failure status if the output can't be written immediately.
+     *                (same as O_NONBLOCK, used both as a 'just in case').
+     */
+    _uart_handle_ = open(deviceloc, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+
+    if (_uart_handle_ < 0)
+        errorMessage("Unable to open UART device: %s", deviceloc);
+    // Serial interface should now be open.
+    // Just need to confirm the interface now...
+    // For information see - http://pubs.opengroup.org/onlinepubs/007908799/xsh/termios.h.html
+
+    struct termios options;     // termios structure for configuring terminal
+    tcgetattr(_uart_handle_, &options);     // Retrieve current configuration.
+
+    cfmakeraw(&options);    // Will clean up the c_i/_o/_l flags to a 'default' configuration
+                            // Search to find this (linux.die.net)
+    cfsetispeed(&options, configBaudrate(_baud_rate_));
+    cfsetospeed(&options, configBaudrate(_baud_rate_));
+
+    /* 'c_cflag' fields describes the hardware control of the terminal
+     *  CS8         - 8bits
+     *  CREAD       - Enable Receive
+     *  CLOCAL      - Ignore modem status lines (included as was in example used)
+     */
+    options.c_cflag |= (CLOCAL | CREAD | CS8 | configBaudrate(_baud_rate_));
+    //options.c_cflag |= (CLOCAL | CREAD | CS8 );
+
+    /* 'c_iflag' field describes the basic terminal input control
+     *      - NONE USED -
+     */
+    options.c_iflag = 0;
+
+    /* 'c_oflag' field specifies the system treatment of output
+     *      - NONE USED -
+     */
+    options.c_oflag = 0;
+
+    /* 'c_lflag' field of the argument structure is used to control various terminal functions:
+     *      - NONE USED -
+     */
+    options.c_lflag = 0;
+
+    /* 'c_cc' control characters
+     * VMIN     = Minimum value
+     * VTIME    = Time
+     */
+    options.c_cc[VMIN]  =   0;
+    options.c_cc[VTIME] = 100;  // 100deciseconds
+
+    // Clean the modem line and activate the settings for port
+    tcflush(_uart_handle_, TCIFLUSH);               // Flush
+    tcsetattr(_uart_handle_, TCSANOW, &options);    // Enter settings
+
 #else
     _return_message_ = {"No USART Hardware Attached"};
     _message_size_ = 26;
@@ -155,12 +338,37 @@ UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
 #endif
 }
 
+void UARTPeriph::errorMessage(const char *message, ...) {
+/**************************************************************************************************
+ * Set message for failure set, and include the specific error code.
+ *************************************************************************************************/
+    char buffer[1024];
+    va_list args;
+
+    va_start(args, message);                    // Capture the extra arguments in function input
+    vsnprintf(buffer, 1024, message, args);     //
+    perror(buffer);                             // Add the error code/message to string
+    va_end(args);
+
+    exit (EXIT_FAILURE);                        // Close down program
+}
+
 int  UARTPeriph::anySerDataAvil(void) {
 /**************************************************************************************************
  * RaspberryPi specific function to determine amount of data within the hardware
  *************************************************************************************************/
 #if   (zz__MiEmbedType__zz == 10)       // If configured for RaspberryPi, then use wiringPi
-    return(serialDataAvail(_uart_handle_));
+    int return_value;
+
+    // FIONREAD - returns the number of bytes that are immediately available for reading (ioctl)
+    // https://freebsd.org/cgi/man.cgi?sektion=2&query=ioctl
+    // Slightly better/useful source -
+    //  https://linux.die.net/man/4/tty_ioctl (as this is the terminal version of ioctl)
+    if ( ioctl (_uart_handle_,  FIONREAD, &return_value) == -1 )
+        return -1;
+
+    return return_value;
+
 #elif (zz__MiEmbedType__zz ==  0)       // If configured for No Hardware then
     return ((int) 1);                   // Return '1' so as to ensure that no hardware message is
                                         // captured
@@ -205,7 +413,12 @@ uint8_t UARTPeriph::readDR(void) {
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-    return((uint8_t) serialGetchar(_uart_handle_));
+    uint8_t x;
+
+    if (read (_uart_handle_, &x, 1) != 1)
+        return -1;
+
+    return (uint8_t) x & 0xFF;
 
 #else
 //=================================================================================================
@@ -234,7 +447,7 @@ void UARTPeriph::writeDR(uint8_t data) {
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-    serialPutchar(_uart_handle_, (unsigned char) data);
+    write(_uart_handle_, &data, 1);
 
 #else
 //=================================================================================================
@@ -590,7 +803,7 @@ UARTPeriph::DevFlt UARTPeriph::poleTransmit(uint8_t *pData, uint16_t size) {
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
     while (size > 0) {                      // Whilst there is data to be transferred
-        poleSingleTransmit(*pData);   // Transmit the single point of data
+        poleSingleTransmit(*pData);         // Transmit the single point of data
         pData += sizeof(uint8_t);           // Increment pointer by the size of the data to be
                                             // transmitted
         size--;                             // Decrement the size
@@ -1058,8 +1271,8 @@ UARTPeriph::~UARTPeriph() {
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-    serialClose(_uart_handle_);     // Close the UART interface
-
+    if (close(_uart_handle_) < 0)
+        errorMessage("Error, unable to close USART device - %s", _device_loc_);
 #else
 //=================================================================================================
 
