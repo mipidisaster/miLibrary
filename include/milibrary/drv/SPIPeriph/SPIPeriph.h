@@ -243,8 +243,8 @@ public:
         Form        _cur_form_;         // Current SPI request form
 
     public:
-        DevFlt      Flt;                // Fault state of the SPI Device
-        CommLock    CommState;          // Status of the Communication
+        DevFlt      flt;                // Fault state of the SPI Device
+        CommLock    comm_state;         // Status of the Communication
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -273,16 +273,16 @@ public:
 //=================================================================================================
     private:
         int         _spi_handle_;               // Stores the device to communicate too
-        const char  *_device_loc_;              // Store location file for UART device
+        const char  *_device_loc_;              // Store location file for SPI device
         uint32_t    _spi_speed_;                // Speed of the SPI device
         uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
 
-        void errorMessage(const char *message, ...);
-        void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
-        void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
-        uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);
-        /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
-         */
+    void errorMessage(const char *message, ...);
+    void pseudoRegisterSet(  uint8_t entry);
+    void pseudoRegisterClear(uint8_t entry);
+    uint8_t pseudoStatusChk( uint8_t entry);
+    /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
+     */
 
 #if zz__MiEmbedType__zz ==  0
     const char      *_return_message_;
