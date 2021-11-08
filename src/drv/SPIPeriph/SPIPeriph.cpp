@@ -69,8 +69,8 @@ void SPIPeriph::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    Flt           = DevFlt::kInitialised;     // Initialise the fault to "initialised"
-    CommState     = CommLock::kFree;          // Indicate bus is free
+    flt           = DevFlt::kInitialised;     // Initialise the fault to "initialised"
+    comm_state    = CommLock::kFree;          // Indicate bus is free
 
     _cur_count_   = 0;                // Initialise the current packet size count
 
@@ -259,25 +259,25 @@ uint8_t SPIPeriph::dataWriteRead(uint8_t *wData, uint8_t *rData, int len)
 #endif
 }
 
-void SPIPeriph::pseudoRegisterSet(uint8_t *pseudoregister, uint8_t entry) {
+void SPIPeriph::pseudoRegisterSet(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function set the desired 'entry' of the input 'pseudoregister'
+ * RaspberryPi specific function set the desired 'entry' of '_pseudo_interrupt_'
  *************************************************************************************************/
-    *pseudoregister |= entry;
+    _pseudo_interrupt_  |= entry;
 }
 
-void SPIPeriph::pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry) {
+void SPIPeriph::pseudoRegisterClear(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function clear the desired 'entry' of the input 'pseudoregister'
+ * RaspberryPi specific function clear the desired 'entry' of '_pseudo_interrupt_'
  *************************************************************************************************/
-    *pseudoregister &= ~(entry);
+    _pseudo_interrupt_  &= ~(entry);
 }
 
-uint8_t SPIPeriph::pseudoStatusChk(uint8_t pseudoregister, uint8_t entry) {
+uint8_t SPIPeriph::pseudoStatusChk(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function see if the desired 'entry' of the input 'pseudoregister' is set
+ * RaspberryPi specific function see if the desired 'entry' of '_pseudo_interrupt_' is set
  *************************************************************************************************/
-    return ( pseudoregister & entry );
+    return ( _pseudo_interrupt_ & entry );
 }
 
 #endif
@@ -582,7 +582,7 @@ uint8_t SPIPeriph::transmitEmptyITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, ktransit_data_register_empty) != 0 )
+    if ( pseudoStatusChk(ktransit_data_register_empty) != 0 )
         return (1);
     else
         return (0);
@@ -612,7 +612,7 @@ uint8_t SPIPeriph::receiveToReadITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, kread_data_register_not_empty) != 0 )
+    if ( pseudoStatusChk(kread_data_register_not_empty) != 0 )
         return (1);
     else
         return (0);
@@ -641,7 +641,7 @@ uint8_t SPIPeriph::busErrorITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, kbus_error) != 0 )
+    if ( pseudoStatusChk(kbus_error) != 0 )
         return (1);
     else
         return (0);
@@ -745,10 +745,10 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
  *   version doesn't pull down any pins within software. Relies upon a hardware managed CS.
  *************************************************************************************************/
     if (wData == __null || rData == __null || size == 0)    // If no data has been requested
-        return ( Flt = DevFlt::kData_Size );                // to be set return error
+        return ( flt = DevFlt::kData_Size );                // to be set return error
 
     // Indicate that the bus is not free
-    CommState = CommLock::kCommunicating;       // Indicate bus is communicating
+    comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
 #if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
@@ -765,12 +765,12 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         while(transmitEmptyChk() == 0) {
             if (busOverRunChk() == 1) {     // Any Bus Over runs errors
                 clearBusOvrRun();           // Clear the Bus Overrun fault
-                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
+                return ( flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
             if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
                 clearBusModeFlt();          // Clear the Bus Mode fault
-                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
+                return ( flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
             // No timeout period has been specified - Can get stuck
@@ -782,12 +782,12 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         while(receiveToReadChk() == 0) {
             if (busOverRunChk() == 1) {     // Any Bus Over runs errors
                 clearBusOvrRun();           // Clear the Bus Overrun fault
-                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
+                return ( flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
             if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
                 clearBusModeFlt();          // Clear the Bus Mode fault
-                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
+                return ( flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
 
@@ -812,9 +812,9 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
 #endif
 
     // Indicate that the bus is free
-    CommState = CommLock::kFree;        // Indicate bus is free
+    comm_state = CommLock::kFree;       // Indicate bus is free
 
-    return ( Flt = DevFlt::kNone );
+    return ( flt = DevFlt::kNone );
 }
 
 
@@ -888,11 +888,11 @@ void SPIPeriph::configTransmtIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, ktransit_data_register_empty);
+        pseudoRegisterSet(ktransit_data_register_empty);
         // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
     else {                                                  // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, ktransit_data_register_empty);
+        pseudoRegisterClear(ktransit_data_register_empty);
         // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
 
@@ -921,11 +921,11 @@ void SPIPeriph::configReceiveIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, kread_data_register_not_empty);
+        pseudoRegisterSet(kread_data_register_not_empty);
         // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, kread_data_register_not_empty);
+        pseudoRegisterClear(kread_data_register_not_empty);
         // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
 
@@ -954,11 +954,11 @@ void SPIPeriph::configBusErroIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, kbus_error);
+        pseudoRegisterSet(kbus_error);
         // Enable the pseudo Bus error bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, kbus_error);
+        pseudoRegisterClear(kbus_error);
         // Disable the pseudo Bus error bit - via the "Pseudo interrupt" register
     }
 
@@ -1013,7 +1013,7 @@ void SPIPeriph::startInterrupt(void) {
  * Function will be called to start off a new SPI communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (CommState == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
+    if ( (comm_state == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
         _form_queue_.outputRead( &(_cur_form_) );       // Capture form request
 
@@ -1029,7 +1029,7 @@ void SPIPeriph::startInterrupt(void) {
             _form_queue_.outputRead( &(_cur_form_) );           // Capture form request
         }
 
-        CommState = CommLock::kCommunicating;   // Lock SPI bus
+        comm_state = CommLock::kCommunicating;  // Lock SPI bus
 
         enable();
 
@@ -1041,7 +1041,7 @@ void SPIPeriph::startInterrupt(void) {
         configReceiveIT(InterState::kIT_Enable);    // Then enable Receive buffer full interrupt
         configTransmtIT(InterState::kIT_Enable);    // Then enable Transmit Empty buffer interrupt
     }
-    else if ( (CommState == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
+    else if ( (comm_state == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
         disable();
     }
 }
@@ -1060,7 +1060,7 @@ void SPIPeriph::intReqFormCmplt(void) {
     // Deselect the current device, as communication is now complete
 
     // Indicate that SPI bus is now free, and disable any interrupts
-    CommState = CommLock::kFree;
+    comm_state = CommLock::kFree;
     configReceiveIT(InterState::kIT_Disable);   // Disable Receive buffer full interrupt
     configTransmtIT(InterState::kIT_Disable);   // Disable Transmit empty buffer interrupt
 }
@@ -1105,7 +1105,7 @@ void SPIPeriph::handleIRQ(void) {
 //=================================================================================================
 /**************************************************************************************************
  * INTERRUPTS:
- * Interrupt Service Routine for the SPI events within the I2C class.
+ * Interrupt Service Routine for the SPI events within the SPI class.
  *
  * The enabling of the interrupt for embedded devices (STM32) is done by enabling them via the
  * STM32cube GUI, and then in the main loop, enabling the required interrupts.
@@ -1239,21 +1239,20 @@ void SPIPeriph::handleIRQ(void) {
     // writing of hardware - there is only the one function which covers both - 'dataWriteRead'.
     // Therefore have been combined into a single function call...
 
-    while (CommState == CommLock::kCommunicating) {
-        // While there is data to be transmitted (MASTER MODE), then...
+    if ( ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01 )  ||
+         ( (receiveToReadChk() & receiveToReadITChk()) == 0x01 ) ) {
+        // If there is any new transmit/read requests, then ...
+        dataWriteRead(_cur_form_.TxBuff, _cur_form_.RxBuff, _cur_form_.size);
+        // Will need to improve at some point, such that it will read whether the data has been
+        // transfered or not. It is assumed here that it will ALWAYS work.
 
-        if ( ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01 )  ||
-             ( (receiveToReadChk() & receiveToReadITChk()) == 0x01 ) ) {
-            // If there is any new transmit/read requests, then ...
-            dataWriteRead(_cur_form_.TxBuff, _cur_form_.RxBuff, _cur_form_.size);
-            // Will need to improve at some point, such that it will read whether the data has been
-            // transfered or not. It is assumed here that it will ALWAYS work.
+        _cur_count_ = 0;    // Force count to '0', as all data as been transferred.
 
-            _cur_count_ = 0;    // Force count to '0', as all data as been transferred.
-            configTransmtIT(InterState::kIT_Disable);   // Disable 'interrupt'
-            intReqFormCmplt();          // Complete the current request form (no faults)
-            startInterrupt();           // Check if any new requests remain
-        }}
+        configTransmtIT(InterState::kIT_Disable);   // Disable 'interrupt'
+
+        intReqFormCmplt();          // Complete the current request form (no faults)
+        startInterrupt();           // Check if any new requests remain
+    }
 
 
     // As the RaspberryPi/Default functions do not have any detection of bus errors, the following
