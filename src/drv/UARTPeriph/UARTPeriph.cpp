@@ -375,25 +375,25 @@ int  UARTPeriph::anySerDataAvil(void) {
 #endif
 }
 
-void UARTPeriph::pseudoRegisterSet(uint8_t *pseudoregister, uint8_t entry) {
+void UARTPeriph::pseudoRegisterSet(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function set the desired 'entry' of the input 'pseudoregister'
+ * RaspberryPi specific function set the desired 'entry' of '_pseudo_interrupt_'
  *************************************************************************************************/
-    *pseudoregister |= entry;
+    _pseudo_interrupt_  |= entry;
 }
 
-void UARTPeriph::pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry) {
+void UARTPeriph::pseudoRegisterClear(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function clear the desired 'entry' of the input 'pseudoregister'
+ * RaspberryPi specific function clear the desired 'entry' of '_pseudo_interrupt_'
  *************************************************************************************************/
-    *pseudoregister &= ~(entry);
+    _pseudo_interrupt_  &= ~(entry);
 }
 
-uint8_t UARTPeriph::pseudoStatusChk(uint8_t pseudoregister, uint8_t entry) {
+uint8_t UARTPeriph::pseudoStatusChk(uint8_t entry) {
 /**************************************************************************************************
- * RaspberryPi specific function see if the desired 'entry' of the input 'pseudoregister' is set
+ * RaspberryPi specific function see if the desired 'entry' of '_pseudo_interrupt_' is set
  *************************************************************************************************/
-    return ( pseudoregister & entry );
+    return ( _pseudo_interrupt_ & entry );
 }
 
 #endif
@@ -578,7 +578,7 @@ uint8_t UARTPeriph::transmitEmptyITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, ktransit_data_register_empty) != 0 )
+    if ( pseudoStatusChk(ktransit_data_register_empty) != 0 )
         return (1);
     else
         return (0);
@@ -607,7 +607,7 @@ uint8_t UARTPeriph::transmitComptITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, ktransmit_complete) != 0 )
+    if ( pseudoStatusChk(ktransmit_complete) != 0 )
         return (1);
     else
         return (0);
@@ -637,7 +637,7 @@ uint8_t UARTPeriph::receiveToReadITChk(void) {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    if ( pseudoStatusChk(_pseudo_interrupt_, kread_data_register_not_empty) != 0 )
+    if ( pseudoStatusChk(kread_data_register_not_empty) != 0 )
         return (1);
     else
         return (0);
@@ -847,11 +847,11 @@ void UARTPeriph::configTransmtIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, ktransit_data_register_empty);
+        pseudoRegisterSet(ktransit_data_register_empty);
         // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
     else {                                                  // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, ktransit_data_register_empty);
+        pseudoRegisterClear(ktransit_data_register_empty);
         // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
     }
 
@@ -885,11 +885,11 @@ void UARTPeriph::configTransCmIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, ktransmit_complete);
+        pseudoRegisterSet(ktransmit_complete);
         // Enable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, ktransmit_complete);
+        pseudoRegisterClear(ktransmit_complete);
         // Disable the pseudo Transmit complete bit - via the "Pseudo interrupt" register
     }
 
@@ -923,11 +923,11 @@ void UARTPeriph::configReceiveIT(InterState intr) {
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        pseudoRegisterSet(&_pseudo_interrupt_, kread_data_register_not_empty);
+        pseudoRegisterSet(kread_data_register_not_empty);
         // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
     else {                                                      // If request is to disable
-        pseudoRegisterClear(&_pseudo_interrupt_, kread_data_register_not_empty);
+        pseudoRegisterClear(kread_data_register_not_empty);
         // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
     }
 
@@ -1111,30 +1111,20 @@ void UARTPeriph::handleIRQ(void) {
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
 /**************************************************************************************************
- * Example of call.
- *  As the main.h/main.c are included within the interrupt header and source file, the function
- *  call needs to be setup there.
- *  A global pointer to the UART class needs to be setup, then within the main() routine, it needs
- *  to be configured to the desired settings (STM32CubeMX - handle linked to class).
+ * INTERRUPTS:
+ * Interrupt Service Routine for the UART class. Each of the supported devices needs to call this
+ * function in different ways - therefore each implementation is mentioned within the coded
+ * section.
  *
- *  Then external function needs to call ".IRQHandle", and then be called within the interrupt
- *  function call:
+ * Function will then read the hardware status flags, and determine which interrupt has been
+ * triggered:
+ *      If receive interrupt enabled, then data from Data Register is stored onto the "Receive"
+ *      buffer
  *
- *  main.c
- *      * Global pointer
- *      UART *UARTPeriph;
+ *      If transmission interrupt enabled, then data from "Transmit" buffer is put onto the Data
+ *      Register for transmission.
  *
- *      main() {
- *      UARTPeriph = new UART(&huart1);
- *      while() {};
- *      }
- *
- *      void UARTPeriph_IRQHandler(void) {  UARTPeriph->handleIRQ();  }
- *
- *  main.h
- *      extern "C" {
- *      void UARTPeriph_IRQHandler(void);
- *      }
+ *      No other interrupts are currently supported.
  *************************************************************************************************/
     if ( (transmitComptChk() & transmitComptITChk()) == 0x01) { //
         clearComptChk();            // Clear the Transmission complete flag

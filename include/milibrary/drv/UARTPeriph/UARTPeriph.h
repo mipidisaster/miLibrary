@@ -255,9 +255,9 @@ public:
     speed_t configBaudrate(int baud);
 
     void errorMessage(const char *message, ...);
-    void pseudoRegisterSet(  uint8_t *pseudoregister, uint8_t entry);
-    void pseudoRegisterClear(uint8_t *pseudoregister, uint8_t entry);
-    uint8_t pseudoStatusChk( uint8_t  pseudoregister, uint8_t entry);
+    void pseudoRegisterSet(  uint8_t entry);
+    void pseudoRegisterClear(uint8_t entry);
+    uint8_t pseudoStatusChk( uint8_t entry);
     /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
      */
 
