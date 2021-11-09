@@ -10,6 +10,9 @@ This library contains the support of a majority of devices/interaces which will 
 ![build tree](/_image/Build_tree.png)
 
 develop
+v0.2.1-d2
+* No specific issues being fixed currently
+
 v0.2.1-d1
 * Fixed isse [#8](https://github.com/mipidisaster/miLibrary/issues/8), [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
 > See issue comments, for specific commits to correct issue
