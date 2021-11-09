@@ -47,12 +47,12 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-// No specific includes are required in the header files
+#include <string>
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// None
+#include <string>
 
 #else
 //=================================================================================================
@@ -71,6 +71,13 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 class GPIO {
+#if   ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+    std::string             kgpio_file_location                 = "/sys/class/gpio/";
+
+#endif
+
 /**************************************************************************************************
  * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
  *   -----------
@@ -111,12 +118,22 @@ public:
 // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        State           _pin_value_;            // Current value of pin
+        std::string _device_loc_;               // Store location file for GPIO device
+        State       _pin_value_;                // Current value of pin
+
+        void errorMessage(const char *message, ...);
+        int write(std::string path, std::string filename, std::string value);
+        int write(std::string path, std::string filename, int value);
+
+        std::string read(std::string path, std::string filename);
+
+        int setDirection(Dir pindirection);
+
+        int exportGPIO(void);
+        int unexportGPIO(void);
 
     public:
         GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection);
-        static void piSetup(void);              // Static function, to be called only once; as
-                                                // calls the 'wiringPiSetup' routine
 
 #endif
 

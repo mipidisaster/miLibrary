@@ -30,12 +30,37 @@
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPi.h>                   // Include the wiringPi library
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
+
+#include <fcntl.h>                      // Needed for GPIO port
+#include <unistd.h>                     //
+
+#include <iostream>                     // Used to allow for string manipulation
+#include <fstream>                      //
+#include <sstream>                      //
+#include <string>                       //
+
+// See  https://raspberry-projects.com/pi/programming-in-c/io-pins
+//      --> Most useful was the link in io_speed (if want to use memory locations in future)
+//              > https://elinux.org/RPi_GPIO_Code_Samples#Direct_register_access
+//              > https://elinux.org/RPi_GPIO_Code_Samples#sysfs (per current design)
+//          https://linux.die.net/
 
 #elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
 //     If using the Linux (No Hardware) version then
 //=================================================================================================
-// None required
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
+
+#include <iostream>                     // Used to allow for string manipulation
+#include <fstream>                      //
+#include <sstream>                      //
+#include <string>                       //
 
 #else
 //=================================================================================================
@@ -67,31 +92,133 @@ GPIO::GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction) {
 GPIO::GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection) {
 /**************************************************************************************************
  * Create a GPIO class specific for the Raspberry Pi/Default build
- * Receives the initial pin state, pin number, and the direction - manually entered
+ * Receives the file location of where the gpio is located - i.e. /sys/class/gpio/gpio<number>, as
+ * well as the pin state (Low/High), and direction (Input/Output), and pin number again.
  *************************************************************************************************/
-    _pin_number_      = pinnumber;      // copy data into class
-    _pin_direction_   = pindirection;   //
-    _pin_value_       = pinvalue;       //
+    _pin_number_        = pinnumber;    // copy data into class
+    _pin_direction_     = pindirection; //
+    _pin_value_         = pinvalue;     //
+
+    std::ostringstream s;
+    s << "gpio" << _pin_number_;
+    _device_loc_ = kgpio_file_location + std::string(s.str()) + "/";
+        // Outcome should be something like:
+        //  "/sys/class/gpio/gpio1/" (if pinnumber was '1')
 
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    if (_pin_direction_ == Dir::kInput)             // If GPIO Mode is set for INPUT - kInput
-        pinMode((int)_pin_number_, INPUT);          // Configure for INPUT
-    else {                                          // If GPIO Mode is set for OUTPUT - kOutput
-        pinMode((int)pinnumber, OUTPUT);            // Configure for OUTPUT
-        setValue(_pin_value_);                      // Set the pin for initial state
+    exportGPIO();                       // Setup GPIO to export mode
+    usleep(250000);                     // 250ms delay
+
+    setDirection(_pin_direction_);      // Configure for desired direction
+
+    if (_pin_direction_ == Dir::kOutput) {  // If OUTPUT, set to desired starting state
+        setValue(_pin_value_);
     }
+
 #endif
 }
 
-void GPIO::piSetup(void) {
+void GPIO::errorMessage(const char *message, ...) {
 /**************************************************************************************************
- * Static function which wraps the 'wiringPiSetup' routines within my 'GPIO' class.
- * Function is to only be called once, otherwise it will run out of file handles, so be careful
- * when using
+ * Set message for failure set, and include the specific error code.
  *************************************************************************************************/
-#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    wiringPiSetupGpio();
-#endif
+    char buffer[1024];
+    va_list args;
+
+    va_start(args, message);                    // Capture the extra arguments in function input
+    vsnprintf(buffer, 1024, message, args);     //
+    perror(buffer);                             // Add the error code/message to string
+    va_end(args);
+
+    exit (EXIT_FAILURE);                        // Close down program
+}
+
+int GPIO::write(std::string path, std::string filename, std::string value){
+/**************************************************************************************************
+ * Function will setup an OUTPUT filestream with the desired GPIO path, combining together the path
+ * and filename.
+ * Once stream is setup correctly, will drive the 'value' into the stream. Before closing down
+ * stream
+ *************************************************************************************************/
+    std::ofstream fs;                       // OUTPUT STREAM
+    fs.open((path + filename).c_str());     // Open up desired file stream
+    if (!fs.is_open())
+        errorMessage("Unable to write to GPIO path device: %s", (path + filename).c_str());
+
+    fs << value;
+    fs.close();
+    return 0;
+}
+
+int GPIO::write(std::string path, std::string filename, int value) {
+/**************************************************************************************************
+ * Convenience function.
+ * Same as the 'write' above, however uses a internal value instead of string.
+ *************************************************************************************************/
+    std::stringstream s;
+    s << value;
+
+    return write(path, filename, s.str());
+}
+
+std::string GPIO::read(std::string path, std::string filename) {
+/**************************************************************************************************
+ * Function will setup an INPUT filestream with the desired GPIO path, combining together the path
+ * and filename.
+ * Once stream is setup correctly, will drive the 'value' into the stream. Before closing down
+ * stream
+ *************************************************************************************************/
+    std::ifstream fs;                       // INPUT STREAM
+    fs.open((path + filename).c_str());     // Open up desired file stream
+    if (!fs.is_open())
+        errorMessage("Unable to read from GPIO path device: %s", (path + filename).c_str());
+
+    std::string input;
+    std::getline(fs, input);
+    fs.close();
+
+    return input;
+}
+
+int GPIO::exportGPIO(void) {
+/**************************************************************************************************
+ * Within the gpio file location, setup the desired GPIO to be in export mode (so can be used to
+ * read/write/etc.)
+ *************************************************************************************************/
+    // Prior to exporting GPIO lets check to see if it is already open...
+    std::ifstream fs;                       // INPUT STREAM
+    fs.open((kgpio_file_location + "export").c_str());  // Open up desired file stream
+
+    if (!fs.is_open()) {    // If unable to open, then not been exported yet
+        fs.close();         // Close current stream
+
+        return write(kgpio_file_location, "export", _pin_number_);
+    }
+
+    // If get here then there has already been an export of the GPIO....so lets get rid of it!
+    unexportGPIO();
+    return write(kgpio_file_location, "export", _pin_number_);
+}
+
+int GPIO::unexportGPIO(void) {
+/**************************************************************************************************
+ * Within the gpio file location, setup the desired GPIO to be in unexported (closing down the
+ * GPIO for control)
+ *************************************************************************************************/
+    return write(kgpio_file_location, "unexport", _pin_number_);
+}
+
+int GPIO::setDirection(Dir pindirection) {
+/**************************************************************************************************
+ * Configure for desired direction
+ *************************************************************************************************/
+    if (pindirection == Dir::kInput)
+        return write(_device_loc_, "direction", "in");
+
+    else
+        return write(_device_loc_, "direction", "out");
+
+    return -1;  // If gets to here return failure!
 }
 
 #endif
@@ -147,10 +274,12 @@ uint8_t GPIO::setValue(State value) {
 #else       // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
 #if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    if (value == State::kLow)                   // If demand for Pin is set for LOW - GPIO_LOW
-        digitalWrite((int)_pin_number_, LOW);   // Drive the pin LOW
+    if (value == State::kLow)               // If demand for Pin is set for LOW
+        write(_device_loc_, "value", "0");  // Drive pin LOW
+
     else
-        digitalWrite((int)_pin_number_, HIGH);  // Drive the pin HIGH
+        write(_device_loc_, "value", "1");  // Drive pin High
+
 #endif
 
     _pin_value_     = value;                    // Update pin value
@@ -181,6 +310,14 @@ GPIO::State GPIO::getValue() {
 
 #else       // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
+    std::string input = read(_device_loc_, "value");
+
+    if (input == "1")   return State::kHigh;
+    else                return State::kLow;
+
+#endif
+
     return State::kLow;
 
 #endif
@@ -198,7 +335,7 @@ GPIO::~GPIO() {
 
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Nothing needs to be done
+    unexportGPIO();     // Close down GPIO connections
 
 #endif
     // TODO Auto-generated destructor stub

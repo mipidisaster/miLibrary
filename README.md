@@ -10,6 +10,9 @@ This library contains the support of a majority of devices/interaces which will 
 ![build tree](/_image/Build_tree.png)
 
 develop
+wip-#13 (actual name - 'wip-#13-nowiringPi')
+* Branch used to capture changes made to the GPIO for working issue [#13](https://github.com/mipidisaster/miLibrary/issues/13)
+
 v0.2.1-d1
 * Fixed isse [#8](https://github.com/mipidisaster/miLibrary/issues/8), [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
 > See issue comments, for specific commits to correct issue
