@@ -10,13 +10,10 @@ This library contains the support of a majority of devices/interaces which will 
 ![build tree](/_image/Build_tree.png)
 
 develop
-d0.2.1.2 - WIP
-* Worked isse [#8](https://github.com/mipidisaster/miLibrary/issues/8)
+v0.2.1-d1
+* Fixed isse [#8](https://github.com/mipidisaster/miLibrary/issues/8), [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
 > See issue comments, for specific commits to correct issue
-> Issues raised during phase : [#10](https://github.com/mipidisaster/miLibrary/issues/10), [#11](https://github.com/mipidisaster/miLibrary/issues/11), [#12](https://github.com/mipidisaster/miLibrary/issues/12)
-
-d0.2.1.1 ([370fff5](https://github.com/mipidisaster/miLibrary/commit/370fff5c7c8afe60d7818f0641e5b5403ae21538))
-* Worked issue [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
+* Issues raised during phase : [#10](https://github.com/mipidisaster/miLibrary/issues/10), [#11](https://github.com/mipidisaster/miLibrary/issues/11), [#12](https://github.com/mipidisaster/miLibrary/issues/12)
 
 v0.2.1
 * Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
