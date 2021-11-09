@@ -18,9 +18,6 @@
  *          AS5047D
  *          AS5048A
  *
- *      If in "LiteImplementation" mode, then pointers to the write and read buffers need to be
- *      provided. Otherwise they will be generated internally to the class.
- *
  *      Depending upon how the programmer has setup the SPI Device, will change which of the
  *      functions listed below can be used:
  *      For function to wait for new data, or data to be transmitted utilising "poling mode":
