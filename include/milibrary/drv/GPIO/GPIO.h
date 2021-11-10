@@ -22,7 +22,6 @@
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
-
 #ifndef GPIO_H_
 #define GPIO_H_
 
