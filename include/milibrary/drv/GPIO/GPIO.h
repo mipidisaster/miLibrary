@@ -134,6 +134,10 @@ public:
 
     public:
         GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection);
+        static void piSetup(void);              // Static function, to be called only once, as
+                                                // calls the 'wiringPiSetup' routine
+                                                // Kept to maintain plug'n'play with previous
+                                                // version
 
 #endif
 

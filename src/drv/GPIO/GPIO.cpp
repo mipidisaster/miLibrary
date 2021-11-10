@@ -118,6 +118,17 @@ GPIO::GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection) {
 #endif
 }
 
+void GPIO::piSetup(void) {
+/**************************************************************************************************
+ * Static function which wraps the 'wiringPi' routines within my 'GPIO' class.
+ * Function is to only be called once, otherwise it will run out of file handles, so be careful
+ * when using.
+ * Note - this doesn't actually do anything! - kept to maintain plug'n'play with previous
+ * version(s) of GPIO
+ *************************************************************************************************/
+    // Do nothing
+}
+
 void GPIO::errorMessage(const char *message, ...) {
 /**************************************************************************************************
  * Set message for failure set, and include the specific error code.
