@@ -186,6 +186,35 @@ GPIO::State GPIO::getValue() {
 #endif
 }
 
+void GPIO::setGPIOArray(GPIO *gpioarray, uint32_t number_gpios, uint32_t value) {
+/**************************************************************************************************
+ * STATIC function used to set multiple gpio's in an array at the same time
+ * First entry within array 'gpioarray' is the LSB
+ *************************************************************************************************/
+    uint32_t temp = 0;      // Temporary variable used within this function, for
+                            //  -> Determining maximum size of gpioarray selection
+                            //  -> Looping through input selection, to set corresponding switch
+
+    temp = ((1 << number_gpios) - 1);       // Calculate the maximum size, by shifting 0x01 up by
+                                            // number of switches provided. Then subtracting 1
+                                            //      equivalent to (2^x) - 1.
+
+    // Force the input to be within the limits of number of GPIO pins provided
+    value &= temp;
+
+    // If get to this point, then input selection is within capabilitys of the class setup
+    for (temp = 0; temp != (number_gpios); temp++) {    // Now use temporary variable to loop
+        if (temp != 0) {                        // If not the first pass of loop then
+            value >>= 1;                        // binary shift the input selection number by 1
+        }                                       // to the right (make it smaller)
+
+        if (value & 1)                              // If lowest bit is "1", then
+            gpioarray[temp].setValue(GPIO::kHigh);  // Set corresponding switch "HIGH"
+        else                                        // If lowest bit is "0", then
+            gpioarray[temp].setValue(GPIO::kLow);   // Set corresponding switch "LOW"
+    }
+}
+
 GPIO::~GPIO() {
 /**************************************************************************************************
  * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as

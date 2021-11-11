@@ -140,6 +140,11 @@ public:     /*******************************************************************
         virtual uint8_t toggleOutput();                 // Toggle the target GPIO
         virtual uint8_t setValue(State value);
 
+        static void setGPIOArray(GPIO *gpioarray, uint32_t number_gpios, uint32_t value);
+        // Function to set multiple GPIOs with a specific value. The first entry within the array
+        // 'gpioarray' is the LSB.
+        // If the input 'value' is bigger than what can be displayed with the input array, function
+        // will only set the bits within limits.
 
         // Input controls
         virtual State getValue();
