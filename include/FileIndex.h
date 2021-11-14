@@ -58,9 +58,17 @@
  * All of the defines below are for "Devices" - examples: external hardware, shift registers, etc.
  * These would be contained within a "dev" folder
  *************************************************************************************************/
-#define FilInd_AS5x4x_HD    "milibrary/dev/AS5x4x/AS5x4x.h" // File for the AS5x4x Position Sensor
-                                                            // devices
-#define FilInd_AD741x_HD    "milibrary/dev/AD741x/AD741x.h" // File for the AD741x Temperature
-                                                            // Sensor
+#define FilInd_AS5x4x_HD    "milibrary/dev/AS5x4x/AS5x4x.h"     // File for the AS5x4x Position
+                                                                // Sensor devices
+#define FilInd_AD741x_HD    "milibrary/dev/AD741x/AD741x.h"     // File for the AD741x
+                                                                // Temperature Sensor
+#define FilInd_MAX6675HD    "milibrary/dev/MAX6675/MAX6675.h"   // File for the MAX6675
+                                                                // Temperature Sensor
+
+/**************************************************************************************************
+ * All of the defines below are for Devices which I have created - examples: miStepper, etc.
+ * These would be contained within a "own" folder
+ *************************************************************************************************/
+#define FilIndMStpUARTHD    "milibrary/own/miStepper/miStepperUSART.h"
 
 #endif /* FILEINDEX_H_ */
