@@ -1,4 +1,4 @@
-#Thu Oct 21 18:27:08 BST 2021
+#Sat Nov 27 14:14:40 GMT 2021
 \!/=
 /configuration/org.eclipse.core.net/org.eclipse.core.net.hasMigrated=true
 /configuration/org.eclipse.ui.ide/MAX_RECENT_WORKSPACES=10
@@ -412,6 +412,9 @@
 /instance/org.eclipse.cdt.ui.prj-miStepper/buildConsole/logLocation=C\:\\00_Projects\\02_Hephaestus\\.metadata\\.plugins\\org.eclipse.cdt.ui\\miStepper.build.log
 /instance/org.eclipse.cdt.ui/MemberFilterActionGroup.COutlineViewer.16=true
 /instance/org.eclipse.cdt.ui/c_keyword=0,0,255
+/instance/org.eclipse.cdt.ui/c_string=255,128,0
+/instance/org.eclipse.cdt.ui/c_string_bold=true
+/instance/org.eclipse.cdt.ui/c_string_italic=true
 /instance/org.eclipse.cdt.ui/c_type=0,0,255
 /instance/org.eclipse.cdt.ui/content_assist_category_order=org.eclipse.cdt.ui.templateProposalCategory\:0\u0000org.eclipse.cdt.ui.parserProposalCategory\:1\u0000org.eclipse.cdt.ui.helpProposalCategory\:2\u0000org.eclipse.cdt.ui.textProposalCategory\:3\u0000
 /instance/org.eclipse.cdt.ui/content_assist_disabled_computers=
