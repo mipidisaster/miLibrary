@@ -168,11 +168,11 @@ private:
 #endif
 
 /**************************************************************************************************
-* ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
-*   -----------
-*  Following types are generated within this class. If needed outside of the class, need to
-*  state "SPIDevice::" followed by the type.
-*************************************************************************************************/
+ * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+ *   -----------
+ *  Following types are generated within this class. If needed outside of the class, need to
+ *  state "SPIDevice::" followed by the type.
+ *************************************************************************************************/
 public:
     enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
         kNone           = 0x00,     // Normal Operation
@@ -226,10 +226,10 @@ public:
     }   Form;
 
 /**************************************************************************************************
-* == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
-*   -----------
-*  Parameters required for the class to function.
-*************************************************************************************************/
+ * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
+ *   -----------
+ *  Parameters required for the class to function.
+ *************************************************************************************************/
     protected:
     GenBuffer<Form>     _form_queue_;   // Pointer to the class internal SPIForm buffer, which
                                         // is used to manage interrupt based communication.
