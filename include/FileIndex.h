@@ -66,6 +66,11 @@
                                                                 // Temperature Sensor
 
 /**************************************************************************************************
+ * All of the defines below are for use with the Robot Operating System (ROS)
+ *************************************************************************************************/
+#define FilIndROSNode_TP    "milibrary/ros/miROSnode.cpp"       // File for miROSnode template
+
+/**************************************************************************************************
  * All of the defines below are for Devices which I have created - examples: miStepper, etc.
  * These would be contained within a "own" folder
  *************************************************************************************************/
