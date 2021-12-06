@@ -271,14 +271,11 @@ public:
         int  anySerDataAvil(void);              // Function to provide the amount of data at
                                                 // hardware baundry
 
-        UARTPeriph(const char *deviceloc, int baud, uint16_t WrteFormSize, uint16_t ReadFormSize);
         UARTPeriph(const char *deviceloc, int baud, Form *WrteForm, uint16_t WrteFormSize,
                                                     Form *ReadForm, uint16_t ReadFormSize);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
         // as well the "GenBuffer" needing to be provided to the function, to be fully defined
         // outside of class
-        // OVERLOADED function, with a second version to allow for the class to automatically
-        // construct the internal Form buffer
 
 #else
 //=================================================================================================

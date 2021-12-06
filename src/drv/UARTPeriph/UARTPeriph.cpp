@@ -154,98 +154,6 @@ speed_t UARTPeriph::configBaudrate(int baud) {
 }
 
 UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
-                       uint16_t WrteFormSize, uint16_t ReadFormSize) {
-/**************************************************************************************************
- * Create a UART class specific for the Raspberry Pi, to simplify the RaspberryPi version (and as
- * size is less of a constraint) function will create arrays for the internal Form buffers.
- *
- *  This will then open up the serial interface, and configure a "pseudo_interrutp" register, so
- *  as to provide the Raspberry Pi the same function use as other embedded devices.
- *  The Receive and Transmit buffers size will be as per input "BufferSize"
- *************************************************************************************************/
-    popGenParam();                      // Populate generic class parameters
-
-    _device_loc_        = deviceloc;    // Capture the folder location of UART device
-    _baud_rate_         = baud;         // Capture the desired baud rate
-    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the UART
-                                        // interrupt for Raspberry Pi
-
-    // Configure both the Write and Read Buffers to be the size as per input
-    _form_wrte_q_.create(new Form[WrteFormSize], WrteFormSize);
-    _form_read_q_.create(new Form[ReadFormSize], ReadFormSize);
-
-#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    /* Open modem device for reading and writing and not as controlling tty because we don't want
-     * to get killed if linenoise sends CTRL-C!
-     *
-     * O_RWDR       -Open for reading and writing
-     * O_NOCTTY     - If set and path identifies a terminal device, open() will not cause the
-     *                terminal device to become the controlling terminal for the process
-     * O_NDELAY     - Enables nonblocking mode. When set read requests on the file can return
-     *                immediately with a failure status if there is no input immediately available
-     *                (instead of blocking). Likewise, write requests can also return immediately
-     *                with a failure status if the output can't be written immediately.
-     *                (same as O_NONBLOCK, used both as a 'just in case').
-     */
-    _uart_handle_ = open(deviceloc, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
-
-    if (_uart_handle_ < 0)
-        errorMessage("Unable to open UART device: %s", deviceloc);
-    // Serial interface should now be open.
-    // Just need to confirm the interface now...
-    // For information see - http://pubs.opengroup.org/onlinepubs/007908799/xsh/termios.h.html
-
-    struct termios options;     // termios structure for configuring terminal
-    tcgetattr(_uart_handle_, &options);     // Retrieve current configuration.
-
-    cfmakeraw(&options);    // Will clean up the c_i/_o/_l flags to a 'default' configuration
-                            // Search to find this (linux.die.net)
-    cfsetispeed(&options, configBaudrate(_baud_rate_));
-    cfsetospeed(&options, configBaudrate(_baud_rate_));
-
-    /* 'c_cflag' fields describes the hardware control of the terminal
-     *  CS8         - 8bits
-     *  CREAD       - Enable Receive
-     *  CLOCAL      - Ignore modem status lines (included as was in example used)
-     */
-    options.c_cflag |= (CLOCAL | CREAD | CS8 | configBaudrate(_baud_rate_));
-    //options.c_cflag |= (CLOCAL | CREAD | CS8 );
-
-    /* 'c_iflag' field describes the basic terminal input control
-     *      - NONE USED -
-     */
-    options.c_iflag = 0;
-
-    /* 'c_oflag' field specifies the system treatment of output
-     *      - NONE USED -
-     */
-    options.c_oflag = 0;
-
-    /* 'c_lflag' field of the argument structure is used to control various terminal functions:
-     *      - NONE USED -
-     */
-    options.c_lflag = 0;
-
-    /* 'c_cc' control characters
-     * VMIN     = Minimum value
-     * VTIME    = Time
-     */
-    options.c_cc[VMIN]  =   0;
-    options.c_cc[VTIME] = 100;  // 100deciseconds
-
-    // Clean the modem line and activate the settings for port
-    tcflush(_uart_handle_, TCIFLUSH);               // Flush
-    tcsetattr(_uart_handle_, TCSANOW, &options);    // Enter settings
-
-#else
-    _return_message_ = {"No USART Hardware Attached"};
-    _message_size_ = 26;
-    _return_message_pointer_ = 0;
-
-#endif
-}
-
-UARTPeriph::UARTPeriph(const char *deviceloc, int baud,
                        Form *WrteForm, uint16_t WrteFormSize,
                        Form *ReadForm, uint16_t ReadFormSize) {
 /**************************************************************************************************
@@ -418,7 +326,7 @@ uint8_t UARTPeriph::readDR(void) {
     if (read (_uart_handle_, &x, 1) != 1)
         return -1;
 
-    return (uint8_t) x & 0xFF;
+    return ( (uint8_t) x ) & 0xFF;
 
 #else
 //=================================================================================================
