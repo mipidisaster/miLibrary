@@ -189,7 +189,8 @@ public:
                                                    _baud_rate_);
 
         if (baud_rate_parameter_good != ParamStatus::kParameter_present) {
-            ROS_WARN("No Baudrate has been provided via ROS Parameter %s, defaulting to 115200bps",
+            ROS_WARN("No Baudrate has been provided via ROS Parameter %s, "
+                     "defaulting to 115200bps",
                     (kconfig_sub_area + khardware_baud_rate).c_str());
             _baud_rate_ = 115200;
         }
@@ -360,7 +361,7 @@ public:
 
     ~rosUART() {
         ROS_INFO("Shutting down the node, and killing functions");
-        delete[] _hardware_handle_;
+        //delete[] _hardware_handle_;
     }
 
 };
