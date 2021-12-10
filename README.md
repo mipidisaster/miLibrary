@@ -11,7 +11,7 @@ This library contains the support of a majority of devices/interaces which will 
 
 develop
 v0.2.1-d2
-* No specific issues being fixed currently
+* Fixed issue(s) [#7](https://github.com/mipidisaster/miLibrary/issues/7), [#10](https://github.com/mipidisaster/miLibrary/issues/10)
 
 v0.2.1-d1
 * Fixed isse [#8](https://github.com/mipidisaster/miLibrary/issues/8), [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
