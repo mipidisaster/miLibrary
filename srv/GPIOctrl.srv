@@ -1,2 +1,6 @@
-int64 value
+# Basic service for setting a specific configuration using the 'gpio_node'
+# NOTE - this will only allow a maximum of 64bits to be controlled in any 1 node
+###################################################################################################
+
+uint64 value
 ---

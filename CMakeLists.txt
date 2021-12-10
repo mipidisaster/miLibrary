@@ -39,17 +39,17 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+# Generate messages in the 'msg' folder
+add_message_files(
+  FILES
+  Transmission.msg
+)
 
 # Generate services in the 'srv' folder
 add_service_files(
   FILES
   GPIOctrl.srv
+  BUSctrl.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -119,7 +119,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
             src/drv/GPIO/GPIO.cpp
-            #src/drv/UARTPeriph/UARTPeriph.cpp
+            src/drv/UARTPeriph/UARTPeriph.cpp
             #src/${PROJECT_NAME}/milibrary.cpp
 )
 
@@ -178,12 +178,12 @@ install(DIRECTORY include/${PROJECT_NAME}/
 ######################
 ## Build ->  NODES  ##
 ######################
-
+#_________________________________________________________________________________________________
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(gpio_node
-               src/ros/GPIO/rosGPIO_node.cpp
+               src/ros/hardware/rosGPIO_node.cpp
                )
                
 target_link_libraries(gpio_node milibrary ${catkin_LIBRARIES})
@@ -197,6 +197,31 @@ target_link_libraries(gpio_node milibrary ${catkin_LIBRARIES})
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(gpio_node
+                 ${PROJECT_NAME}_generate_messages_cpp
+                 ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
+                                                        # within this package
+                 ${catkin_EXPORTED_TARGETS})            # Import messages/service headers from 
+                                                        # imported packages
+
+#_________________________________________________________________________________________________
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(uart_node
+               src/ros/hardware/rosUART_node.cpp
+               )
+               
+target_link_libraries(uart_node milibrary ${catkin_LIBRARIES})
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(uart_node
                  ${PROJECT_NAME}_generate_messages_cpp
                  ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
                                                         # within this package
