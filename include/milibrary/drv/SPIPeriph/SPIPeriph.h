@@ -291,7 +291,6 @@ public:
 #endif
 
     public:
-        SPIPeriph(const char *deviceloc, int speed, SPIMode Mode, uint16_t FormSize);
         SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
                                          Form *FormArray, uint16_t FormSize);
         // Setup the UART class, by providing the folder location of serial interface, and baudrate
