@@ -254,7 +254,7 @@ public:
     }
 
     ~rosGPIO() {
-        ROS_INFO("Shutting down the node, and killing functions");
+        ROS_INFO("Shuting down node, and returning pins to FALSE");
         // Drive the GPIOs to a default value of "0"
         setGPIOvalue( 0 );
     }
@@ -278,10 +278,8 @@ int main(int argc, char **argv)
     ROS_INFO("GPIO node ready for use");
     ros::spin();
 
-    // Set output to a value of "0" ready for next use
-    ROS_INFO("Shuting down node, and returning pins to FALSE");
-    node_GPIO.~rosGPIO();  // Delete the class
-
+    // On node shutdown, don't think it reaches this part of main()
+    // However, will call class destroyer
     return 0;
 }
 
