@@ -361,7 +361,7 @@ public:
 
     ~rosUART() {
         ROS_INFO("Shutting down the node, and killing functions");
-        //delete[] _hardware_handle_;
+        delete[] _hardware_handle_;
     }
 
 };
