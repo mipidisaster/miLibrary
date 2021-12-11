@@ -119,7 +119,9 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
             src/drv/GPIO/GPIO.cpp
+            src/drv/GPIO/DeMux/DeMux.cpp
             src/drv/UARTPeriph/UARTPeriph.cpp
+            src/drv/SPIPeriph/SPIPeriph.cpp
             #src/${PROJECT_NAME}/milibrary.cpp
 )
 
@@ -184,6 +186,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(gpio_node
                src/ros/hardware/rosGPIO_node.cpp
+               src/drv/GPIO/GPIO.cpp
                )
                
 target_link_libraries(gpio_node milibrary ${catkin_LIBRARIES})
@@ -209,6 +212,7 @@ add_dependencies(gpio_node
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(uart_node
                src/ros/hardware/rosUART_node.cpp
+               src/drv/UARTPeriph/UARTPeriph.cpp
                )
                
 target_link_libraries(uart_node milibrary ${catkin_LIBRARIES})
@@ -222,6 +226,34 @@ target_link_libraries(uart_node milibrary ${catkin_LIBRARIES})
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(uart_node
+                 ${PROJECT_NAME}_generate_messages_cpp
+                 ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
+                                                        # within this package
+                 ${catkin_EXPORTED_TARGETS})            # Import messages/service headers from 
+                                                        # imported packages
+
+#_________________________________________________________________________________________________
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(spi_node
+               src/ros/hardware/rosSPI_node.cpp
+               src/drv/SPIPeriph/SPIPeriph.cpp
+               src/drv/GPIO/GPIO.cpp
+               src/drv/GPIO/DeMux/DeMux.cpp
+               )
+               
+target_link_libraries(spi_node milibrary ${catkin_LIBRARIES})
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(spi_node
                  ${PROJECT_NAME}_generate_messages_cpp
                  ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
                                                         # within this package
