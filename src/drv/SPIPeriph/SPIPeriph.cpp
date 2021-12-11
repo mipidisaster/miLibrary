@@ -109,58 +109,6 @@ SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t For
 }
 #else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode, uint16_t FormSize) {
-/**************************************************************************************************
- * Create a SPIPeriph class specific for RaspberryPi, to simplify the RaspberryPi version (and as
- * size is less of a constraint) function will create arrays for the internal Form buffers.
- * Receives the desired channel, speed and Mode
- *************************************************************************************************/
-    popGenParam();              // Populate generic class parameters
-
-    _mode_              = Mode;         // Copy across the selected Mode
-    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
-                                        // interrupt for Raspberry Pi
-    _device_loc_        = deviceloc;    // Capture the folder location of SPI device
-    _spi_speed_         = speed;
-
-    _form_queue_.create(new Form[FormSize], FormSize);
-
-#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
-    int tempMode = 0;
-    if      (_mode_ == SPIMode::kMode1) // If Mode 1 is selected then
-        tempMode = 1;                   // Store "1"
-    else if (_mode_ == SPIMode::kMode2) // If Mode 2 is selected then
-        tempMode = 2;                   // Store "2"
-    else if (_mode_ == SPIMode::kMode3) // If Mode 3 is selected then
-        tempMode = 3;                   // Store "3"
-    else                                // If any other Mode is selected then
-        tempMode = 0;                   // Default to "0"
-
-    _spi_handle_        = open(_device_loc_, O_RDWR);   // Open file to the SPI Device
-
-    if (_spi_handle_ < 0)
-        errorMessage("Unable to open SPI device: %s", _device_loc_);
-
-    if (ioctl (_spi_handle_,  SPI_IOC_WR_MODE, &tempMode)                       < 0)
-        errorMessage("SPI Mode Change failure");
-
-    uint8_t tempBPW = kSPI_bits_per_word;
-
-    if (ioctl (_spi_handle_,  SPI_IOC_WR_BITS_PER_WORD, &tempBPW)               < 0)
-        errorMessage("SPI BPW Change failure");
-
-    if (ioctl (_spi_handle_,  SPI_IOC_WR_MAX_SPEED_HZ, &_spi_speed_)            < 0)
-        errorMessage("SPI Speed Change failure, cannot set speed to %dHz", _spi_speed_);
-
-#else
-    _spi_handle_                = 0;
-    _return_message_            = {"No SPI Hardware Attached"};
-    _message_size_              = 24;
-    _return_message_pointer_    = 0;
-
-#endif
-}
-
 SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
                                             Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
