@@ -138,7 +138,7 @@ public:
     rosUART(ros::NodeHandle* normal, ros::NodeHandle* private_params):
     miROSnode(normal, private_params)
     {
-        _hardware_handle_   = 0;  // Initialise the pointer to zero
+        _hardware_handle_   = NULL;     // Initialise the pointer to NULL
         _baud_rate_         = 0;
     }
 
@@ -189,7 +189,8 @@ public:
                                                    _baud_rate_);
 
         if (baud_rate_parameter_good != ParamStatus::kParameter_present) {
-            ROS_WARN("No Baudrate has been provided via ROS Parameter %s, defaulting to 115200bps",
+            ROS_WARN("No Baudrate has been provided via ROS Parameter %s, "
+                     "defaulting to 115200bps",
                     (kconfig_sub_area + khardware_baud_rate).c_str());
             _baud_rate_ = 115200;
         }
@@ -360,7 +361,7 @@ public:
 
     ~rosUART() {
         ROS_INFO("Shutting down the node, and killing functions");
-        delete[] _hardware_handle_;
+        delete _hardware_handle_;
     }
 
 };
@@ -382,10 +383,8 @@ int main(int argc, char **argv)
     ROS_INFO("UART node ready for use");
     ros::spin();
 
-    // Set output to a value of "0" ready for next use
-    ROS_INFO("Shuting down node, and clearing space used");
-    node_UART.~rosUART();  // Delete the class
-
+    // On node shutdown, don't think it reaches this part of main()
+    // However, will call class destroyer
     return 0;
 }
 
