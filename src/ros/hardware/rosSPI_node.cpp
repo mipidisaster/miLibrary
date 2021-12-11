@@ -210,7 +210,7 @@ public:
 
         if          (file_location_parameter_good == ParamStatus::kParameter_present_but_invalid) {
             ROS_ERROR("File address ROS Parameter %s was not set to the correct type. "
-                      "Expecting list type to be provided. i.e. \"/dev/spidev0.0\"",
+                      "Expecting list type to be provided. i.e. \"[/dev/spidev0.0]\"",
                       (kconfig_sub_area + khardware_address_param).c_str());
 
         }
@@ -224,7 +224,7 @@ public:
 
             if (_file_location_.size() == 0) {
                 ROS_ERROR("File address ROS Parameter %s was not set to the correct type. "
-                          "Expecting list type to be provided. i.e. \"/dev/spidev0.0\"",
+                          "Expecting list type to be provided. i.e. \"[/dev/spidev0.0]\"",
                           (kconfig_sub_area + khardware_address_param).c_str());
 
                 file_location_parameter_good = ParamStatus::kParameter_present_but_invalid;
