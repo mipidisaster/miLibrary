@@ -232,13 +232,15 @@ void AD741x::decodeConfig(uint8_t data) {
  *************************************************************************************************/
     if ( (data & AD741x_PowerDown ) == 0) {     // If power bit is not set
         _mode_  = PwrState::kFull_Power;        // Capture that device is in Full Power, Mode 1
-    } else {
+    }
+    else {
         _mode_  = PwrState::kStand_By;          // Capture that device is in Stand By, Mode 2
     }
 
     if ( (data & AD741x_Filter) == 0 ) {        // If filter bit is disabled
         _filter_mode_   = FiltState::kDisabled; // Capture that filter is disabled
-    } else {
+    }
+    else {
         _filter_mode_   = FiltState::kEnabled;  // Capture that filter is enabled
     }
 }
