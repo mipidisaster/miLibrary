@@ -120,18 +120,14 @@ public:
     }
 
     /*
-     *  @brief:  Setups the GPIOs for the node, as per the expected input/configuration parameters
-     *           from within the rosparam space.
-     *           If there are any issues with the supplied values; which cannot be managed
-     *           internally. Will return an error (value of -1), to be checked at the 'main' level
-     *           to close the node down.
+     *  @brief:  Looks into the expected parameters needed for this node, and will check to see if
+     *           they are valid.
      *
      *  @param:  void
-     *  @retval: integer value - 0 = no issues, -1 = issues detected
+     *  @retval: Integer value - 0 = no issues, -1 = issues detected
      */
-    int configNode(void)
+    int checkGPIOInputParameters(void)
     {
-        //=========================================================================================
         ParamStatus output_parameters_good = rosParamCheck(
                                 kconfig_sub_area + koutput_gpio_param + kgpio_generic_param,
                                 _output_gpio_params_);
@@ -140,10 +136,12 @@ public:
             ROS_ERROR("Output ROS Parameter %s was not set to the correct type. Expecting list "
                       "type to be provided. i.e. \"[21, 20, 16, 26]\"",
                       (kconfig_sub_area + koutput_gpio_param + kgpio_generic_param).c_str());
-        } else if   (output_parameters_good == ParamStatus::kParameter_not_present) {
+        }
+        else if   (output_parameters_good == ParamStatus::kParameter_not_present) {
             ROS_WARN("Output ROS Parameter %s was not within roscore",
                     (kconfig_sub_area + koutput_gpio_param + kgpio_generic_param).c_str());
-        } else {
+        }
+        else {
             ROS_INFO("The following gpios have been provided as output pins:");
 
             for (int i = 0; i != _output_gpio_params_.size(); i++) {
@@ -159,10 +157,12 @@ public:
             ROS_ERROR("Input ROS Parameter %s was not set to the correct type. Expecting list "
                       "type to be provided. i.e. \"[21, 20, 16, 26]\"",
                       (kconfig_sub_area + kinput_gpio_param + kgpio_generic_param).c_str());
-        } else if   (input_parameters_good == ParamStatus::kParameter_not_present) {
+        }
+        else if   (input_parameters_good == ParamStatus::kParameter_not_present) {
             ROS_WARN("Input ROS Parameter %s was not within roscore",
                     (kconfig_sub_area + kinput_gpio_param + kgpio_generic_param).c_str());
-        } else {
+        }
+        else {
             ROS_INFO("The following gpios have been provided as input pins:");
 
             for (int i = 0; i != _input_gpio_params_.size(); i++) {
@@ -170,6 +170,9 @@ public:
             }
         }
 
+        //=========================================================================================
+        // Determine if the parameters provided are sufficient for node construction to complete
+        //
         if          ( (output_parameters_good == ParamStatus::kParameter_present_but_invalid)
                 ||    (input_parameters_good  == ParamStatus::kParameter_present_but_invalid) ) {
             // If there was one of the ROS parameters provided, but of the wrong type. Assume that
@@ -181,6 +184,26 @@ public:
         } else if   ( (output_parameters_good != ParamStatus::kParameter_present)
                 &&    (input_parameters_good  != ParamStatus::kParameter_present) ) {
             ROS_ERROR("Expected ROS Parameters not within roscore, or not valid");
+            return -1;
+        }
+
+        return 0;
+    }
+
+    /*
+     *  @brief:  Setups the GPIOs for the node, as per the expected input/configuration parameters
+     *           from within the rosparam space.
+     *           If there are any issues with the supplied values; which cannot be managed
+     *           internally. Will return an error (value of -1), to be checked at the 'main' level
+     *           to close the node down.
+     *
+     *  @param:  void
+     *  @retval: Integer value - 0 = no issues, -1 = issues detected
+     */
+    int configNode(void)
+    {
+        //=========================================================================================
+        if (checkGPIOInputParameters() < 0) {
             return -1;
         }
 
@@ -221,6 +244,8 @@ public:
         _set_server_        = _nh_.advertiseService(kGPIO_set_service,
                                                     &rosGPIO::callbackGPIOset,
                                                     this);
+
+        //=========================================================================================
 
         ROS_INFO("GPIO Server constructed");
         return 0;   // If got to this point, no errors were detected

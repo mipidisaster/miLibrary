@@ -18,7 +18,7 @@
  *
  *                      /baud_rate
  *                      [ Number field for the specified bit rate of the UART device.
- *                      [ - Note, if none is provided will default to '115200bpm'
+ *                      [ - Note, if none is provided will default to '115200bps'
  *   Publishers:
  *      connection_status
  *                      [ Provides a count of the bytes received and sent via this bus. Also
@@ -89,6 +89,8 @@ private:
     UARTPeriph              *_hardware_handle_;
     int                     _baud_rate_;
 
+    int                     _address_options_;
+
     std::vector<uint64_t>   _write_byte_count_;
     std::vector<float>      _write_byte_rate_;
 
@@ -140,21 +142,18 @@ public:
     {
         _hardware_handle_   = NULL;     // Initialise the pointer to NULL
         _baud_rate_         = 0;
+        _address_options_   = 0;
     }
 
     /*
-     *  @brief:  Setups the UART for the node, as per the expected input/configuration parameters
-     *           from within the rosparam space.
-     *           If there are any issues with the supplied values; which cannot be managed
-     *           internally. Will return an error (value of -1), to be checked at the 'main' level
-     *           to close the node down.
+     *  @brief:  Looks into the expected parameters needed for this node, and will check to see if
+     *           they are valid.
      *
      *  @param:  void
-     *  @retval: integer value - 0 = no issues, -1 = issues detected
+     *  @retval: Integer value - 0 = no issues, -1 = issues detected
      */
-    int configNode(void)
+    int checkUARTInputParameters(void)
     {
-        //=========================================================================================
         ParamStatus file_location_parameter_good = rosParamCheck(
                                                    kconfig_sub_area + khardware_address_param,
                                                    _file_location_);
@@ -165,12 +164,14 @@ public:
                       (kconfig_sub_area + khardware_address_param).c_str());
 
             return -1;
-        } else if   (file_location_parameter_good == ParamStatus::kParameter_not_present) {
+        }
+        else if   (file_location_parameter_good == ParamStatus::kParameter_not_present) {
             ROS_ERROR("File address ROS Parameter %s was not within roscore",
                      (kconfig_sub_area + khardware_address_param).c_str());
 
             return -1;
-        } else {
+        }
+        else {
             int temp = _file_location_.size();
 
             if (_file_location_.size() == 0) {
@@ -178,7 +179,8 @@ public:
                           "Expecting list type to be provided. i.e. \"/dev/serial0\"",
                           (kconfig_sub_area + khardware_address_param).c_str());
                 return -1;
-            } else {
+            }
+            else {
                 ROS_INFO("The following file address have been provided for "
                          "hardware interface: %s", _file_location_.c_str());
             }
@@ -195,6 +197,26 @@ public:
             _baud_rate_ = 115200;
         }
 
+        return 0;
+    }
+
+    /*
+     *  @brief:  Setups the UART for the node, as per the expected input/configuration parameters
+     *           from within the rosparam space.
+     *           If there are any issues with the supplied values; which cannot be managed
+     *           internally. Will return an error (value of -1), to be checked at the 'main' level
+     *           to close the node down.
+     *
+     *  @param:  void
+     *  @retval: Integer value - 0 = no issues, -1 = issues detected
+     */
+    int configNode(void)
+    {
+        //=========================================================================================
+        if (checkUARTInputParameters() < 0) {
+            return -1;
+        }
+
         //=========================================================================================
         ROS_INFO("Checking that there is no overlap of hardware filenames...");
         if(duplicationParamCheck() < 0) {       // If duplication(s) detected
@@ -203,6 +225,7 @@ public:
 
         _hardware_handle_ = new UARTPeriph(_file_location_.c_str(), _baud_rate_,
                                            __null, 0, __null, 0);
+        _address_options_   = 1;        // Only one device expected at the end of this device
 
         ROS_INFO("UART has been setup");
         //=========================================================================================
@@ -301,11 +324,11 @@ public:
     void callbackUARTpublish(const ros::TimerEvent& event) {
         // If this is the first pass of generating this message, then initialise it and publish
         if (_connection_status_message_.received_bytes.size() == 0) {
-            _read_byte_count_.insert( _read_byte_count_.begin(),  2, 0);
-            _write_byte_count_.insert(_write_byte_count_.begin(), 2, 0);
+            _read_byte_count_.insert( _read_byte_count_.begin(),  (_address_options_ + 1), 0);
+            _write_byte_count_.insert(_write_byte_count_.begin(), (_address_options_ + 1), 0);
 
-            _read_byte_rate_.insert(  _read_byte_rate_.begin(),   2, 0.00f);
-            _write_byte_rate_.insert( _write_byte_rate_.begin(),  2, 0.00f);
+            _read_byte_rate_.insert(  _read_byte_rate_.begin(),   (_address_options_ + 1), 0.00f);
+            _write_byte_rate_.insert( _write_byte_rate_.begin(),  (_address_options_ + 1), 0.00f);
 
             _connection_status_message_.received_bytes  = _read_byte_count_;
             _connection_status_message_.sent_bytes      = _write_byte_count_;
@@ -332,7 +355,8 @@ public:
             if (_connection_status_message_.received_bytes[i] >= _read_byte_count_[i]) {
                 rate_difference = _read_byte_count_[i] -
                                   _connection_status_message_.received_bytes[i];
-            } else {
+            }
+            else {
                 rate_difference = ((uint64_t) -1) - _connection_status_message_.received_bytes[i];
                 rate_difference += _read_byte_count_[i] + 1;
             }
@@ -346,7 +370,8 @@ public:
             if (_connection_status_message_.sent_bytes[i] >= _write_byte_count_[i]) {
                 rate_difference = _write_byte_count_[i] -
                                   _connection_status_message_.sent_bytes[i];
-            } else {
+            }
+            else {
                 rate_difference = ((uint64_t) -1) - _connection_status_message_.sent_bytes[i];
                 rate_difference += _write_byte_count_[i] + 1;
             }
