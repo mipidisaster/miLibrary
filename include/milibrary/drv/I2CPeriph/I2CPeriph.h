@@ -189,6 +189,7 @@ public:
         kNACK            = 0x01,    // I2C No Acknowledge
         kBus_Error       = 0x02,    // I2C Bus error
 
+        kTime_Out        = 0xFE,    // Timeout of function(s)
         kInitialised     = 0xFF     // Just initialised
     };
 

@@ -182,6 +182,7 @@ public:
         kCRC_Error      = 0x04,     // CRC Error detected
         kData_Size      = 0x05,     // Error with the size request of data
 
+        kTime_Out       = 0xFE,     // Timeout of function(s)
         kInitialised    = 0xFF      // Just initialised
     };
 

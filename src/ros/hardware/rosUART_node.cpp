@@ -41,6 +41,7 @@
  *************************************************************************************************/
 // C System Header(s)
 // ------------------
+#include <thread>       // std::thread
 #include <stdint.h>
 #include <vector>       // for std::vector
 #include <string>       // for strings
@@ -53,6 +54,7 @@
 // Other Libraries
 // ---------------
 #include "ros/ros.h"
+#include "ros/callback_queue.h"
 
 // Project Libraries
 // -----------------
@@ -102,6 +104,9 @@ private:
  *   -----------
  *  The follow are objects used for interfacing with the Robot Operating System.
  *************************************************************************************************/
+    ros::NodeHandle         _nh_hardware_;
+    ros::CallbackQueue      _hardware_callback_queue_;
+
     // PARAMETERS
     ////////////////////////
     // _file_location_ from miROSnode
@@ -143,6 +148,15 @@ public:
         _hardware_handle_   = NULL;     // Initialise the pointer to NULL
         _baud_rate_         = 0;
         _address_options_   = 0;
+
+        _nh_hardware_.setCallbackQueue(&_hardware_callback_queue_);
+
+        if (configNode() < 0) {
+            ROS_ERROR("Error detected during UART construction, exiting node...");
+            return;
+        }
+
+        nodeLoop();
     }
 
     /*
@@ -201,6 +215,36 @@ public:
     }
 
     /*
+     *  @brief:  Separate function, to handle the hardware service callback queue.
+     *           Intended to be used within a dedicated thread.
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    void hardwareCallbackThread(void) {
+        ros::SingleThreadedSpinner spinner;
+        spinner.spin(&_hardware_callback_queue_);
+    }
+
+    /*
+     *  @brief:  Function to encapsulate the looping of this node, due to having 2 callback
+     *           queues:
+     *               1. For the hardware interactions (only one thing at a time)
+     *               2. The publishing of the connection status
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    void nodeLoop(void) {
+        ROS_INFO("UART node ready for use");
+
+        std::thread hardware_spin(&rosUART::hardwareCallbackThread, this);
+        ros::spin();
+        hardware_spin.join();
+
+    }
+
+    /*
      *  @brief:  Setups the UART for the node, as per the expected input/configuration parameters
      *           from within the rosparam space.
      *           If there are any issues with the supplied values; which cannot be managed
@@ -238,13 +282,13 @@ public:
                                              &rosUART::callbackUARTpublish, this, false);
 
         //=========================================================================================
-        _read_server_       = _nh_.advertiseService(kUART_read_service,
-                                                    &rosUART::callbackUARTread,
-                                                    this);
+        _read_server_       = _nh_hardware_.advertiseService(kUART_read_service,
+                                                             &rosUART::callbackUARTread,
+                                                             this);
 
-        _write_server_      = _nh_.advertiseService(kUART_write_service,
-                                                    &rosUART::callbackUARTwrite,
-                                                    this);
+        _write_server_      = _nh_hardware_.advertiseService(kUART_write_service,
+                                                             &rosUART::callbackUARTwrite,
+                                                             this);
 
         //=========================================================================================
 
@@ -262,17 +306,33 @@ public:
      *              If the number to be read is specified as "read_size = 0", service will
      *              determine how much data is in the hardware buffer, and return this.
      *
+     *
+     *           To protect against waiting FOR EVER for any data to be in the USART buffer,
+     *           introduced a sleep for (0.05ms), and a break out if there is no data for
+     *           ~2seconds.
+     *
      *  @param:  milibrary BUSctrl request
      *  @param:  milibrary BUSctrl response
      *  @retval: Service needs to return a boolean type
      */
     bool callbackUARTread(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
+        ros::Time start_time = ros::Time::now();
+
         uint32_t data_size = req.read_size;
         if (data_size == 0) {
             data_size = _hardware_handle_->anySerDataAvil();
         }
 
-        while(_hardware_handle_->anySerDataAvil() < data_size) {};
+        while(_hardware_handle_->anySerDataAvil() < data_size) {
+            usleep(50); // sleep for 50us (0.05ms)
+
+            ros::Duration time_diff = ros::Time::now() - start_time;
+            if (time_diff.toSec() >= 2.0) {
+
+                res.fault       = (uint8_t) UARTPeriph::DevFlt::kTime_Out;
+                return true;
+            }
+        };
 
         std::vector<uint8_t> uart_read_back;
         for (uint32_t i = 0; i != data_size; i++) {
@@ -400,13 +460,8 @@ int main(int argc, char **argv)
     ros::NodeHandle private_params("~");
 
     rosUART  node_UART(&n, &private_params);
-    if (node_UART.configNode() < 0) {
-        ROS_ERROR("Error detected during UART construction, exiting node...");
-        return -1;
-    }
 
-    ROS_INFO("UART node ready for use");
-    ros::spin();
+    ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
     // However, will call class destroyer

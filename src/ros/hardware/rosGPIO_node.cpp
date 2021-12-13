@@ -116,7 +116,12 @@ public:
     rosGPIO(ros::NodeHandle* normal, ros::NodeHandle* private_params):
     miROSnode(normal, private_params)
     {
+        if (configNode() < 0) {
+            ROS_ERROR("Error detected during GPIO construction, exiting node...");
+            return;
+        }
 
+        nodeLoop();
     }
 
     /*
@@ -188,6 +193,18 @@ public:
         }
 
         return 0;
+    }
+
+    /*
+     *  @brief:  Function to encapsulate the looping of this node.
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    void nodeLoop(void) {
+        ROS_INFO("GPIO node ready for use");
+
+        ros::spin();
     }
 
     /*
@@ -295,13 +312,8 @@ int main(int argc, char **argv)
     ros::NodeHandle private_params("~");
 
     rosGPIO  node_GPIO(&n, &private_params);
-    if (node_GPIO.configNode() < 0) {
-        ROS_ERROR("Error detected during GPIO construction, exiting node...");
-        return -1;
-    }
 
-    ROS_INFO("GPIO node ready for use");
-    ros::spin();
+    ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
     // However, will call class destroyer

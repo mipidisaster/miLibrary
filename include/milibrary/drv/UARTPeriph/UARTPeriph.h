@@ -177,6 +177,8 @@ public:
 
          kDMA_Rx_Error   = 0xFD,     // Error triggered if DMA (Receive) error
          kDMA_Tx_Error   = 0xFE,     // Error triggered if DMA (Transmit) errorST
+
+         kTime_Out       = 0xFE,     // Timeout of function(s)
          kInitialised    = 0xFF      // Just initialised
      };
 

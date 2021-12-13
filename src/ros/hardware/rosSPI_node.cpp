@@ -58,6 +58,7 @@
  *************************************************************************************************/
 // C System Header(s)
 // ------------------
+#include <thread>       // std::thread
 #include <stdint.h>
 #include <vector>       // for std::vector
 #include <string>       // for strings
@@ -70,6 +71,7 @@
 // Other Libraries
 // ---------------
 #include "ros/ros.h"
+#include "ros/callback_queue.h"
 
 // Project Libraries
 // -----------------
@@ -141,6 +143,9 @@ private:
  *   -----------
  *  The follow are objects used for interfacing with the Robot Operating System.
  *************************************************************************************************/
+    ros::NodeHandle         _nh_hardware_;
+    ros::CallbackQueue      _hardware_callback_queue_;
+
     // PARAMETERS
     ////////////////////////
     // _file_location_ from miROSnode
@@ -193,6 +198,15 @@ public:
         _demux_handle_      = NULL;
 
         _node_mode_         = nodeMode::kHardware_Chip_select;
+
+        _nh_hardware_.setCallbackQueue(&_hardware_callback_queue_);
+
+        if (configNode() < 0) {
+            ROS_ERROR("Error detected during SPI construction, exiting node...");
+            return;
+        }
+
+        nodeLoop();
     }
 
     /*
@@ -452,6 +466,36 @@ public:
     }
 
     /*
+     *  @brief:  Separate function, to handle the hardware service callback queue.
+     *           Intended to be used within a dedicated thread.
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    void hardwareCallbackThread(void) {
+        ros::SingleThreadedSpinner spinner;
+        spinner.spin(&_hardware_callback_queue_);
+    }
+
+    /*
+     *  @brief:  Function to encapsulate the looping of this node, due to having 2 callback
+     *           queues:
+     *               1. For the hardware interactions (only one thing at a time)
+     *               2. The publishing of the connection status
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    void nodeLoop(void) {
+        ROS_INFO("SPI node ready for use");
+
+        std::thread hardware_spin(&rosSPI::hardwareCallbackThread, this);
+        ros::spin();
+        hardware_spin.join();
+
+    }
+
+    /*
      *  @brief:  Setups the SPI for the node, as per the expected input/configuration parameters
      *           from within the rosparam space.
      *           If there are any issues with the supplied values; which cannot be managed
@@ -531,9 +575,9 @@ public:
                                              &rosSPI::callbackSPIpublish, this, false);
 
         //=========================================================================================
-        _transfer_server_   = _nh_.advertiseService(kSPI_transfer_service,
-                                                    &rosSPI::callbackSPItransfer,
-                                                    this);
+        _transfer_server_   = _nh_hardware_.advertiseService(kSPI_transfer_service,
+                                                             &rosSPI::callbackSPItransfer,
+                                                             this);
 
         //=========================================================================================
 
@@ -686,13 +730,8 @@ int main(int argc, char **argv)
     ros::NodeHandle private_params("~");
 
     rosSPI  node_SPI(&n, &private_params);
-    if (node_SPI.configNode() < 0) {
-        ROS_ERROR("Error detected during SPI construction, exiting node...");
-        return -1;
-    }
 
-    ROS_INFO("SPI node ready for use");
-    ros::spin();
+    ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
     // However, will call class destroyer
