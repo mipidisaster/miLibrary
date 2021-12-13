@@ -118,6 +118,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
+            src/com/DataManip/DataManip.cpp
+
             src/drv/GPIO/GPIO.cpp
             src/drv/GPIO/DeMux/DeMux.cpp
             src/drv/UARTPeriph/UARTPeriph.cpp
