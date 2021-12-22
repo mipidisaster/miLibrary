@@ -87,10 +87,10 @@ private:
     std::string         kUART_publish_transmission  = "connection_status";
 
 private:
-    UARTPeriph              *_hardware_handle_;
-    int                     _baud_rate_;
+    UARTPeriph              *_hardware_handle_  = NULL;
+    int                     _baud_rate_         = 0;
 
-    int                     _address_options_;
+    int                     _address_options_   = 0;
 
     std::vector<uint64_t>   _write_byte_count_;
     std::vector<float>      _write_byte_rate_;
@@ -144,10 +144,6 @@ public:
     rosUART(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
     miROSnode(normal, private_namespace)
     {
-        _hardware_handle_   = NULL;     // Initialise the pointer to NULL
-        _baud_rate_         = 0;
-        _address_options_   = 0;
-
         _nh_hardware_.setCallbackQueue(&_hardware_callback_queue_);
 
         if (configNode() < 0) {
@@ -397,16 +393,16 @@ public:
 
 
             _connection_status_message_.header.seq = 0;
-            _connection_status_message_.header.stamp = ros::Time::now();
+            _connection_status_message_.header.stamp = event.current_real;
 
             _connection_status_publisher_.publish(_connection_status_message_);
         }
         else {
             _connection_status_message_.header.seq++;
 
-            ros::Time curTime = ros::Time::now();
-            ros::Duration time_diff = curTime - _connection_status_message_.header.stamp;
-            _connection_status_message_.header.stamp = curTime;
+            ros::Duration time_diff = event.current_real -
+                                      _connection_status_message_.header.stamp;
+            _connection_status_message_.header.stamp = event.current_real;
 
             uint64_t rate_difference;
             // Provide protection against counter overflow, unlikely to need this
