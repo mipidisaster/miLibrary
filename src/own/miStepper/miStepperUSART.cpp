@@ -9,7 +9,7 @@
 
  *************************************************************************************************/
 #include <FileIndex.h>                  // Header for miLibrary index
-#include FilIndMStpUARTHD               // Header for SPI
+#include FilIndMStpUARTHD               // Header for miStepper UART interface
 
 // C System Header(s)
 // ------------------
@@ -32,6 +32,11 @@
 //=================================================================================================
 // None
 
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
+
 #else
 //=================================================================================================
 #error "Unrecognised target device"
@@ -41,8 +46,6 @@
 // Project Libraries
 // -----------------
 #include FilInd_GENBUF_TP               // Provide the template for the circular buffer class
-#include FilInd_USART__HD               // Include the USART Class handler
-#include FilIndUSARTDMAHD               // Include the USART DMA specific class
 #include FilInd_DATMngrHD               // Provide the function set for Data Manipulation
 
 //=================================================================================================
@@ -81,13 +84,30 @@ static uint16_t mistepper_crc_table[256] = {
     0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202
 };
 
-miStepperUSART::miStepperUSART(uint8_t *out_array, uint16_t out_array_size,
+miStepperUSART::miStepperUSART(miStepperUSART::DeviceSource configuration,
+                               uint8_t *out_array, uint16_t out_array_size,
                                uint8_t *in_array,  uint16_t in_array_size) {
 /**************************************************************************************************
  * Construct the miStepperUSART, and populate with the externally defined arrays for message out,
  * and in.
  * Initialise the state machine(s) to "IDLE"/"FREE"/, and clear the message pointer
  *************************************************************************************************/
+    device_configuration  =  configuration;
+    if (device_configuration == DeviceSource::kmiStepper) {
+        read_key        = kSource_PC;
+        write_key       = kSource_miStepper;
+
+        _expected_packet_size_  =  18;  // Total bytes expected to be READ by this device
+                                        // (including calling bytes, and crc bytes)
+    }
+    else {
+        read_key        = kSource_miStepper;
+        write_key       = kSource_PC;
+
+        _expected_packet_size_  =  86;
+    }
+
+
     _message_out_.create(out_array, out_array_size);
     _message_in_.create(in_array,   in_array_size);
 
@@ -158,7 +178,7 @@ void miStepperUSART::updateReadStateMachine(uint8_t data_value, uint16_t positio
         _message_in_start_ = position;
         _state_ = RdState::kConfirming;
     }
-    else if ( (_state_ == RdState::kConfirming) && (data_value == kread_key) ) {
+    else if ( (_state_ == RdState::kConfirming) && (data_value == read_key) ) {
 
         _state_ = RdState::kListening;
     }
@@ -204,6 +224,79 @@ uint16_t miStepperUSART::update_crc(uint16_t crc_accum, GenBuffer<uint8_t> *data
     return crc_accum;
 }
 
+void miStepperUSART::encodedecode_ByteMessage(uint8_t position, uint8_t&  data,
+                                              miStepperUSART::DeviceSource source) {
+/**************************************************************************************************
+ * Will add the contents of 'data' to buffer.
+ *************************************************************************************************/
+    if (source == device_configuration) {
+        _message_out_.pa[position]  =  data;
+    }
+    else {
+        data = _message_in_.pa[ ( (_message_in_start_ + position) % _message_in_.length ) ];
+    }
+}
+
+void miStepperUSART::encodedecode_WordMessage(uint8_t position, uint16_t&  data,
+                                              miStepperUSART::DeviceSource source) {
+/**************************************************************************************************
+ * Will add the contents of 'data' to buffer.
+ *************************************************************************************************/
+    if (source == device_configuration) {
+        DataManip::_16bit_2_2x8bit(data,  &_message_out_.pa[position]);
+    }
+    else {
+        uint8_t temp_data[2] = { 0 };
+        for (uint8_t i = 0; i != 2; i++) {
+            temp_data[i] = _message_in_.pa[
+                           ( (_message_in_start_ + position + i) % _message_in_.length )
+                           ];
+        }
+
+        data = DataManip::_2x8bit_2_16bit(temp_data);
+    }
+}
+
+void miStepperUSART::encodedecodeDWordMessage(uint8_t position, uint32_t&  data,
+                                              miStepperUSART::DeviceSource source) {
+/**************************************************************************************************
+ * Will add the contents of 'data' to buffer.
+ *************************************************************************************************/
+    if (source == device_configuration) {
+        DataManip::_32bit_2_4x8bit(data,  &_message_out_.pa[position]);
+    }
+    else {
+        uint8_t temp_data[4] = { 0 };
+        for (uint8_t i = 0; i != 4; i++) {
+            temp_data[i] = _message_in_.pa[
+                           ( (_message_in_start_ + position + i) % _message_in_.length )
+                           ];
+        }
+
+        data = DataManip::_4x8bit_2_32bit(temp_data);
+    }
+}
+
+void miStepperUSART::encodedecodeFloatMessage(uint8_t position, float&  data,
+                                              miStepperUSART::DeviceSource source) {
+/**************************************************************************************************
+ * Will add the contents of 'data' to buffer.
+ *************************************************************************************************/
+    if (source == device_configuration) {
+        DataManip::_float_2_4x8bit(data,  &_message_out_.pa[position]);
+    }
+    else {
+        uint8_t temp_data[4] = { 0 };
+        for (uint8_t i = 0; i != 4; i++) {
+            temp_data[i] = _message_in_.pa[
+                           ( (_message_in_start_ + position + i) % _message_in_.length )
+                           ];
+        }
+
+        data = DataManip::_4x8bit_2_float(temp_data);
+    }
+}
+
 void miStepperUSART::decodeMessage(void) {
 /**************************************************************************************************
  * Will check for any new input messages, then feed it through the state machine till the correct
@@ -227,13 +320,20 @@ void miStepperUSART::decodeMessage(void) {
              * Rest of calculation takes into account of buffer size
              */
 
-            if (temp_value >= 18) {
+            if (temp_value >= _expected_packet_size_) {
                 _state_ = RdState::kIdle;
 
-                if (update_crc(0, &_message_in_, _message_in_start_, 18) == 0) {
-                    temp_value = (uint16_t) ( (_message_in_start_ + 3) % _message_in_.length );
+                if (update_crc(0, &_message_in_, _message_in_start_, _expected_packet_size_) == 0)
+                {
+                    if (device_configuration == DeviceSource::kmiStepper) {
+                        miStepperIn();
+                    }
+                    else {
+                        miStepperOut();
+                    }
+                    //temp_value = (uint16_t) ( (_message_in_start_ + 3) % _message_in_.length );
 
-                    mode = _message_in_.pa[ ( (_message_in_start_ + 3) % _message_in_.length ) ];
+                    //mode = _message_in_.pa[ ( (_message_in_start_ + 3) % _message_in_.length ) ];
 
             }}
         }
@@ -242,130 +342,118 @@ void miStepperUSART::decodeMessage(void) {
     }
 }
 
-void miStepperUSART::decodeMessageIN(UARTPeriph    *usart_handle,
-                                     volatile UARTPeriph::DevFlt *fltReturn,
-                                     volatile uint16_t *cmpFlag) {
+void miStepperUSART::miStepperIn(void) {
 /**************************************************************************************************
- * OVERLOADED function setting the linked 'usart_handle' to "readGenBufferLock" (normal UART
- * peripheral)
+ * Function will generate the required packet and structure for transmission out of PC
+ *  OR
+ * Decode the data read FROM PC
  *************************************************************************************************/
-    usart_handle->readGenBufferLock(&_message_in_,  fltReturn,  cmpFlag);
-    decodeMessage();
-}
-
-void miStepperUSART::decodeMessageIN(UARTDMAPeriph *usart_handle,
-                                     volatile UARTPeriph::DevFlt *fltReturn,
-                                     volatile uint16_t *cmpFlag) {
-/**************************************************************************************************
- * OVERLOADED function setting the linked 'usart_handle' to "readGenBufferLock" (DMA UART
- * peripheral)
- *************************************************************************************************/
-    usart_handle->readGenBufferLock(&_message_in_,  fltReturn,  cmpFlag);
-    decodeMessage();
-}
-
-void miStepperUSART::encodeMessage(uint8_t position, uint8_t  data) {
-/**************************************************************************************************
- * Will add the contents of 'data' to buffer.
- *************************************************************************************************/
-    _message_out_.pa[position]  =  data;
-}
-
-void miStepperUSART::encodeMessage(uint8_t position, uint16_t  data) {
-/**************************************************************************************************
- * Will add the contents of 'data' to buffer.
- *************************************************************************************************/
-    DataManip::_16bit_2_2x8bit(data,  &_message_out_.pa[position]);
-}
-
-void miStepperUSART::encodeMessage(uint8_t position, uint32_t  data) {
-/**************************************************************************************************
- * Will add the contents of 'data' to buffer.
- *************************************************************************************************/
-    DataManip::_32bit_2_4x8bit(data,  &_message_out_.pa[position]);
-}
-
-void miStepperUSART::sendEncodeMessageOUT(void) {
-/**************************************************************************************************
- * Function will generate the required packet and structure for transmission out of device
- *************************************************************************************************/
+    if (device_configuration == DeviceSource::kControlPC) {
     _message_out_.qFlush(); // Flush contents of buffer, to ensure that entry [0] is starting
                             // point.
-    encodeMessage(0x00,  kdial_tone                     );
-    encodeMessage(0x01,  ktransmit_key                  );
 
-    encodeMessage(0x02,  packet_count                   );
+    uint8_t dial_tone = kdial_tone;
+    encodedecode_ByteMessage(0x00,  dial_tone                      , device_configuration);
+    encodedecode_ByteMessage(0x01,  write_key                      , device_configuration);
+    }
+
+    encodedecode_ByteMessage(0x03, mode, DeviceSource::kControlPC);
+
+    if (device_configuration == DeviceSource::kControlPC) {
+        uint16_t crc_value = update_crc(0, &_message_out_.pa[0],
+                                        16);
+
+        encodedecode_WordMessage(0x10,  crc_value, device_configuration);
+
+        _message_out_.input_pointer = 0x12;
+    }
+}
+
+void miStepperUSART::miStepperOut(void) {
+/**************************************************************************************************
+ * Function will generate the required packet and structure for transmission out of miStepper
+ *  OR
+ * Decode the data read FROM miStepper
+ *************************************************************************************************/
+    if (device_configuration == DeviceSource::kmiStepper) {
+    _message_out_.qFlush(); // Flush contents of buffer, to ensure that entry [0] is starting
+                            // point.
+
+    uint8_t dial_tone = kdial_tone;
+    encodedecode_ByteMessage(0x00,  dial_tone                      , device_configuration    );
+    encodedecode_ByteMessage(0x01,  write_key                      , device_configuration    );
+    }
+
+    encodedecode_WordMessage(0x02,  packet_count                   , DeviceSource::kmiStepper);
 
     // SPI parameters
-    encodeMessage(0x04,  angular_position               );
-    encodeMessage(0x08,  spi1_fault                     );
-    encodeMessage(0x09,  angle_sensor_spi_fault         );
-    encodeMessage(0x0A,  angle_sensor_fault             );
-    encodeMessage(0x0B,  angle_sensor_idle_count        );
-    encodeMessage(0x0C,  spi1_task_time                 );
+    encodedecodeFloatMessage(0x04,  angular_position               , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x08,  spi1_fault                     , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x09,  angle_sensor_spi_fault         , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x0A,  angle_sensor_fault             , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x0B,  angle_sensor_idle_count        , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x0C,  spi1_task_time                 , DeviceSource::kmiStepper);
 
     // I2C parameters (top only)
-    encodeMessage(0x10,  internal_temperature_top       );
-    encodeMessage(0x14,  i2c1_fault                     );
-    encodeMessage(0x15,  top_temp_sensor_i2c_fault      );
-    encodeMessage(0x16,  top_temp_sensor_fault          );
-    encodeMessage(0x17,  top_temp_sensor_idle_count     );
-    encodeMessage(0x18,  i2c1_task_time                 );
+    encodedecodeFloatMessage(0x10,  internal_temperature_top       , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x14,  i2c1_fault                     , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x15,  top_temp_sensor_i2c_fault      , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x16,  top_temp_sensor_fault          , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x17,  top_temp_sensor_idle_count     , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x18,  i2c1_task_time                 , DeviceSource::kmiStepper);
 
     // ADC parameters
-    encodeMessage(0x1C,  internal_voltage_reference     );
-    encodeMessage(0x20,  cpu_temperature                );
-    encodeMessage(0x24,  fan_voltage                    );
-    encodeMessage(0x28,  fan_current                    );
-    encodeMessage(0x2C,  stepper_voltage                );
-    encodeMessage(0x30,  stepper_current                );
+    encodedecodeFloatMessage(0x1C,  internal_voltage_reference     , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x20,  cpu_temperature                , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x24,  fan_voltage                    , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x28,  fan_current                    , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x2C,  stepper_voltage                , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x30,  stepper_current                , DeviceSource::kmiStepper);
 
-    encodeMessage(0x37,  conversion_fault               );
-    encodeMessage(0x38,  adc1_task_time                 );
+    encodedecode_ByteMessage(0x37,  conversion_fault               , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x38,  adc1_task_time                 , DeviceSource::kmiStepper);
 
     // Fan Parameters
-    encodeMessage(0x3C,  fan_demand                     );
-    encodeMessage(0x40,  fan_task_time                  );
+    encodedecodeFloatMessage(0x3C,  fan_demand                     , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x40,  fan_task_time                  , DeviceSource::kmiStepper);
 
     // Stepper Parameters
-    encodeMessage(0x44,  stepper_frequency              );
-    encodeMessage(0x46,  stepper_gear                   );
-    encodeMessage(0x48,  stepper_calc_position          );
-    encodeMessage(0x4C,  stepper_task_time              );
+    encodedecode_WordMessage(0x44,  stepper_frequency              , DeviceSource::kmiStepper);
+    encodedecode_WordMessage(0x46,  stepper_gear                   , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x48,  stepper_calc_position          , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x4C,  stepper_task_time              , DeviceSource::kmiStepper);
 
     // USART Parameters
-    encodeMessage(0x50,  usart1_task_time               );
+    encodedecodeDWordMessage(0x50,  usart1_task_time               , DeviceSource::kmiStepper);
 
-    uint16_t crc_value = update_crc(0, &_message_out_.pa[0],
-                                    84);
+    if (device_configuration == DeviceSource::kmiStepper) {
+        uint16_t crc_value = update_crc(0, &_message_out_.pa[0],
+                                        84);
 
-    encodeMessage(0x54,  crc_value);
+        encodedecode_WordMessage(0x54,  crc_value, device_configuration);
 
-    _message_out_.input_pointer = 0x56;
+        _message_out_.input_pointer = 0x56;
+    }
 }
 
-void miStepperUSART::sendEncodeMessageOUT(UARTPeriph    *usart_handle,
-                                          volatile UARTPeriph::DevFlt *fltReturn,
-                                          volatile uint16_t *cmpFlag) {
+float miStepperUSART::getTaskDuration(uint32_t data) {
 /**************************************************************************************************
- * OVERLOADED function setting the linked 'usart_handle' to transmit the contents of 'message_out'
+ * Calculate the Task duration based upon the 32bit compressed data from the miStepper device.
  *************************************************************************************************/
-    sendEncodeMessageOUT();     // Calculate the CRC
+// Duration data is located in the upper 16bits of this data
+    uint16_t temp = (uint16_t) ((data & 0xFF000000) >> 16);
 
-    usart_handle->intWrtePacket(&_message_out_.pa[0], _message_out_.input_pointer,
-                                fltReturn, cmpFlag);
+    return ((float) temp / ktask_count_rate );
 }
 
-void miStepperUSART::sendEncodeMessageOUT(UARTDMAPeriph *usart_handle,
-                                          volatile UARTPeriph::DevFlt *fltReturn,
-                                          volatile uint16_t *cmpFlag) {
+float miStepperUSART::getTaskPeriod(uint32_t data) {
 /**************************************************************************************************
- * OVERLOADED function setting the linked 'usart_handle' to transmit the contents of 'message_out'
+ * Calculate the Task period based upon the 32bit compressed data from the miStepper device.
  *************************************************************************************************/
-    sendEncodeMessageOUT();     // Calculate the CRC
+    // Period data is located in the lower 16bits of this data
+    uint16_t temp = (uint16_t) (data & 0x0000FFFF);
 
-    usart_handle->intWrtePacket(&_message_out_.pa[0], _message_out_.input_pointer,
-                                fltReturn, cmpFlag);
+    return ((float) temp / ktask_count_rate );
 }
 
 miStepperUSART::~miStepperUSART()

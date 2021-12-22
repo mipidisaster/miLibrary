@@ -61,8 +61,6 @@
 // Project Libraries
 // -----------------
 #include FilInd_GENBUF_TP               // Allow use of GenBuffer template class
-#include FilInd_USART__HD               // Include the USART Class handler
-#include FilIndUSARTDMAHD               // Include the USART DMA specific class
 
 //=================================================================================================
 
@@ -73,13 +71,8 @@
 class miStepperUSART {
 public:
     static const uint8_t    kdial_tone          = 0xFF;
-#ifdef zz__miStepper__zz
-    static const uint8_t    kread_key           = 0xA5;
-    static const uint8_t    ktransmit_key       = 0x5A;
-#else
-    static const uint8_t    kread_key           = 0x5A;
-    static const uint8_t    ktransmit_key       = 0xA5;
-#endif
+    static const uint8_t    kSource_miStepper   = 0x5A;
+    static const uint8_t    kSource_PC          = 0xA5;
     /* The transmission from the device (be it the miStepper or PC), has a specific code at the
      * start. The above captures this as a constant value
      */
@@ -89,7 +82,13 @@ public:
     static const uint8_t    kreset_packetcount    = 0x02;
     static const uint8_t    kenable_interface     = 0x08;
 
+    const float             ktask_count_rate      = 20.0f;
+
 public:
+    enum DeviceSource : uint8_t {kmiStepper, kControlPC} device_configuration;
+    uint8_t             read_key;
+    uint8_t             write_key;
+
     // PC Source signals
     // =================
         uint8_t         mode;               // Internal mode register.
@@ -100,7 +99,7 @@ public:
 
 
         // SPI parameters
-        uint32_t    angular_position;
+        float       angular_position;
         uint8_t     spi1_fault;
         uint8_t     angle_sensor_spi_fault;
         uint8_t     angle_sensor_fault;
@@ -108,7 +107,7 @@ public:
         uint32_t    spi1_task_time;
 
         // I2C parameters (top only)
-        uint32_t    internal_temperature_top;
+        float       internal_temperature_top;
         uint8_t     i2c1_fault;
         uint8_t     top_temp_sensor_i2c_fault;
         uint8_t     top_temp_sensor_fault;
@@ -116,17 +115,17 @@ public:
         uint32_t    i2c1_task_time;
 
         // ADC parameters
-        uint32_t    internal_voltage_reference;
-        uint32_t    cpu_temperature;
-        uint32_t    fan_voltage;
-        uint32_t    fan_current;
-        uint32_t    stepper_voltage;
-        uint32_t    stepper_current;
-        uint32_t    conversion_fault;
+        float       internal_voltage_reference;
+        float       cpu_temperature;
+        float       fan_voltage;
+        float       fan_current;
+        float       stepper_voltage;
+        float       stepper_current;
+        uint8_t     conversion_fault;
         uint32_t    adc1_task_time;
 
         // Fan Parameters
-        uint32_t    fan_demand;
+        float       fan_demand;
         uint32_t    fan_task_time;
 
         // Stepper Parameters
@@ -155,6 +154,8 @@ protected:
      *                        has been read - then check CRC
      */
 
+    uint16_t    _expected_packet_size_;
+
 /**************************************************************************************************
  * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
  *   -----------
@@ -165,6 +166,7 @@ protected:
     uint16_t        _message_in_start_; // Pointer to where valid data is within the 'message_in'
                                         // array
 
+public:
     GenBuffer<uint8_t> _message_out_;   // GenBuffer for data to be sent OUT of target device
     GenBuffer<uint8_t> _message_in_;    // GenBuffer for data to be read into TARGET device
 
@@ -179,15 +181,9 @@ protected:
  *      device at this level doesn't change how the class works, therefore there is no selection
  *      of different devices.
  *************************************************************************************************/
-#ifdef zz__miStepper__zz
 public:
-    miStepperUSART(uint8_t *out_array, uint16_t out_array_size,
+    miStepperUSART(DeviceSource configuration, uint8_t *out_array, uint16_t out_array_size,
                    uint8_t *in_array,  uint16_t in_array_size);
-
-
-#else
-
-#endif
 
     virtual ~miStepperUSART();
 
@@ -213,16 +209,13 @@ protected:  /*******************************************************************
     uint16_t update_crc(uint16_t crc_accum, GenBuffer<uint8_t> *data_blk_ptr,
                         uint16_t message_start, uint16_t data_blk_size);
 
-    void decodeMessage(void);       // Function to read decode the '_message_in_' array for any
-                                    // messages
-
-    void sendEncodeMessageOUT(void);    // Function will then transmits the stored content of
-                                        // '_message_out_', covering the crc as well.
-
-    void encodeMessage(uint8_t position, uint8_t   data);
-    void encodeMessage(uint8_t position, uint16_t  data);
-    void encodeMessage(uint8_t position, uint32_t  data);
-    // OVERLOADED will take the input 'data' and add this onto the '_message_out_' array.
+    void encodedecode_ByteMessage(uint8_t position, uint8_t&  data, DeviceSource source);
+    void encodedecode_WordMessage(uint8_t position, uint16_t& data, DeviceSource source);
+    void encodedecodeDWordMessage(uint8_t position, uint32_t& data, DeviceSource source);
+    void encodedecodeFloatMessage(uint8_t position,    float& data, DeviceSource source);
+    // Functions will take the either read/write to the input 'data' at desired position.
+    // Direction based upon 'source', if this equals the class construction then '_message_out_'
+    // is populated, otherwise '_message_in_' is decoded
 
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>    FUNCTIONS FOR CODING/DECODING DATA     <<<
@@ -231,21 +224,19 @@ public:     /*******************************************************************
              *  transmitted to targetted device.
              *  AS well as functions used to populate the array to be transmitted from device
              *************************************************************************************/
-    void decodeMessageIN(UARTPeriph    *usart_handle,
-                         volatile UARTPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag);
-    void decodeMessageIN(UARTDMAPeriph *usart_handle,
-                         volatile UARTPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag);
-    // OVERLOADED configure the linked 'usart_handle' to "readGenBufferLock", with the
-    // '_message_in_' buffer
-    // Note - calls then calls the 'decodeMessage' function
+    void decodeMessage(void);       // Function to read decode the '_message_in_' array for any
+                                    // messages
 
+    float getTaskDuration(uint32_t data);
+    float getTaskPeriod(uint32_t data);
 
-    void sendEncodeMessageOUT(UARTPeriph    *usart_handle,
-                              volatile UARTPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag);
-    void sendEncodeMessageOUT(UARTDMAPeriph *usart_handle,
-                              volatile UARTPeriph::DevFlt *fltReturn, volatile uint16_t *cmpFlag);
-    // OVERLOADED will take the 'usart_handle' and link the contents of '_message_out_' for
-    // transmission
+    void miStepperIn(void);
+    void miStepperOut(void);
+    /*
+     * Functions which will either configure the data packets to write to miStepper, or will
+     * decode the data packets read into miStepper (dependent upon class constuction configuration)
+     * Names of function written to align with sheet names within spreadsheet 'USARTTransmission'
+     */
 };
 
 #endif /* MISTEPPERUSART_H_ */
