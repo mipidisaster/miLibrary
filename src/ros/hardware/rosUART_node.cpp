@@ -45,7 +45,6 @@
 #include <stdint.h>
 #include <vector>       // for std::vector
 #include <string>       // for strings
-#include <algorithm>    // for std::count
 
 // C++ System Header(s)
 // --------------------
@@ -142,8 +141,8 @@ public:
  *  @param:  Pointer to the 'NodeHandle', setup for private - ("~")
  *  @retval: rosUART class
  */
-    rosUART(ros::NodeHandle* normal, ros::NodeHandle* private_params):
-    miROSnode(normal, private_params)
+    rosUART(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
+    miROSnode(normal, private_namespace)
     {
         _hardware_handle_   = NULL;     // Initialise the pointer to NULL
         _baud_rate_         = 0;
@@ -459,7 +458,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::NodeHandle private_params("~");
 
-    rosUART  node_UART(&n, &private_params);
+    rosUART  node(&n, &private_params);
 
     ros::waitForShutdown();
 

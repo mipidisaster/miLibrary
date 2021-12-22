@@ -35,7 +35,6 @@
 #include <stdint.h>
 #include <vector>       // for std::vector
 #include <string>       // for strings
-#include <algorithm>    // for std::count
 
 // C++ System Header(s)
 // --------------------
@@ -113,8 +112,8 @@ public:
  *  @param:  Pointer to the 'NodeHandle', setup for private - ("~")
  *  @retval: rosGPIO class
  */
-    rosGPIO(ros::NodeHandle* normal, ros::NodeHandle* private_params):
-    miROSnode(normal, private_params)
+    rosGPIO(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
+    miROSnode(normal, private_namespace)
     {
         if (configNode() < 0) {
             ROS_ERROR("Error detected during GPIO construction, exiting node...");
@@ -311,7 +310,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::NodeHandle private_params("~");
 
-    rosGPIO  node_GPIO(&n, &private_params);
+    rosGPIO  node(&n, &private_params);
 
     ros::waitForShutdown();
 

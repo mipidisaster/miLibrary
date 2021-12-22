@@ -62,7 +62,6 @@
 #include <stdint.h>
 #include <vector>       // for std::vector
 #include <string>       // for strings
-#include <algorithm>    // for std::count
 
 // C++ System Header(s)
 // --------------------
@@ -184,8 +183,8 @@ public:
  *  @param:  Pointer to the 'NodeHandle', setup for private - ("~")
  *  @retval: rosSPI class
  */
-    rosSPI(ros::NodeHandle* normal, ros::NodeHandle* private_params):
-    miROSnode(normal, private_params)
+    rosSPI(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
+    miROSnode(normal, private_namespace)
     {
         _hardware_handle_   = NULL;     // Initialise the pointer to NULL
         _baud_rate_         = 0;
@@ -729,7 +728,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::NodeHandle private_params("~");
 
-    rosSPI  node_SPI(&n, &private_params);
+    rosSPI  node(&n, &private_params);
 
     ros::waitForShutdown();
 

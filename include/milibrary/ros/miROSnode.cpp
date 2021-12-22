@@ -122,7 +122,7 @@ public:
  *************************************************************************************************/
 protected:
     ros::NodeHandle     _nh_;
-    ros::NodeHandle     _private_params_;
+    ros::NodeHandle     _private_nh_;
 
     // PARAMETERS
     ////////////////////////
@@ -157,7 +157,7 @@ protected:
  *  different depending upon the embedded device selected.
  *************************************************************************************************/
 public:
-    miROSnode(ros::NodeHandle* normal, ros::NodeHandle* private_params);
+    miROSnode(ros::NodeHandle* normal, ros::NodeHandle* private_namespace);
 
     virtual ~miROSnode();
 
@@ -206,13 +206,13 @@ protected:  /*******************************************************************
     std::vector<_Tp, _Alloc> allMatchingParam(const std::string& search_parameter);
 };
 
-miROSnode::miROSnode(ros::NodeHandle* normal, ros::NodeHandle* private_params):
+miROSnode::miROSnode(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
 /**************************************************************************************************
  * Construct the miROSnode, with the pointers to the NodeHandles for the generic and private
  * namespaces.
  * Nothing else is really constructed within this class
  *************************************************************************************************/
-_nh_(*normal), _private_params_(*private_params) {
+_nh_(*normal), _private_nh_(*private_namespace) {
 
 }
 
@@ -224,8 +224,8 @@ miROSnode::ParamStatus miROSnode::rosParamCheck(const std::string& key,
  * the parameter exists, and that the parameter contains at least one entry (expecting a
  * array/list of some kind).
  *************************************************************************************************/
-    if ( _private_params_.hasParam(key) ) {
-        _private_params_.getParam(key, vec);
+    if ( _private_nh_.hasParam(key) ) {
+        _private_nh_.getParam(key, vec);
 
         if ( vec.size() < 1 )
                 return ParamStatus::kParameter_present_but_invalid;
@@ -243,8 +243,8 @@ miROSnode::ParamStatus miROSnode::rosParamCheck(const std::string& key, _Tp& vec
  * the parameter exists, and that the parameter contains at least one entry (expecting a
  * array/list of some kind).
  *************************************************************************************************/
-    if ( _private_params_.hasParam(key) ) {
-        _private_params_.getParam(key, vec);
+    if ( _private_nh_.hasParam(key) ) {
+        _private_nh_.getParam(key, vec);
 
         //if ( vec.size() < 1 )
         //        return ParamStatus::kParameter_present_but_invalid;
