@@ -108,8 +108,8 @@ miStepperUSART::miStepperUSART(miStepperUSART::DeviceSource configuration,
     }
 
 
-    _message_out_.create(out_array, out_array_size);
-    _message_in_.create(in_array,   in_array_size);
+    message_out.create(out_array, out_array_size);
+    message_in.create(in_array,   in_array_size);
 
     _state_             =   RdState::kIdle;
     _message_in_start_  = 0;
@@ -215,7 +215,7 @@ uint16_t miStepperUSART::update_crc(uint16_t crc_accum, GenBuffer<uint8_t> *data
     for (j = 0; j < data_blk_size; j++)
     {
         i = ((uint16_t)(crc_accum >> 8) ^ data_blk_ptr->pa[( (_message_in_start_ + j) %
-                                                              _message_in_.length )])
+                                                              message_in.length )])
             & 0xFF;
 
         crc_accum = (crc_accum << 8) ^ mistepper_crc_table[i];
@@ -230,10 +230,10 @@ void miStepperUSART::encodedecode_ByteMessage(uint8_t position, uint8_t&  data,
  * Will add the contents of 'data' to buffer.
  *************************************************************************************************/
     if (source == device_configuration) {
-        _message_out_.pa[position]  =  data;
+        message_out.pa[position]  =  data;
     }
     else {
-        data = _message_in_.pa[ ( (_message_in_start_ + position) % _message_in_.length ) ];
+        data = message_in.pa[ ( (_message_in_start_ + position) % message_in.length ) ];
     }
 }
 
@@ -243,13 +243,13 @@ void miStepperUSART::encodedecode_WordMessage(uint8_t position, uint16_t&  data,
  * Will add the contents of 'data' to buffer.
  *************************************************************************************************/
     if (source == device_configuration) {
-        DataManip::_16bit_2_2x8bit(data,  &_message_out_.pa[position]);
+        DataManip::_16bit_2_2x8bit(data,  &message_out.pa[position]);
     }
     else {
         uint8_t temp_data[2] = { 0 };
         for (uint8_t i = 0; i != 2; i++) {
-            temp_data[i] = _message_in_.pa[
-                           ( (_message_in_start_ + position + i) % _message_in_.length )
+            temp_data[i] = message_in.pa[
+                           ( (_message_in_start_ + position + i) % message_in.length )
                            ];
         }
 
@@ -263,13 +263,13 @@ void miStepperUSART::encodedecodeDWordMessage(uint8_t position, uint32_t&  data,
  * Will add the contents of 'data' to buffer.
  *************************************************************************************************/
     if (source == device_configuration) {
-        DataManip::_32bit_2_4x8bit(data,  &_message_out_.pa[position]);
+        DataManip::_32bit_2_4x8bit(data,  &message_out.pa[position]);
     }
     else {
         uint8_t temp_data[4] = { 0 };
         for (uint8_t i = 0; i != 4; i++) {
-            temp_data[i] = _message_in_.pa[
-                           ( (_message_in_start_ + position + i) % _message_in_.length )
+            temp_data[i] = message_in.pa[
+                           ( (_message_in_start_ + position + i) % message_in.length )
                            ];
         }
 
@@ -283,13 +283,13 @@ void miStepperUSART::encodedecodeFloatMessage(uint8_t position, float&  data,
  * Will add the contents of 'data' to buffer.
  *************************************************************************************************/
     if (source == device_configuration) {
-        DataManip::_float_2_4x8bit(data,  &_message_out_.pa[position]);
+        DataManip::_float_2_4x8bit(data,  &message_out.pa[position]);
     }
     else {
         uint8_t temp_data[4] = { 0 };
         for (uint8_t i = 0; i != 4; i++) {
-            temp_data[i] = _message_in_.pa[
-                           ( (_message_in_start_ + position + i) % _message_in_.length )
+            temp_data[i] = message_in.pa[
+                           ( (_message_in_start_ + position + i) % message_in.length )
                            ];
         }
 
@@ -303,18 +303,18 @@ void miStepperUSART::decodeMessage(void) {
  * message configuration is provided.
  *************************************************************************************************/
     uint8_t     read_back = 0x00;   // Variable for retrieving the data from array
-    uint16_t    temp_value = _message_in_.output_pointer;
+    uint16_t    temp_value = message_in.output_pointer;
         // Store the current position of GenBuffer (so as to save on calculating the back step if
-        // the '_message_in_' is part of a valid message
+        // the 'message_in' is part of a valid message
 
-    while(_message_in_.outputRead(&read_back) != kGenBuffer_Empty) {
+    while(message_in.outputRead(&read_back) != kGenBuffer_Empty) {
         if (_state_ != RdState::kListening) {
             updateReadStateMachine(read_back, temp_value);
         }
         else {
-            temp_value = (uint16_t) ( ( _message_in_.length + _message_in_.output_pointer
+            temp_value = (uint16_t) ( ( message_in.length + message_in.output_pointer
                                           - _message_in_start_ )
-                                      % _message_in_.length);
+                                      % message_in.length);
             /* Calculate the size of data read in; by taking the delta of the message start -
              * '_message_in_start_', and the current read data from buffer.
              * Rest of calculation takes into account of buffer size
@@ -323,7 +323,7 @@ void miStepperUSART::decodeMessage(void) {
             if (temp_value >= _expected_packet_size_) {
                 _state_ = RdState::kIdle;
 
-                if (update_crc(0, &_message_in_, _message_in_start_, _expected_packet_size_) == 0)
+                if (update_crc(0, &message_in, _message_in_start_, _expected_packet_size_) == 0)
                 {
                     if (device_configuration == DeviceSource::kmiStepper) {
                         miStepperIn();
@@ -338,7 +338,7 @@ void miStepperUSART::decodeMessage(void) {
             }}
         }
 
-        temp_value = _message_in_.output_pointer;
+        temp_value = message_in.output_pointer;
     }
 }
 
@@ -349,7 +349,7 @@ void miStepperUSART::miStepperIn(void) {
  * Decode the data read FROM PC
  *************************************************************************************************/
     if (device_configuration == DeviceSource::kControlPC) {
-    _message_out_.qFlush(); // Flush contents of buffer, to ensure that entry [0] is starting
+    message_out.qFlush();   // Flush contents of buffer, to ensure that entry [0] is starting
                             // point.
 
     uint8_t dial_tone = kdial_tone;
@@ -360,12 +360,12 @@ void miStepperUSART::miStepperIn(void) {
     encodedecode_ByteMessage(0x03, mode, DeviceSource::kControlPC);
 
     if (device_configuration == DeviceSource::kControlPC) {
-        uint16_t crc_value = update_crc(0, &_message_out_.pa[0],
+        uint16_t crc_value = update_crc(0, &message_out.pa[0],
                                         16);
 
         encodedecode_WordMessage(0x10,  crc_value, device_configuration);
 
-        _message_out_.input_pointer = 0x12;
+        message_out.input_pointer = 0x12;
     }
 }
 
@@ -376,7 +376,7 @@ void miStepperUSART::miStepperOut(void) {
  * Decode the data read FROM miStepper
  *************************************************************************************************/
     if (device_configuration == DeviceSource::kmiStepper) {
-    _message_out_.qFlush(); // Flush contents of buffer, to ensure that entry [0] is starting
+    message_out.qFlush();   // Flush contents of buffer, to ensure that entry [0] is starting
                             // point.
 
     uint8_t dial_tone = kdial_tone;
@@ -427,12 +427,12 @@ void miStepperUSART::miStepperOut(void) {
     encodedecodeDWordMessage(0x50,  usart1_task_time               , DeviceSource::kmiStepper);
 
     if (device_configuration == DeviceSource::kmiStepper) {
-        uint16_t crc_value = update_crc(0, &_message_out_.pa[0],
+        uint16_t crc_value = update_crc(0, &message_out.pa[0],
                                         84);
 
         encodedecode_WordMessage(0x54,  crc_value, device_configuration);
 
-        _message_out_.input_pointer = 0x56;
+        message_out.input_pointer = 0x56;
     }
 }
 

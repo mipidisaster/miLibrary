@@ -167,8 +167,8 @@ protected:
                                         // array
 
 public:
-    GenBuffer<uint8_t> _message_out_;   // GenBuffer for data to be sent OUT of target device
-    GenBuffer<uint8_t> _message_in_;    // GenBuffer for data to be read into TARGET device
+    GenBuffer<uint8_t> message_out;     // GenBuffer for data to be sent OUT of target device
+    GenBuffer<uint8_t> message_in;      // GenBuffer for data to be read into TARGET device
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
