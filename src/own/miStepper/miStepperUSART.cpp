@@ -116,7 +116,15 @@ miStepperUSART::miStepperUSART(miStepperUSART::DeviceSource configuration,
 
     // PC source signals
     // ==================
-    mode        = 0x00;
+    reqt_mode                         = 0;
+    reqt_fan_demand                   = 0;
+
+
+    reqt_stepper_enable               = 0;
+    reqt_stepper_gear                 = 0;
+    reqt_stepper_direction            = 0;
+    reqt_stepper_frequency            = 0;
+
 
     // Device source signals
     // ======================
@@ -160,8 +168,6 @@ miStepperUSART::miStepperUSART(miStepperUSART::DeviceSource configuration,
 
     // USART Parameters
     usart1_task_time                = 0;
-
-
 }
 
 void miStepperUSART::updateReadStateMachine(uint8_t data_value, uint16_t position) {
@@ -353,11 +359,18 @@ void miStepperUSART::miStepperIn(void) {
                             // point.
 
     uint8_t dial_tone = kdial_tone;
-    encodedecode_ByteMessage(0x00,  dial_tone                      , device_configuration);
-    encodedecode_ByteMessage(0x01,  write_key                      , device_configuration);
+    encodedecode_ByteMessage(0x00,  dial_tone                       , device_configuration);
+    encodedecode_ByteMessage(0x01,  write_key                       , device_configuration);
     }
 
-    encodedecode_ByteMessage(0x03, mode, DeviceSource::kControlPC);
+    encodedecode_ByteMessage(0x03,  reqt_mode                       , DeviceSource::kControlPC);
+
+    encodedecodeFloatMessage(0x04,  reqt_fan_demand                 , DeviceSource::kControlPC);
+
+    encodedecode_ByteMessage(0x08,  reqt_stepper_enable             , DeviceSource::kControlPC);
+    encodedecode_ByteMessage(0x09,  reqt_stepper_gear               , DeviceSource::kControlPC);
+    encodedecode_ByteMessage(0x0A,  reqt_stepper_direction          , DeviceSource::kControlPC);
+    encodedecode_WordMessage(0x0C,  reqt_stepper_frequency          , DeviceSource::kControlPC);
 
     if (device_configuration == DeviceSource::kControlPC) {
         uint16_t crc_value = update_crc(0, &message_out.pa[0],
@@ -380,51 +393,51 @@ void miStepperUSART::miStepperOut(void) {
                             // point.
 
     uint8_t dial_tone = kdial_tone;
-    encodedecode_ByteMessage(0x00,  dial_tone                      , device_configuration    );
-    encodedecode_ByteMessage(0x01,  write_key                      , device_configuration    );
+    encodedecode_ByteMessage(0x00,  dial_tone                       , device_configuration    );
+    encodedecode_ByteMessage(0x01,  write_key                       , device_configuration    );
     }
 
-    encodedecode_WordMessage(0x02,  packet_count                   , DeviceSource::kmiStepper);
+    encodedecode_WordMessage(0x02,  packet_count                    , DeviceSource::kmiStepper);
 
     // SPI parameters
-    encodedecodeFloatMessage(0x04,  angular_position               , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x08,  spi1_fault                     , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x09,  angle_sensor_spi_fault         , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x0A,  angle_sensor_fault             , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x0B,  angle_sensor_idle_count        , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x0C,  spi1_task_time                 , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x04,  angular_position                , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x08,  spi1_fault                      , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x09,  angle_sensor_spi_fault          , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x0A,  angle_sensor_fault              , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x0B,  angle_sensor_idle_count         , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x0C,  spi1_task_time                  , DeviceSource::kmiStepper);
 
     // I2C parameters (top only)
-    encodedecodeFloatMessage(0x10,  internal_temperature_top       , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x14,  i2c1_fault                     , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x15,  top_temp_sensor_i2c_fault      , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x16,  top_temp_sensor_fault          , DeviceSource::kmiStepper);
-    encodedecode_ByteMessage(0x17,  top_temp_sensor_idle_count     , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x18,  i2c1_task_time                 , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x10,  internal_temperature_top        , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x14,  i2c1_fault                      , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x15,  top_temp_sensor_i2c_fault       , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x16,  top_temp_sensor_fault           , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x17,  top_temp_sensor_idle_count      , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x18,  i2c1_task_time                  , DeviceSource::kmiStepper);
 
     // ADC parameters
-    encodedecodeFloatMessage(0x1C,  internal_voltage_reference     , DeviceSource::kmiStepper);
-    encodedecodeFloatMessage(0x20,  cpu_temperature                , DeviceSource::kmiStepper);
-    encodedecodeFloatMessage(0x24,  fan_voltage                    , DeviceSource::kmiStepper);
-    encodedecodeFloatMessage(0x28,  fan_current                    , DeviceSource::kmiStepper);
-    encodedecodeFloatMessage(0x2C,  stepper_voltage                , DeviceSource::kmiStepper);
-    encodedecodeFloatMessage(0x30,  stepper_current                , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x1C,  internal_voltage_reference      , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x20,  cpu_temperature                 , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x24,  fan_voltage                     , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x28,  fan_current                     , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x2C,  stepper_voltage                 , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x30,  stepper_current                 , DeviceSource::kmiStepper);
 
-    encodedecode_ByteMessage(0x37,  conversion_fault               , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x38,  adc1_task_time                 , DeviceSource::kmiStepper);
+    encodedecode_ByteMessage(0x37,  conversion_fault                , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x38,  adc1_task_time                  , DeviceSource::kmiStepper);
 
     // Fan Parameters
-    encodedecodeFloatMessage(0x3C,  fan_demand                     , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x40,  fan_task_time                  , DeviceSource::kmiStepper);
+    encodedecodeFloatMessage(0x3C,  fan_demand                      , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x40,  fan_task_time                   , DeviceSource::kmiStepper);
 
     // Stepper Parameters
-    encodedecode_WordMessage(0x44,  stepper_frequency              , DeviceSource::kmiStepper);
-    encodedecode_WordMessage(0x46,  stepper_gear                   , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x48,  stepper_calc_position          , DeviceSource::kmiStepper);
-    encodedecodeDWordMessage(0x4C,  stepper_task_time              , DeviceSource::kmiStepper);
+    encodedecode_WordMessage(0x44,  stepper_frequency               , DeviceSource::kmiStepper);
+    encodedecode_WordMessage(0x46,  stepper_gear                    , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x48,  stepper_calc_position           , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x4C,  stepper_task_time               , DeviceSource::kmiStepper);
 
     // USART Parameters
-    encodedecodeDWordMessage(0x50,  usart1_task_time               , DeviceSource::kmiStepper);
+    encodedecodeDWordMessage(0x50,  usart1_task_time                , DeviceSource::kmiStepper);
 
     if (device_configuration == DeviceSource::kmiStepper) {
         uint16_t crc_value = update_crc(0, &message_out.pa[0],

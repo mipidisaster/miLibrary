@@ -70,19 +70,19 @@
 
 class miStepperUSART {
 public:
-    static const uint8_t    kdial_tone          = 0xFF;
-    static const uint8_t    kSource_miStepper   = 0x5A;
-    static const uint8_t    kSource_PC          = 0xA5;
+    static const uint8_t    kdial_tone              = 0xFF;
+    static const uint8_t    kSource_miStepper       = 0x5A;
+    static const uint8_t    kSource_PC              = 0xA5;
     /* The transmission from the device (be it the miStepper or PC), has a specific code at the
      * start. The above captures this as a constant value
      */
 
     // Enabling bits for configuration within miStepper embedded device
-    static const uint8_t    kenable_transmit      = 0x01;
-    static const uint8_t    kreset_packetcount    = 0x02;
-    static const uint8_t    kenable_interface     = 0x08;
+    static const uint8_t    kenable_transmit        = 0x01;
+    static const uint8_t    kreset_packetcount      = 0x02;
+    static const uint8_t    kenable_interface       = 0x08;
 
-    const float             ktask_count_rate      = 20.0f;
+    const float             ktask_count_rate        = 20.0f;
 
 public:
     enum DeviceSource : uint8_t {kmiStepper, kControlPC} device_configuration;
@@ -91,7 +91,12 @@ public:
 
     // PC Source signals
     // =================
-        uint8_t         mode;               // Internal mode register.
+        uint8_t         reqt_mode;                // Internal mode register.
+        float           reqt_fan_demand;
+        uint8_t         reqt_stepper_enable;
+        uint8_t         reqt_stepper_gear;
+        uint8_t         reqt_stepper_direction;
+        uint16_t        reqt_stepper_frequency;
 
     // Device Source sig
     // =================
