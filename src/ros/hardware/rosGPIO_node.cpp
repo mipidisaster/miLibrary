@@ -315,7 +315,6 @@ int main(int argc, char **argv)
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
-    // However, will call class destroyer
     return 0;
 }
 

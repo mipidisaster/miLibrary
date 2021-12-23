@@ -274,15 +274,17 @@ public:
 
         //=========================================================================================
         _publisher_timer_ = _nh_.createTimer(ros::Duration(0.5),
-                                             &rosUART::callbackUARTpublish, this, false);
+                                             &rosUART::callbackConnectionStatuspublish,
+                                             this,
+                                             false);
 
         //=========================================================================================
         _read_server_       = _nh_hardware_.advertiseService(kUART_read_service,
-                                                             &rosUART::callbackUARTread,
+                                                             &rosUART::callbackDataread,
                                                              this);
 
         _write_server_      = _nh_hardware_.advertiseService(kUART_write_service,
-                                                             &rosUART::callbackUARTwrite,
+                                                             &rosUART::callbackDatawrite,
                                                              this);
 
         //=========================================================================================
@@ -310,7 +312,7 @@ public:
      *  @param:  milibrary BUSctrl response
      *  @retval: Service needs to return a boolean type
      */
-    bool callbackUARTread(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
+    bool callbackDataread(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
         ros::Time start_time = ros::Time::now();
 
         uint32_t data_size = req.read_size;
@@ -354,7 +356,7 @@ public:
      *  @param:  milibrary BUSctrl response
      *  @retval: Service needs to return a boolean type
      */
-    bool callbackUARTwrite(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
+    bool callbackDatawrite(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
         for (uint32_t i = 0; i != req.write_data.size(); i++) {
             _hardware_handle_->poleSingleTransmit(req.write_data.at(i));
 
@@ -376,7 +378,7 @@ public:
      *  @param:  ROS Timer event
      *  @retval: None
      */
-    void callbackUARTpublish(const ros::TimerEvent& event) {
+    void callbackConnectionStatuspublish(const ros::TimerEvent& event) {
         // If this is the first pass of generating this message, then initialise it and publish
         if (_connection_status_message_.received_bytes.size() == 0) {
             _read_byte_count_.insert( _read_byte_count_.begin(),  (_address_options_ + 1), 0);
@@ -459,7 +461,6 @@ int main(int argc, char **argv)
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
-    // However, will call class destroyer
     return 0;
 }
 

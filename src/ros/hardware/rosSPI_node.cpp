@@ -559,11 +559,13 @@ public:
 
         //=========================================================================================
         _publisher_timer_ = _nh_.createTimer(ros::Duration(0.5),
-                                             &rosSPI::callbackSPIpublish, this, false);
+                                             &rosSPI::callbackConnectionStatuspublish,
+                                             this,
+                                             false);
 
         //=========================================================================================
         _transfer_server_   = _nh_hardware_.advertiseService(kSPI_transfer_service,
-                                                             &rosSPI::callbackSPItransfer,
+                                                             &rosSPI::callbackDatatransfer,
                                                              this);
 
         //=========================================================================================
@@ -584,7 +586,7 @@ public:
      *  @param:  milibrary BUSctrl response
      *  @retval: Service needs to return a boolean type
      */
-    bool callbackSPItransfer(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
+    bool callbackDatatransfer(milibrary::BUSctrl::Request &req, milibrary::BUSctrl::Response &res) {
         if ( (req.address < 0) || (req.address >= _address_options_ ) ) {
             // Do something...
             return true;    // exit without doing anything
@@ -635,7 +637,7 @@ public:
      *  @param:  ROS Timer event
      *  @retval: None
      */
-    void callbackSPIpublish(const ros::TimerEvent& event) {
+    void callbackConnectionStatuspublish(const ros::TimerEvent& event) {
         // If this is the first pass of generating this message, then initialise it and publish
         if (_connection_status_message_.received_bytes.size() == 0) {
             _read_byte_count_.insert( _read_byte_count_.begin(),  (_address_options_ + 1), 0);
@@ -721,7 +723,6 @@ int main(int argc, char **argv)
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
-    // However, will call class destroyer
     return 0;
 }
 
