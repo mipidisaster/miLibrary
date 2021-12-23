@@ -24,6 +24,7 @@
  *                      [ Provides a count of the bytes received and sent via this bus. Also
  *                      [ calculates the instant transmission rate.
  *                      [ Refreshes every 0.5s (uses a callback timer for this)
+ *                      [ Uses milibrary/msg/Transmission.msg
  *
  *   Subscribers:
  *      None
@@ -32,11 +33,11 @@
  *      read_uart       [ Request-> Number of bytes to be read from hardware
  *                      [ Result -> Array (size as per requested) of data from hardware
  *                      [           Also captures the fault state of device (uint8_t)
- *                      [ Uses BUSctrl.srv
+ *                      [ Uses milibrary/srv/BUSctrl.srv
  *
  *      write_uart      [ Request-> Array of data to be sent
  *                      [ Result -> Fault status of hardware during write (uint8_t)
- *                      [ Uses BUSctrl.srv
+ *                      [ Uses milibrary/srv/BUSctrl.srv
  *
  *************************************************************************************************/
 // C System Header(s)

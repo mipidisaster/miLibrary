@@ -39,12 +39,12 @@
  *                      [ If this option is detected the '/mux/' parameter is mandatory.
  *                      [ Device selection available will be 2^(GPIOs provided)
  *
- *
  *   Publishers:
  *      connection_status
  *                      [ Provides a count of the bytes received and sent via this bus. Also
  *                      [ calculates the instant transmission rate.
  *                      [ Refreshes every 0.5s (uses a callback timer for this)
+ *                      [ Uses milibrary/msg/Transmission.msg
  *
  *   Subscribers:
  *      None
@@ -53,7 +53,7 @@
  *      transfer_spi    [ Request-> Number of bytes to be transfered to selected device (address)
  *                      [ Result -> Array (equal to size of bytes written) of data from hardware
  *                      [           Also captures the fault state of device (uint8_t)
- *                      [ Uses BUSctrl.srv
+ *                      [ Uses milibrary/srv/BUSctrl.srv
  *
  *************************************************************************************************/
 // C System Header(s)

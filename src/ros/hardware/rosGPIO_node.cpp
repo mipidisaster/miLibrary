@@ -27,7 +27,7 @@
  *   Services:
  *      set_gpio        [ Request-> Value for the GPIO output to be set too
  *                      [ Result -> Nothing
- *                      [ Uses GPIOctrl.srv
+ *                      [ Uses milibrary/srv/GPIOctrl.srv
  *
  *************************************************************************************************/
 // C System Header(s)
