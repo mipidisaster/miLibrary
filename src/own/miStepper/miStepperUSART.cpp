@@ -454,7 +454,7 @@ float miStepperUSART::getTaskDuration(uint32_t data) {
  * Calculate the Task duration based upon the 32bit compressed data from the miStepper device.
  *************************************************************************************************/
 // Duration data is located in the upper 16bits of this data
-    uint16_t temp = (uint16_t) ((data & 0xFF000000) >> 16);
+    uint16_t temp = (uint16_t) ((data & 0xFFFF0000) >> 16);
 
     return ((float) temp / ktask_count_rate );
 }
