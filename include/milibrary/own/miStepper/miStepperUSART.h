@@ -135,7 +135,7 @@ public:
 
         // Stepper Parameters
         uint16_t    stepper_frequency;
-        uint16_t    stepper_gear;
+        uint16_t    stepper_state;
         uint32_t    stepper_calc_position;
         uint32_t    stepper_task_time;
 

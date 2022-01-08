@@ -162,7 +162,7 @@ miStepperUSART::miStepperUSART(miStepperUSART::DeviceSource configuration,
 
     // Stepper Parameters
     stepper_frequency               = 0;
-    stepper_gear                    = 0;
+    stepper_state                   = 0;
     stepper_calc_position           = 0;
     stepper_task_time               = 0;
 
@@ -432,7 +432,7 @@ void miStepperUSART::miStepperOut(void) {
 
     // Stepper Parameters
     encodedecode_WordMessage(0x44,  stepper_frequency               , DeviceSource::kmiStepper);
-    encodedecode_WordMessage(0x46,  stepper_gear                    , DeviceSource::kmiStepper);
+    encodedecode_WordMessage(0x46,  stepper_state                   , DeviceSource::kmiStepper);
     encodedecodeDWordMessage(0x48,  stepper_calc_position           , DeviceSource::kmiStepper);
     encodedecodeDWordMessage(0x4C,  stepper_task_time               , DeviceSource::kmiStepper);
 
