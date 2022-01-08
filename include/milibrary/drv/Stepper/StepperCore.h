@@ -235,7 +235,7 @@ public:
                                     // stepper (needs to include the driver smallest step rate,
                                     // i.e. Motor has 200 poles, driver can allow 1/16 step per
                                     // pulse, therefore this would be 200 x 16 = 3,200
-        volatile int32_t    calc_position;  // Current calculated position of the stepper pole.
+        volatile uint32_t    calc_position; // Current calculated position of the stepper pole.
                                             // Units 'steps'
 
 /**************************************************************************************************
@@ -322,6 +322,15 @@ public:     /*******************************************************************
              *  motor.
              *  Functions are designed in interrupt mode exclusively.
              *************************************************************************************/
+    uint8_t  getSelectedMicroStep(void);    // Retrieve the current configuration of Stepper
+    uint8_t  getSelectedDirection(void);    // shadow forms for frequency, direction etc.
+    uint16_t getSelectedFrequency(void);
+    Mode getCurrentMode(void);
+
+    void directAccessReset(uint8_t value);          // Direct access to GPIOs for specific actions
+    void directAccessMiroStep(uint8_t MicroStep);
+    void directAccessDirection(uint8_t value);
+
     void forceSTOP(void);           // Build and force a request to stop motor movement
 
     void newPosition(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq, uint32_t PulseCount,
