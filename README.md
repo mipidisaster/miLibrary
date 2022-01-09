@@ -10,7 +10,7 @@ This library contains the support of a majority of devices/interaces which will 
 ![build tree](/_image/Build_tree.png)
 
 develop
-v0.2.1-d2
+v0.2.2
 * Fixed issue(s) [#7](https://github.com/mipidisaster/miLibrary/issues/7), [#10](https://github.com/mipidisaster/miLibrary/issues/10)
 
 v0.2.1-d1
