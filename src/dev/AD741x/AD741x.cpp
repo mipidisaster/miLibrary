@@ -20,15 +20,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // None
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // None
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -227,13 +232,15 @@ void AD741x::decodeConfig(uint8_t data) {
  *************************************************************************************************/
     if ( (data & AD741x_PowerDown ) == 0) {     // If power bit is not set
         _mode_  = PwrState::kFull_Power;        // Capture that device is in Full Power, Mode 1
-    } else {
+    }
+    else {
         _mode_  = PwrState::kStand_By;          // Capture that device is in Stand By, Mode 2
     }
 
     if ( (data & AD741x_Filter) == 0 ) {        // If filter bit is disabled
         _filter_mode_   = FiltState::kDisabled; // Capture that filter is disabled
-    } else {
+    }
+    else {
         _filter_mode_   = FiltState::kEnabled;  // Capture that filter is enabled
     }
 }

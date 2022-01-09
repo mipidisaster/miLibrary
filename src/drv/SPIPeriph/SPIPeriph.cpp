@@ -20,17 +20,36 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPiSPI.h>                // Include the wiringPi SPI library
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
+
+#include <fcntl.h>                      // Needed for SPI port
+#include <unistd.h>                     //
+#include <sys/ioctl.h>                  // Control of I/O devices
+#include <linux/spi/spidev.h>           // ioctl SPI specific parameters
+// See  https://raspberry-projects.com/pi/programming-in-c/spi/using-the-spi-interface
+//      https://kernel.org/doc/Documentation/spi/spidev
+//          https://linux.die.net/
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+#include <stdio.h>                      // Standard I/O - including the error file
+#include <stdarg.h>                     // Allows functions to accept an indefinite number of
+                                        // arguments
+#include <stdlib.h>                     // Needed for 'exit'
 
 #else
 //=================================================================================================
@@ -50,15 +69,15 @@ void SPIPeriph::popGenParam(void) {
  * Initial construction will populate the internal GenBuffers with default parameters (as basic
  * constructor of GenBuffer is already set to zero).
  *************************************************************************************************/
-    Flt           = DevFlt::kInitialised;     // Initialise the fault to "initialised"
-    CommState     = CommLock::kFree;          // Indicate bus is free
+    flt           = DevFlt::kInitialised;     // Initialise the fault to "initialised"
+    comm_state    = CommLock::kFree;          // Indicate bus is free
 
     _cur_count_   = 0;                // Initialise the current packet size count
 
     _cur_form_    = { 0 };            // Initialise the form to a blank entry
 }
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
 SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t FormSize) {
@@ -88,19 +107,27 @@ SPIPeriph::SPIPeriph(SPI_HandleTypeDef *SPIHandle, Form *FormArray, uint16_t For
 
     enable();                     // Enable the SPI device
 }
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
+SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
+                                            Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi
+ *  This version requires pointers to the Write/Read UART Form system and sizes
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
-    popGenParam();                // Populate generic class parameters
+    popGenParam();              // Populate generic class parameters
 
-    _mode_        = Mode;         // Copy across the selected Mode
-    _spi_handle_  = channel;      //
+    _mode_              = Mode;         // Copy across the selected Mode
+    _pseudo_interrupt_  = 0x00;         // pseudo interrupt register used to control the SPI
+                                        // interrupt for Raspberry Pi
+    _device_loc_        = deviceloc;    // Capture the folder location of SPI device
+    _spi_speed_         = speed;
+
+    _form_queue_.create(FormArray, FormSize);
+
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
     int tempMode = 0;
-
     if      (_mode_ == SPIMode::kMode1) // If Mode 1 is selected then
         tempMode = 1;                   // Store "1"
     else if (_mode_ == SPIMode::kMode2) // If Mode 2 is selected then
@@ -108,15 +135,99 @@ SPIPeriph::SPIPeriph(int channel, int speed, _SPIMode Mode) {
     else if (_mode_ == SPIMode::kMode3) // If Mode 3 is selected then
         tempMode = 3;                   // Store "3"
     else                                // If any other Mode is selected then
-       tempMode = 0;                    // Default to "0"
+        tempMode = 0;                   // Default to "0"
 
-    wiringPiSPISetupMode(_spi_channel_, speed, tempMode);
-        // Enable SPI interface for selected SPI channel, speed and mode
+    _spi_handle_        = open(_device_loc_, O_RDWR);   // Open file to the SPI Device
+
+    if (_spi_handle_ < 0)
+        errorMessage("Unable to open SPI device: %s", deviceloc);
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MODE, &tempMode)                       < 0)
+        errorMessage("SPI Mode Change failure");
+
+    uint8_t tempBPW = kSPI_bits_per_word;
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_BITS_PER_WORD, &tempBPW)               < 0)
+        errorMessage("SPI BPW Change failure");
+
+    if (ioctl (_spi_handle_,  SPI_IOC_WR_MAX_SPEED_HZ, &_spi_speed_)            < 0)
+        errorMessage("SPI Speed Change failure, cannot set speed to %dHz", _spi_speed_);
+
+#else
+    _return_message_ = {"No SPI Hardware Attached"};
+    _message_size_ = 24;
+    _return_message_pointer_ = 0;
+
+#endif
 }
+
+void SPIPeriph::errorMessage(const char *message, ...) {
+/**************************************************************************************************
+ * Set message for failure set, and include the specific error code.
+ *************************************************************************************************/
+    char buffer[1024];
+    va_list args;
+
+    va_start(args, message);                    // Capture the extra arguments in function input
+    vsnprintf(buffer, 1024, message, args);     //
+    perror(buffer);                             // Add the error code/message to string
+    va_end(args);
+
+    exit (EXIT_FAILURE);                        // Close down program
+}
+
+uint8_t SPIPeriph::dataWriteRead(uint8_t *wData, uint8_t *rData, int len)
+/**************************************************************************************************
+ * Wrapper for the 'wiringPi' function 'wiringPiSPIDataRW'
+ *************************************************************************************************/
+{
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
+//=================================================================================================
+    struct spi_ioc_transfer spi = { 0 };
+
+    spi.tx_buf          = (unsigned long) wData;        // Construct SPI hardware parameters
+    spi.rx_buf          = (unsigned long) rData;
+    spi.len             = len;
+    spi.delay_usecs     = kSPI_delay;
+    spi.speed_hz        = _spi_speed_;
+    spi.bits_per_word   = kSPI_bits_per_word;
+
+    return (  ioctl (_spi_handle_,  SPI_IOC_MESSAGE(1), &spi)  );
+
 #else
 //=================================================================================================
-SPIPeriph::SPIPeriph() {
+    // So as to ensure that any downstream messages get something if this function is called,
+    // return the message "No Hardware Attached" in byte steps
+    for (int i = 0; i != len; i++) {
+        rData[i] = (uint8_t) _return_message_[_return_message_pointer_];
+        _return_message_pointer_ = ( (_return_message_pointer_ + 1) % _message_size_ );
+    }
+
+    return ( 0 );   // Returnt no fault with read
+#endif
 }
+
+void SPIPeriph::pseudoRegisterSet(uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function set the desired 'entry' of '_pseudo_interrupt_'
+ *************************************************************************************************/
+    _pseudo_interrupt_  |= entry;
+}
+
+void SPIPeriph::pseudoRegisterClear(uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function clear the desired 'entry' of '_pseudo_interrupt_'
+ *************************************************************************************************/
+    _pseudo_interrupt_  &= ~(entry);
+}
+
+uint8_t SPIPeriph::pseudoStatusChk(uint8_t entry) {
+/**************************************************************************************************
+ * RaspberryPi specific function see if the desired 'entry' of '_pseudo_interrupt_' is set
+ *************************************************************************************************/
+    return ( _pseudo_interrupt_ & entry );
+}
+
 #endif
 
 void SPIPeriph::enable(void) {
@@ -124,20 +235,18 @@ void SPIPeriph::enable(void) {
  * Enable the SPI Device
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     __HAL_SPI_ENABLE(_spi_handle_);     // Enable the SPI interface
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    // Done in initial call.
-
-#else
-//=================================================================================================
+// Do nothing, as there is no hardware to enable/disable (as calling the read/write function
+// covers this)
 
 #endif
 }
@@ -147,20 +256,18 @@ void SPIPeriph::disable(void) {
  * Enable the SPI Device
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     __HAL_SPI_DISABLE(_spi_handle_);    // Disable the SPI interface
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    // Done in initial call.
-
-#else
-//=================================================================================================
+// Do nothing, as there is no hardware to enable/disable (as calling the read/write function
+// covers this)
 
 #endif
 }
@@ -170,24 +277,21 @@ uint8_t SPIPeriph::readDR(void) {
  * Read from the SPI hardware
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     return ((uint8_t) _spi_handle_->Instance->DR);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // STM32L4 uses a RXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
     return( (uint8_t) _spi_handle_->Instance->DR );
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
+// Unable to get to this level of granularity using the wiringPi library or Default configuration
+// doesn't need this . Function will not be called by upper level functions
     return 0;
-
-#else
-//=================================================================================================
 
 #endif
 }
@@ -197,11 +301,11 @@ void SPIPeriph::writeDR(uint8_t data) {
  * Write to the SPI hardware
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     _spi_handle_->Instance->DR = data;
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // STM32L4 uses a TXFIFO of 32bits (4 x 8bits), this function will only work if the hardware has
 // been configured to allow a read of only 8bits (or less)
@@ -209,15 +313,12 @@ void SPIPeriph::writeDR(uint8_t data) {
 // unsigned 8bits, hence the initial casing
     *(uint8_t *)&_spi_handle_->Instance->DR = data;
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
+// Unable to get to this level of granularity using the wiringPi library or Default configuration
+// doesn't need this . Function will not be called by upper level functions
+// Do nothing!
 
-#else
-//=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
 #endif
 }
 
@@ -226,28 +327,24 @@ uint8_t SPIPeriph::transmitEmptyChk(void) {
  * Check the status of the Hardware Transmit buffer (if empty, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_TXE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-    return (0);
-
-#else
-//=================================================================================================
+    return (1);                         // Return a positive output, such that any downstream will
+                                        // continue as if entry is set
 
 #endif
 }
@@ -257,28 +354,24 @@ uint8_t SPIPeriph::receiveToReadChk(void) {
  * Check the status of the Hardware Receive buffer (if not empty "data to read", output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_RXNE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-    return (0);
-
-#else
-//=================================================================================================
+    return (1);                         // Return a positive output, such that any downstream will
+                                        // continue as if entry is set
 
 #endif
 }
@@ -288,28 +381,24 @@ uint8_t SPIPeriph::busBusyChk(void) {
  * Check to see if the SPI bus is already communicating (if bus is busy, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_BSY) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-    return (0);
-
-#else
-//=================================================================================================
+    return (0);                         // Return a positive output (bus isn't busy), such that
+                                        // any downstream will continue as if entry is set
 
 #endif
 }
@@ -319,28 +408,25 @@ uint8_t SPIPeriph::busOverRunChk(void) {
  * Check to see if a Bus Over run has occurred (if over run, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_OVR) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-    return (0);
-
-#else
-//=================================================================================================
+    return (0);                         // Return a positive output (bus overrun not occurred),
+                                        // such that any downstream will continue as if entry is
+                                        // set
 
 #endif
 }
@@ -350,26 +436,22 @@ void SPIPeriph::clearBusOvrRun(void) {
  * Go through the required sequence to clear the Bus Overrun fault state
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // To clear the Bus Over run status form STM32F, the DR register needs to be read, followed by a
 // read of the Status Register.
     __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // To clear the Bus Over run status form STM32L, the DR register needs to be read, followed by a
 // read of the Status Register.
     __HAL_SPI_CLEAR_OVRFLAG(_spi_handle_);      // Utilise the existing MACRO
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+// Nothing needs to be done
 
 #endif
 }
@@ -379,27 +461,25 @@ uint8_t SPIPeriph::busModeFltChk(void) {
  * Check to see if a Bus mode fault has occurred (if mode fault, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_FLAG(_spi_handle_, SPI_FLAG_MODF) != 0x00 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    return (0);                         // Return a positive output (bus fault not occurred),
+                                        // such that any downstream will continue as if entry is
+                                        // set
 
 #endif
 }
@@ -409,26 +489,22 @@ void SPIPeriph::clearBusModeFlt(void) {
  * Go through the required sequence to clear the Bus Mode fault state
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
     __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // Make a read access to the Status Register, then write to the CR1 register.
 // Note with this fault the SPI peripheral will be disabled.
     __HAL_SPI_CLEAR_MODFFLAG(_spi_handle_);     // Utilise the existing MACRO
 
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+// Nothing needs to be done
 
 #endif
 }
@@ -438,27 +514,26 @@ uint8_t SPIPeriph::transmitEmptyITChk(void) {
  * Check to see whether the Transmit Empty Interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_TXE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(ktransit_data_register_empty) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -469,27 +544,26 @@ uint8_t SPIPeriph::receiveToReadITChk(void) {
  * output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_RXNE) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(kread_data_register_not_empty) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -499,27 +573,26 @@ uint8_t SPIPeriph::busErrorITChk(void) {
  * Check to see whether the Bus Error interrupt has been enabled (if enabled, output = 1)
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if ( __HAL_SPI_GET_IT_SOURCE(_spi_handle_, SPI_IT_ERR) != 0 )
         return (1);
     else
         return (0);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-// Unable to get to this level of granularity using the wiringPi library. Function will not be
-// called by upper level functions
-
-#else
-//=================================================================================================
+    if ( pseudoStatusChk(kbus_error) != 0 )
+        return (1);
+    else
+        return (0);
 
 #endif
 }
@@ -620,12 +693,12 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
  *   version doesn't pull down any pins within software. Relies upon a hardware managed CS.
  *************************************************************************************************/
     if (wData == __null || rData == __null || size == 0)    // If no data has been requested
-        return ( Flt = DevFlt::kData_Size );                // to be set return error
+        return ( flt = DevFlt::kData_Size );                // to be set return error
 
     // Indicate that the bus is not free
-    CommState = CommLock::kCommunicating;       // Indicate bus is communicating
+    comm_state = CommLock::kCommunicating;      // Indicate bus is communicating
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     enable();                       // Ensure that the device has been enabled
@@ -640,12 +713,12 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         while(transmitEmptyChk() == 0) {
             if (busOverRunChk() == 1) {     // Any Bus Over runs errors
                 clearBusOvrRun();           // Clear the Bus Overrun fault
-                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
+                return ( flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
             if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
                 clearBusModeFlt();          // Clear the Bus Mode fault
-                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
+                return ( flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
             // No timeout period has been specified - Can get stuck
@@ -657,12 +730,12 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
         while(receiveToReadChk() == 0) {
             if (busOverRunChk() == 1) {     // Any Bus Over runs errors
                 clearBusOvrRun();           // Clear the Bus Overrun fault
-                return ( Flt = DevFlt::kOverrun );      // Indicate fault, and exit
+                return ( flt = DevFlt::kOverrun );      // Indicate fault, and exit
             }
 
             if (busModeFltChk() == 1) {     // Any Bus Mode faults detected
                 clearBusModeFlt();          // Clear the Bus Mode fault
-                return ( Flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
+                return ( flt = DevFlt::kMode_Fault );   // Indicate fault, and exit
             }
         };
 
@@ -679,26 +752,17 @@ SPIPeriph::DevFlt SPIPeriph::poleMasterTransfer(uint8_t *wData, uint8_t *rData, 
 
     disable();                      // Ensure that the device has been disable
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-    uint16_t i = 0;
 
-    for (i = 0; i != size; i++)         // Cycle through the data to be written
-        rData[i] = wData[i];            // and copy into the read data
-
-
-    wiringPiSPIDataRW(_spi_channel_, rData, (int)size);
-        // Using wiringPiSPI function, transfer data from RaspberryPi to selected device
-
-#else
-//=================================================================================================
+    dataWriteRead(wData, rData, size);         // Transfer data
 
 #endif
 
     // Indicate that the bus is free
-    CommState = CommLock::kFree;        // Indicate bus is free
+    comm_state = CommLock::kFree;       // Indicate bus is free
 
-    return ( Flt = DevFlt::kNone );
+    return ( flt = DevFlt::kNone );
 }
 
 
@@ -756,11 +820,11 @@ void SPIPeriph::configTransmtIT(InterState intr) {
  * This will enable/disable the Transmit Buffer Empty interrupt.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_TXE);  // Then enable the interrupt
@@ -769,13 +833,16 @@ void SPIPeriph::configTransmtIT(InterState intr) {
         __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_TXE); // Then disable interrupt
     }
 
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        pseudoRegisterSet(ktransit_data_register_empty);
+        // Enable the pseudo Transmit bit - via the "Pseudo interrupt" register
+    }
+    else {                                                  // If request is to disable
+        pseudoRegisterClear(ktransit_data_register_empty);
+        // Disable the pseudo Transmit bit - via the "Pseudo interrupt" register
+    }
 
 #endif
 }
@@ -786,11 +853,11 @@ void SPIPeriph::configReceiveIT(InterState intr) {
  * This will enable/disable the Receive buffer full interrupt.
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_RXNE); // Then enable the interrupt
@@ -799,13 +866,16 @@ void SPIPeriph::configReceiveIT(InterState intr) {
         __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_RXNE);// Then disable interrupt
     }
 
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        pseudoRegisterSet(kread_data_register_not_empty);
+        // Enable the pseudo Receive bit - via the "Pseudo interrupt" register
+    }
+    else {                                                      // If request is to disable
+        pseudoRegisterClear(kread_data_register_not_empty);
+        // Disable the pseudo Receive bit - via the "Pseudo interrupt" register
+    }
 
 #endif
 }
@@ -816,11 +886,11 @@ void SPIPeriph::configBusErroIT(InterState intr) {
  * This will enable/disable the Bus Error interrupt
  *************************************************************************************************/
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
     if (intr == InterState::kIT_Enable) {               // If request is to enable
         __HAL_SPI_ENABLE_IT(_spi_handle_, SPI_IT_ERR);  // Then enable the interrupt
@@ -829,13 +899,16 @@ void SPIPeriph::configBusErroIT(InterState intr) {
         __HAL_SPI_DISABLE_IT(_spi_handle_, SPI_IT_ERR); // Then disable interrupt
     }
 
-
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#else   // Raspberry Pi or Default build configuration
 //=================================================================================================
-
-
-#else
-//=================================================================================================
+    if (intr == InterState::kIT_Enable) {                   // If request is to enable
+        pseudoRegisterSet(kbus_error);
+        // Enable the pseudo Bus error bit - via the "Pseudo interrupt" register
+    }
+    else {                                                      // If request is to disable
+        pseudoRegisterClear(kbus_error);
+        // Disable the pseudo Bus error bit - via the "Pseudo interrupt" register
+    }
 
 #endif
 }
@@ -888,7 +961,7 @@ void SPIPeriph::startInterrupt(void) {
  * Function will be called to start off a new SPI communication if there is something in the
  * queue, and the bus is free.
  *************************************************************************************************/
-    if ( (CommState == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
+    if ( (comm_state == CommLock::kFree) && (_form_queue_.state() != kGenBuffer_Empty) ) {
         // If the I2C bus is free, and there is I2C request forms in the queue
         _form_queue_.outputRead( &(_cur_form_) );       // Capture form request
 
@@ -904,7 +977,7 @@ void SPIPeriph::startInterrupt(void) {
             _form_queue_.outputRead( &(_cur_form_) );           // Capture form request
         }
 
-        CommState = CommLock::kCommunicating;   // Lock SPI bus
+        comm_state = CommLock::kCommunicating;  // Lock SPI bus
 
         enable();
 
@@ -916,7 +989,7 @@ void SPIPeriph::startInterrupt(void) {
         configReceiveIT(InterState::kIT_Enable);    // Then enable Receive buffer full interrupt
         configTransmtIT(InterState::kIT_Enable);    // Then enable Transmit Empty buffer interrupt
     }
-    else if ( (CommState == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
+    else if ( (comm_state == CommLock::kFree) && (_form_queue_.state() == kGenBuffer_Empty) ) {
         disable();
     }
 }
@@ -935,7 +1008,7 @@ void SPIPeriph::intReqFormCmplt(void) {
     // Deselect the current device, as communication is now complete
 
     // Indicate that SPI bus is now free, and disable any interrupts
-    CommState = CommLock::kFree;
+    comm_state = CommLock::kFree;
     configReceiveIT(InterState::kIT_Disable);   // Disable Receive buffer full interrupt
     configTransmtIT(InterState::kIT_Disable);   // Disable Transmit empty buffer interrupt
 }
@@ -943,7 +1016,44 @@ void SPIPeriph::intReqFormCmplt(void) {
 void SPIPeriph::handleIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
- * Interrupt Service Routine for the SPI events within the I2C class.
+ * Interrupt Service Routine for the SPI class. Each of the supported devices needs to call this
+ * function in different ways - therefore each implementation is mentioned within the coded
+ * section.
+ *
+ * Function will go each of the status indicators which can trigger and interrupt, and see which
+ * ones are enabled. If both a status event has occurred, and the interrupt is enabled, then this
+ * function will take action.
+ * Events covered by this function:
+ *      Transmit Buffer Empty
+ *          - If there is new data to be transmitted from source data location as per Request
+ *            Form, then this is to be added to the SPI hardware queue.
+ *            If this the data to be added to the hardware queue is the last data point to
+ *            transmit, then disable the interrupt.
+ *            >> NOTE <<
+ *              For the STM32L, so as to support single 8bit transmission, this interrupt is
+ *              disabled everytime data is added.
+ *
+ *      Receive Buffer full (not empty)
+ *          - Data is to be added to the source location requested as per Request Form. If this is
+ *            the last data point. Then the current target SPI device will be "Deselected".
+ *            The complete flag will be updated, and if there is still Request Forms to be worked
+ *            on, then the next will be selected.
+ *
+ *      Bus errors:
+ *      Overrun
+ *          - Set the Fault flag (as per Request Form) to indicate that an Overrun has occurred
+ *
+ *      Mode Fault
+ *          - Set the Fault flag (as per Request Form) to indicate that an Mode fault has
+ *            occurred.
+ *************************************************************************************************/
+
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+//=================================================================================================
+/**************************************************************************************************
+ * INTERRUPTS:
+ * Interrupt Service Routine for the SPI events within the SPI class.
  *
  * The enabling of the interrupt for embedded devices (STM32) is done by enabling them via the
  * STM32cube GUI, and then in the main loop, enabling the required interrupts.
@@ -985,7 +1095,7 @@ void SPIPeriph::handleIRQ(void) {
         writeDR (  getFormWriteData( &(_cur_form_) )  );
         // Retrieve next data point from the Request SPI Form, and put onto hardware queue
 
-#if   defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
         // STM32F utilises a TXFIFO, which will only be filled (and remove the interrupt) if
         // 3x8bits are populated within the buffer.
@@ -1033,10 +1143,113 @@ void SPIPeriph::handleIRQ(void) {
         }
     }
 
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+/**************************************************************************************************
+ * Example of call.
+ *  As setting up a real interrupt for Raspberry Pi involves hacking the kernel, which I am not
+ *  doing, the route I have taken is to use threads - pthreads.
+ *  What this involves is creating a separate stream (thread) which will just check the size of the
+ *  SPI peripheral buffer or if data has been requested to be sent (via pseudo interrupt
+ *  register). Then the main thread can use the Read/Transmit functions as normal.
+ *
+ *  So setting up the pthread:
+ *  The -pthread needs to be added to the G++ linker library, won't require the "-" within eclipse,
+ *  however for "CMakeList", will need to be written as "-lpthread".
+ *  Then within the main code add "include <pthread.h>
+ *
+ *  This will then allow you to create a new stream:
+ *  main.c {
+ *  pthread_t thread;   // Create thread handle
+ *  if (pthread_create(&thread, NULL, &threadfunction, NULL) != 0) {
+ *      std::cout << "Failed to create thread" << std::endl;
+ *  }
+ *
+ * pthread_create will return 0 if it has created a new thread. In the example above "&thread" is
+ * the thread handle created above, next entry ...no idea... 3rd entry is a pointer to the desired
+ * function call, 4th can be used to provide values to the function - however I haven't tried this.
+ *
+ * void *threadfunction(void *value) {
+ *  uint8_t SPIReturn;
+ *  while (1) {
+ *      delay(100);
+ *      MySPI->handleIRQ();
+ *  }
+ *
+ *  return 0;
+ * }
+ *
+ * Similar to the STM32 a pointer to the SPIPeriph will need to be made global to allow this
+ * new thread to all the "IRQHandler"
+ *************************************************************************************************/
+    // As there is no separate functions for the RaspberryPi/Default setup for the reading and
+    // writing of hardware - there is only the one function which covers both - 'dataWriteRead'.
+    // Therefore have been combined into a single function call...
+
+    if ( ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01 )  ||
+         ( (receiveToReadChk() & receiveToReadITChk()) == 0x01 ) ) {
+        // If there is any new transmit/read requests, then ...
+        dataWriteRead(_cur_form_.TxBuff, _cur_form_.RxBuff, _cur_form_.size);
+        // Will need to improve at some point, such that it will read whether the data has been
+        // transfered or not. It is assumed here that it will ALWAYS work.
+
+        _cur_count_ = 0;    // Force count to '0', as all data as been transferred.
+
+        configTransmtIT(InterState::kIT_Disable);   // Disable 'interrupt'
+
+        intReqFormCmplt();          // Complete the current request form (no faults)
+        startInterrupt();           // Check if any new requests remain
+    }
+
+
+    // As the RaspberryPi/Default functions do not have any detection of bus errors, the following
+    // function calls will never be used; however have been left within the function so as to
+    // allow for this feature in the future if required
+
+    if (busErrorITChk()  == 0x01) {     // If Bus Error interrupt is enabled, then check each of
+                                        // the faults that can cause bus errors
+        if (busOverRunChk() == 0x01) {  // If a Bus Over run fault has been detected
+            clearBusOvrRun();                           // Clear the failure
+            *(_cur_form_.Flt)    = DevFlt::kOverrun;    // Indicate a data overrun fault
+
+            intReqFormCmplt();                          // Complete the current request form
+            startInterrupt();                           // Check if any new requests remain
+        }
+
+        if (busModeFltChk() == 0x01) {  // If a Bus Mode fault has been detected
+            clearBusModeFlt();          // Clear the fault (results in the SPI peripheral being
+                                        // disabled)
+            *(_cur_form_.Flt)    = DevFlt::kMode_Fault; // Indicate a mode fault has occurred
+
+            intReqFormCmplt();          // Complete the current request form
+            startInterrupt();           // Check if any new requests remain
+        }
+    }
+
+#else
+//=================================================================================================
+
+#endif
 }
 
-SPIPeriph::~SPIPeriph()
-{
-    // TODO Auto-generated destructor stub
+SPIPeriph::~SPIPeriph() {
+/**************************************************************************************************
+ * When the destructor is called, need to ensure that the memory allocation is cleaned up, so as
+ * to avoid "memory leakage"
+ *************************************************************************************************/
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
+// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+//=================================================================================================
+
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+    if (close(_spi_handle_) < 0)
+        errorMessage("Error, unable to close SPI device - %s", _device_loc_);
+
+#else
+//=================================================================================================
+
+#endif
 }
 

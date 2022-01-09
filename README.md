@@ -9,6 +9,15 @@ This library contains the support of a majority of devices/interaces which will 
 # Build Tree
 ![build tree](/_image/Build_tree.png)
 
+develop
+v0.2.2
+* Fixed issue(s) [#7](https://github.com/mipidisaster/miLibrary/issues/7), [#10](https://github.com/mipidisaster/miLibrary/issues/10)
+
+v0.2.1-d1
+* Fixed isse [#8](https://github.com/mipidisaster/miLibrary/issues/8), [#9](https://github.com/mipidisaster/miLibrary/issues/9), through introduction of `zz__MiEmbedType__zz`
+> See issue comments, for specific commits to correct issue
+* Issues raised during phase : [#10](https://github.com/mipidisaster/miLibrary/issues/10), [#11](https://github.com/mipidisaster/miLibrary/issues/11), [#12](https://github.com/mipidisaster/miLibrary/issues/12)
+
 v0.2.1
 * Introduces changes made in the branch 'wip-#5-stepper-improvements', these changes have been captured within Pull Request #6 (PR[#6](https://github.com/mipidisaster/miLibrary/pull/6/))
 * Issue [#5](https://github.com/mipidisaster/miLibrary/issues/5) closed at this tag
@@ -33,9 +42,10 @@ v0.1.0
 
 Embedded Device | Configuration parameter
 -- | --
-Raspberry Pi | #define zz__MiRaspbPi__zz
-STM32Fx devices | #define zz__MiSTM32Fx__zz
-STM32Lx devices | #define zz__MiSTM32Lx__zz
+Linux (No Hardware) | #define zz__MiEmbedType__zz  =  0
+Raspberry Pi | #define zz__MiEmbedType__zz  =  10
+STM32Fx devices | #define zz__MiEmbedType__zz  =  50
+STM32Lx devices | #define zz__MiEmbedType__zz  =  51
 
 Eclipse settings/preferences (or at least my preferences), can be located in the `_preferences` folder
 

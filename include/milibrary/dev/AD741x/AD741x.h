@@ -87,15 +87,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // None
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 // None
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -138,25 +143,25 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Defines for the device AD7414
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define AD741x_AD7414_0_Float   (0x0048 << 1)       // I2C Address for device AD7414-0 AS = Float
-#define AD741x_AD7414_0_GND     (0x0049 << 1)       // I2C Address for device AD7414-0 AS = GND
-#define AD741x_AD7414_0_VDD     (0x004A << 1)       // I2C Address for device AD7414-0 AS = VDD
+#define AD741x_AD7414_0_Float    0x0048             // I2C Address for device AD7414-0 AS = Float
+#define AD741x_AD7414_0_GND      0x0049             // I2C Address for device AD7414-0 AS = GND
+#define AD741x_AD7414_0_VDD      0x004A             // I2C Address for device AD7414-0 AS = VDD
 
-#define AD741x_AD7414_1_Float   (0x004C << 1)       // I2C Address for device AD7414-1 AS = Float
-#define AD741x_AD7414_1_GND     (0x004D << 1)       // I2C Address for device AD7414-1 AS = GND
-#define AD741x_AD7414_1_VDD     (0x004E << 1)       // I2C Address for device AD7414-1 AS = VDD
-#define AD741x_AD7414_2         (0x004B << 1)       // I2C Address for device AD7414-2 AS = N/A
-#define AD741x_AD7414_3         (0x004F << 1)       // I2C Address for device AD7414-3 AS = N/A
+#define AD741x_AD7414_1_Float    0x004C             // I2C Address for device AD7414-1 AS = Float
+#define AD741x_AD7414_1_GND      0x004D             // I2C Address for device AD7414-1 AS = GND
+#define AD741x_AD7414_1_VDD      0x004E             // I2C Address for device AD7414-1 AS = VDD
+#define AD741x_AD7414_2          0x004B             // I2C Address for device AD7414-2 AS = N/A
+#define AD741x_AD7414_3          0x004F             // I2C Address for device AD7414-3 AS = N/A
 
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Defines for the device AD7415
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define AD741x_AD7415_0_Float   (0x0048 << 1)       // I2C Address for device AD7415-0 AS = Float
-#define AD741x_AD7415_0_GND     (0x0049 << 1)       // I2C Address for device AD7415-0 AS = GND
-#define AD741x_AD7415_0_VDD     (0x004A << 1)       // I2C Address for device AD7415-0 AS = VDD
-#define AD741x_AD7415_1_Float   (0x004C << 1)       // I2C Address for device AD7415-1 AS = Float
-#define AD741x_AD7415_1_GND     (0x004D << 1)       // I2C Address for device AD7415-1 AS = GND
-#define AD741x_AD7415_1_VDD     (0x004E << 1)       // I2C Address for device AD7415-1 AS = VDD
+#define AD741x_AD7415_0_Float    0x0048             // I2C Address for device AD7415-0 AS = Float
+#define AD741x_AD7415_0_GND      0x0049             // I2C Address for device AD7415-0 AS = GND
+#define AD741x_AD7415_0_VDD      0x004A             // I2C Address for device AD7415-0 AS = VDD
+#define AD741x_AD7415_1_Float    0x004C             // I2C Address for device AD7415-1 AS = Float
+#define AD741x_AD7415_1_GND      0x004D             // I2C Address for device AD7415-1 AS = GND
+#define AD741x_AD7415_1_VDD      0x004E             // I2C Address for device AD7415-1 AS = VDD
 
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
@@ -213,35 +218,35 @@ public:
  *   -----------
  *  Parameters required for the class to function.
  *************************************************************************************************/
-    protected:
-        GenBuffer<Form>      _address_buff_;    // Buffer for the state of the Address pointer,
-                                                // needs to line up with any read backs (as this
-                                                // indicates what has been read!)
-        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        DevPart     _part_number_;      // Retain the selected part number of device
-        AddrBit     _address_pin_;      // Retain the status of the Address Pin
-        PwrState    _mode_;             // Mode of the device
-        FiltState   _filter_mode_;      // Mode of the device filter
+protected:
+    GenBuffer<Form>      _address_buff_;    // Buffer for the state of the Address pointer, needs
+                                            // to line up with any read backs (as this indicates
+                                            // what has been read!)
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    DevPart     _part_number_;      // Retain the selected part number of device
+    AddrBit     _address_pin_;      // Retain the status of the Address Pin
+    PwrState    _mode_;             // Mode of the device
+    FiltState   _filter_mode_;      // Mode of the device filter
 
-        uint16_t    _i2c_address;       // I2C Address of the device
-        uint8_t     _address_pointer_;  // Stores the current state of the Address Pointer
+    uint16_t    _i2c_address;       // I2C Address of the device
+    uint8_t     _address_pointer_;  // Stores the current state of the Address Pointer
 
-    public:
-        DevFlt      flt;            // Fault status of the device
+public:
+    DevFlt      flt;            // Fault status of the device
 
-        float       temp;           // Read temperature from device (degC)
-        int16_t     temp_reg;       // Read temperature register
+    float       temp;           // Read temperature from device (degC)
+    int16_t     temp_reg;       // Read temperature register
 
-        // Parameters used for interrupt based I2C communication
-        volatile I2CPeriph::DevFlt   i2c_wrte_flt;  // Fault status of the I2C write Communication
-        volatile uint16_t    wrte_cmp_flg;          // I2C write communication complete flag
-        uint16_t    wrte_cmp_target;    // I2C write communication number of bytes to have been
-                                        // transmitted
+    // Parameters used for interrupt based I2C communication
+    volatile I2CPeriph::DevFlt  i2c_wrte_flt;   // Fault status of the I2C write communication
+    volatile uint16_t   wrte_cmp_flg;           // I2C write communication complete flag
+    uint16_t    wrte_cmp_target;                // I2C write communication number of bytes to have
+                                                // been transmitted
 
-        volatile I2CPeriph::DevFlt   i2c_read_flt;  // Fault status of the I2C read Communication
-        volatile uint16_t    read_cmp_flag;         // I2C read communication complete flag
-        uint16_t    read_cmp_target;    // I2C read communication number of bytes to have been
-                                        // received
+    volatile I2CPeriph::DevFlt  i2c_read_flt;   // Fault status of the I2C read communication
+    volatile uint16_t   read_cmp_flag;          // I2C read communication complete flag
+    uint16_t    read_cmp_target;                // I2C read communication number of bytes to have
+                                                // been received
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -254,14 +259,14 @@ public:
  *      device at this level doesn't change how the class works, therefore there is no selection
  *      of different devices.
  *************************************************************************************************/
-    protected:
-        void popGenParam(DevPart DeviceNum, AddrBit ASPin);     // Populate generic parameters for
-                                                                // class generation
+protected:
+    void popGenParam(DevPart DeviceNum, AddrBit ASPin);     // Populate generic parameters for
+                                                            // class generation
 
-    public:
-        AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
+public:
+    AD741x(DevPart DeviceNum, AddrBit ASPin, Form *FormArray, uint16_t FormSize);
 
-        virtual ~AD741x();
+virtual ~AD741x();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<

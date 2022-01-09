@@ -124,17 +124,22 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#error "Unrecognised target device"
+// No specific includes are required in the header files
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
 //=================================================================================================
@@ -153,6 +158,25 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 class I2CPeriph {
+#if   ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+    static const uint8_t    ktransit_data_register_empty        = 0x01;
+    static const uint8_t    ktransmit_complete                  = 0x02;
+    static const uint8_t    kread_data_register_not_empty       = 0x04;
+    static const uint8_t    kbus_NACK                           = 0x08;
+    static const uint8_t    kbus_stop                           = 0x10;
+    static const uint8_t    kbus_error                          = 0x20;
+    /* Such that the RaspberryPi functions work similarly to the STM versions, the above is the
+     * bit positions for the pseudo interrupt registers - emulating interrupt functions for
+     * RaspberryPi.
+     */
+
+    static const uint8_t    kSPI_bits_per_word                  = 8;
+    static const int        kSPI_delay                          = 0;
+
+#endif
+
 /**************************************************************************************************
  * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
  *   -----------
@@ -165,6 +189,7 @@ public:
         kNACK            = 0x01,    // I2C No Acknowledge
         kBus_Error       = 0x02,    // I2C Bus error
 
+        kTime_Out        = 0xFE,    // Timeout of function(s)
         kInitialised     = 0xFF     // Just initialised
     };
 
@@ -235,7 +260,7 @@ public:
     protected:
         void popGenParam(void);         // Populate generic parameters for the class
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     protected:
@@ -247,10 +272,36 @@ public:
         // as the size.
         // Class will then generate a GenBuffer item internally.
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
+    private:
+        int         _i2c_handle_;               // Stores the device to communicate too
+        const char  *_device_loc_;              // Store location file for UART device
+        uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
+
+    void errorMessage(const char *message, ...);
+    void pseudoRegisterSet(  uint8_t entry);
+    void pseudoRegisterClear(uint8_t entry);
+    uint8_t pseudoStatusChk( uint8_t entry);
+    /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
+     */
+
+#if zz__MiEmbedType__zz ==  0
+    const char      *_return_message_;
+    uint8_t         _message_size_;
+    uint8_t         _return_message_pointer_;
+#endif
+
     public:
-        I2CPeriph();
+        I2CPeriph(const char *deviceloc, uint16_t FormSize);
+        I2CPeriph(const char *deviceloc, Form *FormArray, uint16_t FormSize);
+        // Setup the I2C class, by providing the file location of the i2c device. Along with
+        // providing the "GenBuffer" which needs to be fully defined outside of this class.
+        // OVERLOADED function, with a second version to allow for the class to automatically
+        // construct the internal Form buffer
+
+        uint8_t dataWriteRead(uint8_t *data, int len);
 
 #else
 //=================================================================================================
@@ -259,7 +310,7 @@ public:
 
 #endif
 
-        virtual ~I2CPeriph();
+    virtual ~I2CPeriph();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
@@ -312,8 +363,7 @@ protected:  /*******************************************************************
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     void requestTransfer(uint16_t devAddress, uint8_t size, CommMode mode, Request reqst);
         // Request a new communicate via I2C device, function handles the START/STOP, R/~W setup
-        // devAddress needs to be full, i.e. 7bit address needs to be provided as 8bits. The
-        // R/~W will be ignored and populated as required
+        // devAddress needs short hand, i.e. 7bit address needs to be.
 
     Form genericForm(uint16_t devAddress, uint16_t size, CommMode mode, Request reqst,
                      volatile DevFlt *fltReturn, volatile uint16_t *cmpFlag);

@@ -62,13 +62,22 @@
 #include <stdint.h>
 #include "UARTDevice/UARTDevice.h"      // Allow use of UARTDevice class
 
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // Add includes specific to the STM32Fxx devices
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz ==  51)      // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+// None
+
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 // Add includes specific to the Raspberry Pi
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
 //=================================================================================================
@@ -126,7 +135,7 @@ class Dynamixel : public UARTDevice {
         _DynmSearch     SrcState;       // States to store listening mode
 
 // Device specific entries
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
     public:
         Dynamixel(UART_HandleTypeDef *UART_Handle, uint8_t *CommsBoardLoc, uint16_t size,
@@ -134,7 +143,7 @@ class Dynamixel : public UARTDevice {
         // Setup the Dynamixel interface by providing the UART handle provided by cubeMX, along
         // with fully defined arrays and "GenBuffers" for internal data management
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
     public:
         Dynamixel(const char *deviceloc, int baud, uint16_t size,

@@ -22,7 +22,6 @@
  *
  *      There is no other functionality within this class
  *************************************************************************************************/
-
 #ifndef GPIO_H_
 #define GPIO_H_
 
@@ -37,17 +36,22 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPi.h>                   // Include the wiringPi library
+// No specific includes are required in the header files
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
 //=================================================================================================
@@ -93,7 +97,7 @@ public:
  *  different depending upon the embedded device selected.
  *************************************************************************************************/
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     private:
@@ -102,27 +106,25 @@ public:
     public:
         GPIO(GPIO_TypeDef *PortAddress, uint32_t pinnumber, Dir direction);
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        _GPIOValue      _pin_value_;            // Current value of pin
+        State           _pin_value_;            // Current value of pin
 
     public:
-    GPIO(_GPIOValue pinvalue, uint32_t pinnumber, _GPIODirec pindirection);
-
-#else
-//=================================================================================================
-    public:
-        GPIO(uint32_t pinnumber, _GPIODirec pindirection);
+        GPIO(State pinvalue, uint32_t pinnumber, Dir pindirection);
+        static void piSetup(void);              // Static function, to be called only once; as
+                                                // calls the 'wiringPiSetup' routine
 
 #endif
 
-        virtual ~GPIO();
+    virtual ~GPIO();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
  *   -----------
- *  The following are functions scoped within the "SPIPeriph" class, which are generic; this means
+ *  The following are functions scoped within the "GPIO" class, which are generic; this means
  *  are used by ANY of the embedded devices supported by this class.
  *  The internals of the class, will then determine how it will be managed between the multiple
  *  embedded devices.
@@ -138,6 +140,11 @@ public:     /*******************************************************************
         virtual uint8_t toggleOutput();                 // Toggle the target GPIO
         virtual uint8_t setValue(State value);
 
+        static void setGPIOArray(GPIO *gpioarray, uint32_t number_gpios, uint32_t value);
+        // Function to set multiple GPIOs with a specific value. The first entry within the array
+        // 'gpioarray' is the LSB.
+        // If the input 'value' is bigger than what can be displayed with the input array, function
+        // will only set the bits within limits.
 
         // Input controls
         virtual State getValue();

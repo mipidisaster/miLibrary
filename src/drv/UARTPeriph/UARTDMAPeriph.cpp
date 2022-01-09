@@ -20,17 +20,22 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 #error "Unsupported target device"
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
 //=================================================================================================
@@ -119,13 +124,13 @@ void UARTDMAPeriph::startInterrupt(void) {
                 6] Enable DMA
              */
             disableDMA(_dma_tx_);
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_tx_,  (uint32_t) _cur_wrte_form_.Buff,
                                                   (uint32_t)&_uart_handle_->Instance->DR,
                                                   _cur_wrte_form_.size);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_tx_,  (uint32_t) _cur_wrte_form_.Buff,
                                                   (uint32_t)&_uart_handle_->Instance->TDR,
@@ -195,13 +200,13 @@ void UARTDMAPeriph::startInterrupt(void) {
                 6] Enable DMA
              */
             disableDMA(_dma_rx_);
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_rx_,  (uint32_t)&_uart_handle_->Instance->DR,
                                                  (uint32_t) _cur_read_form_.Buff,
                                                  _cur_read_form_.size);
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
             popDMARegisters(_dma_rx_,  (uint32_t)&_uart_handle_->Instance->RDR,
                                                  (uint32_t) _cur_read_form_.Buff,

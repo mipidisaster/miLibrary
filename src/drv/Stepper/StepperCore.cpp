@@ -21,15 +21,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -124,11 +129,11 @@ void StepperCore::setShadowGPIO(void) {
 /**************************************************************************************************
  * Configure the internally linked GPIO pins (RESET, DIR, MicroStep) as per the Shadow Form
  *************************************************************************************************/
-    _nreset_pin_->setValue(_shd_form_.nRst);  	// Set the RESET pin to desired state
-    _direction_->setValue(_shd_form_.Dir);   	// Set the DIR pin to desired state
+    _nreset_pin_->setValue(_shd_form_.nRst);    // Set the RESET pin to desired state
+    _direction_->setValue(_shd_form_.Dir);      // Set the DIR pin to desired state
 
-    for (uint8_t i = 0; i != _micro_step_size_; i++) {     		// Loop through Micro pins
-        _micro_step_[i].setValue(_shd_form_.Micr[i]);         	// and set to desired value
+    for (uint8_t i = 0; i != _micro_step_size_; i++) {          // Loop through Micro pins
+        _micro_step_[i].setValue(_shd_form_.Micr[i]);           // and set to desired value
     }
 
     _shd_count_conf_ = _shd_form_.CountConf;   // Bring count configuration to shadow controller
@@ -268,6 +273,108 @@ void StepperCore::updateModelPosition(uint8_t number_pulses) {
                           % full_revolution;
             // Then subtract the specified count per STEP to the "calcPos". This is then
             // limited to the maximum number of steps per revolution
+    }
+}
+
+uint8_t  StepperCore::getSelectedMicroStep(void) {
+/**************************************************************************************************
+ * Return the current state of the microstep selected.
+ *************************************************************************************************/
+    uint8_t current_microstep = 0;
+
+    for (uint8_t i = 0; i != knumber_micro_pins; i++) {
+        if (i >= _micro_step_size_) {
+            // Do nothing as this will be zero
+        }
+        else {
+            if (_shd_form_.Micr[i] == GPIO::State::kHigh) {
+                current_microstep |= 1;
+            }
+        }
+
+        current_microstep <<= 1;    // Shift up the state
+    }
+
+    return (current_microstep);
+}
+
+uint8_t  StepperCore::getSelectedDirection(void) {
+/**************************************************************************************************
+ * Return the current state of the direction.
+ *************************************************************************************************/
+    uint8_t current_direction = 0;
+
+    if (_shd_form_.Dir == GPIO::State::kHigh) {
+        current_direction = 1;
+    }
+
+    return (current_direction);
+}
+
+uint16_t StepperCore::getSelectedFrequency(void) {
+/**************************************************************************************************
+ * Return the current state of the frequency.
+ *************************************************************************************************/
+    return (_shd_form_.Freq);
+}
+
+StepperCore::Mode StepperCore::getCurrentMode(void) {
+/**************************************************************************************************
+ * Return the current mode
+ *************************************************************************************************/
+    return (_shd_form_.cMode);
+}
+
+void StepperCore::directAccessReset(uint8_t value) {
+/**************************************************************************************************
+ * Allow for direct access to the GPIOs which are provided as pointers within class construction
+ * >> NOTE <<
+ *   This update will happen immediately, and will therefore cause errors with the calculated
+ *   position if done out of sync of the STEP pulse
+ *************************************************************************************************/
+    if (value != 0) {
+        _nreset_pin_->setValue(GPIO::State::kHigh);
+    }
+    else {
+        _nreset_pin_->setValue(GPIO::State::kLow);
+    }
+}
+
+void StepperCore::directAccessMiroStep(uint8_t MicroStep) {
+/**************************************************************************************************
+ * Allow for direct access to the GPIOs which are provided as pointers within class construction
+ * >> NOTE <<
+ *   This update will happen immediately, and will therefore cause errors with the calculated
+ *   position if done out of sync of the STEP pulse
+ *************************************************************************************************/
+    for (uint8_t i = 0; i != knumber_micro_pins; i++) {     // Loop through the Microstep pins
+                                                            // (pre-processor size)
+        if (i >= _micro_step_size_) {                   // If loop is greater than defined number
+                                                        // of GPIO pins
+            _micro_step_[i].setValue(GPIO::State::kLow);// Set to LOW
+        }
+        else {                                          // If within defined number of GPIOs
+            if (MicroStep & 1)                          // If 1st bit is set to "1"
+                _micro_step_[i].setValue(GPIO::State::kHigh);
+            else
+                _micro_step_[i].setValue(GPIO::State::kLow);
+
+            MicroStep >>= 1;     // Shift down by 1 bit
+    } }
+}
+
+void StepperCore::directAccessDirection(uint8_t value) {
+/**************************************************************************************************
+ * Allow for direct access to the GPIOs which are provided as pointers within class construction
+ * >> NOTE <<
+ *   This update will happen immediately, and will therefore cause errors with the calculated
+ *   position if done out of sync of the STEP pulse
+ *************************************************************************************************/
+    if (value != 0) {
+        _direction_->setValue(GPIO::State::kHigh);
+    }
+    else {
+        _direction_->setValue(GPIO::State::kLow);
     }
 }
 

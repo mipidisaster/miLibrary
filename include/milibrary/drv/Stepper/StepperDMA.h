@@ -102,15 +102,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -174,7 +179,7 @@ protected:
  *  different depending upon the embedded device selected.
  *************************************************************************************************/
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     public:
@@ -186,13 +191,15 @@ protected:
          * to be
          *****************************************************************************************/
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 #else
 //=================================================================================================
 
 #endif
+
+    virtual ~StepperDMA();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
@@ -224,8 +231,6 @@ public:     /*******************************************************************
              *************************************************************************************/
     void handleIRQ(void);               // Interrupt Handle for Stepper Device (based on DMA
                                         // transmit complete)
-
-    virtual ~StepperDMA();
 };
 
 #endif /* STEPPERDMA_H_ */

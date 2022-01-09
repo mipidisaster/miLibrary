@@ -36,6 +36,7 @@
  *                                    (utilises the SPI form system, see below), expects to
  *                                    receive an array data location.
  *                                    (input varies for GPIO or hardware managed Chip Select)
+ *                                    {DeMux support not provided see issue #12 in github}
  *
  *          ".startInterrupt"       - Check to see if the SPI bus is free, and a new request form
  *                                    is available. Then trigger a communication run (enables
@@ -113,17 +114,22 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL UART library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
-#include <wiringPiSPI.h>                // Include the wiringPi SPI library
+// No specific includes are required in the header files
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
 //=================================================================================================
@@ -144,12 +150,29 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 class SPIPeriph {
+private:
+#if   ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
+//=================================================================================================
+    static const uint8_t    ktransit_data_register_empty        = 0x01;
+    static const uint8_t    kread_data_register_not_empty       = 0x02;
+    static const uint8_t    kbus_error                          = 0x04;
+    /* Such that the RaspberryPi functions work similarly to the STM versions, the above is the
+     * bit positions for the pseudo interrupt registers - emulating interrupt functions for
+     * RaspberryPi.
+     */
+
+    static const uint8_t    kSPI_bits_per_word                  = 8;
+    static const int        kSPI_delay                          = 0;
+
+#endif
+
 /**************************************************************************************************
-* ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
-*   -----------
-*  Following types are generated within this class. If needed outside of the class, need to
-*  state "SPIDevice::" followed by the type.
-*************************************************************************************************/
+ * ==   TYPES   == >>>       TYPES GENERATED WITHIN CLASS        <<<
+ *   -----------
+ *  Following types are generated within this class. If needed outside of the class, need to
+ *  state "SPIDevice::" followed by the type.
+ *************************************************************************************************/
 public:
     enum class DevFlt : uint8_t {   // Fault Type of the class (internal enumerate)
         kNone           = 0x00,     // Normal Operation
@@ -159,6 +182,7 @@ public:
         kCRC_Error      = 0x04,     // CRC Error detected
         kData_Size      = 0x05,     // Error with the size request of data
 
+        kTime_Out       = 0xFE,     // Timeout of function(s)
         kInitialised    = 0xFF      // Just initialised
     };
 
@@ -203,10 +227,10 @@ public:
     }   Form;
 
 /**************************************************************************************************
-* == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
-*   -----------
-*  Parameters required for the class to function.
-*************************************************************************************************/
+ * == GEN PARAM == >>>       GENERIC PARAMETERS FOR CLASS        <<<
+ *   -----------
+ *  Parameters required for the class to function.
+ *************************************************************************************************/
     protected:
     GenBuffer<Form>     _form_queue_;   // Pointer to the class internal SPIForm buffer, which
                                         // is used to manage interrupt based communication.
@@ -220,8 +244,8 @@ public:
         Form        _cur_form_;         // Current SPI request form
 
     public:
-        DevFlt      Flt;                // Fault state of the SPI Device
-        CommLock    CommState;          // Status of the Communication
+        DevFlt      flt;                // Fault state of the SPI Device
+        CommLock    comm_state;         // Status of the Communication
 
 /**************************************************************************************************
  * == SPC PARAM == >>>        SPECIFIC ENTRIES FOR CLASS         <<<
@@ -233,7 +257,7 @@ public:
     protected:
         void popGenParam(void);         // Populate generic parameters for the class
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     private:
@@ -245,13 +269,42 @@ public:
         // as the size.
         // Class will then generate a GenBuffer item internally.
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif ( (zz__MiEmbedType__zz == 10) || (zz__MiEmbedType__zz ==  0)  )
+// Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
     private:
-        int _spi_channel_;              // Store the channel used for SPI
+        int         _spi_handle_;               // Stores the device to communicate too
+        const char  *_device_loc_;              // Store location file for SPI device
+        uint32_t    _spi_speed_;                // Speed of the SPI device
+        uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
+
+    void errorMessage(const char *message, ...);
+    void pseudoRegisterSet(  uint8_t entry);
+    void pseudoRegisterClear(uint8_t entry);
+    uint8_t pseudoStatusChk( uint8_t entry);
+    /* Functions needed to set/clear and read the contents of the pseudo registers for RaspberryPi
+     */
+
+#if zz__MiEmbedType__zz ==  0
+    const char      *_return_message_;
+    uint8_t         _message_size_;
+    uint8_t         _return_message_pointer_;
+#endif
 
     public:
-        SPIPeriph(int channel, int speed, _SPIMode Mode);
+        SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
+                                         Form *FormArray, uint16_t FormSize);
+        // Setup the UART class, by providing the folder location of serial interface, and baudrate
+        // as well the "GenBuffer" needing to be provided to the function, to be fully defined
+        // outside of class
+
+        // Setup the SPI class, by providing the folder location of the serial interface, speed,
+        // and mode. Along with providing the "GenBuffer" which needs to be fully defined outside
+        // of this class.
+        // OVERLOADED function, with a second version to allow for the class to automatically
+        // construct the internal Form buffer
+
+        uint8_t dataWriteRead(uint8_t *wData, uint8_t *rData, int len);
 
 #else
 //=================================================================================================

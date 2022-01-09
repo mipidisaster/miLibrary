@@ -1,0 +1,24 @@
+# Generic message used for facilitating communication via buses (UART, SPI, I2C, etc.)
+# Message constructed with the request, of which the critical parameter is 'address'
+#   if a read service has been called, then 'write_layout'/'_data' are ignored, and 
+#   'read_layout/'_data' are populated
+#
+#   if a write service has been called, then 'read_layout'/'_data' will not be populated, and
+#   'write_layout'/'_data' are read.
+#
+#   if a write/read is called, then all data points are used.
+###################################################################################################
+
+uint8   address     # Specify the address of the data to communicate with, will be specific to the
+                    # device communicating through i.e. I2C address, SPI Slave select position, etc
+
+uint32              read_size   # Specify the number of bytes to be read from bus
+
+uint8[]             write_data  # std::vector<uint8_t> parameter for the data to be transmitted.
+                                # can determine the number of bytes to transmit via 
+                                # 'write_data.size()'
+
+---
+
+uint8[]             read_data   # Read back data
+uint8               fault       # Returned fault state

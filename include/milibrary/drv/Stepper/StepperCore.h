@@ -95,15 +95,20 @@
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
+#if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 #include "stm32f1xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiSTM32Lx__zz)        // If the target device is an STM32Lxx from cubeMX then
+#elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
 #include "stm32l4xx_hal.h"              // Include the HAL library
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -230,7 +235,7 @@ public:
                                     // stepper (needs to include the driver smallest step rate,
                                     // i.e. Motor has 200 poles, driver can allow 1/16 step per
                                     // pulse, therefore this would be 200 x 16 = 3,200
-        volatile int32_t    calc_position;  // Current calculated position of the stepper pole.
+        volatile uint32_t    calc_position; // Current calculated position of the stepper pole.
                                             // Units 'steps'
 
 /**************************************************************************************************
@@ -243,7 +248,7 @@ public:
     protected:
         void popGenParam(void);         // Populate generic parameters for the class
 
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
+#if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
 //=================================================================================================
     protected:
@@ -274,13 +279,15 @@ public:
          *      - Hardware configuration (DMA address link, etc).
          *****************************************************************************************/
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
 
 #else
 //=================================================================================================
 
 #endif
+
+    virtual ~StepperCore();
 
 /**************************************************************************************************
  * == GEN FUNCT == >>>      GENERIC FUNCTIONS WITHIN CLASS       <<<
@@ -315,6 +322,15 @@ public:     /*******************************************************************
              *  motor.
              *  Functions are designed in interrupt mode exclusively.
              *************************************************************************************/
+    uint8_t  getSelectedMicroStep(void);    // Retrieve the current configuration of Stepper
+    uint8_t  getSelectedDirection(void);    // shadow forms for frequency, direction etc.
+    uint16_t getSelectedFrequency(void);
+    Mode getCurrentMode(void);
+
+    void directAccessReset(uint8_t value);          // Direct access to GPIOs for specific actions
+    void directAccessMiroStep(uint8_t MicroStep);
+    void directAccessDirection(uint8_t value);
+
     void forceSTOP(void);           // Build and force a request to stop motor movement
 
     void newPosition(GPIO::State DIR, uint8_t MicroStp, uint16_t Freq, uint32_t PulseCount,
@@ -329,8 +345,6 @@ public:     /*******************************************************************
 
     virtual void handleIRQ(void) {};    // Interrupt Handle for Stepper Device
                                         // (BLANK IN THIS CLASS)
-
-    virtual ~StepperCore();
 };
 
 #endif /* STEPPERCORE_H_ */

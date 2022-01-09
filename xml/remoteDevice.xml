@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name = "remoteDevice" default="Remote Deploy" basedir=".">
+    <property file = "mi_remote.properties"/>
+    <property name = "tempBashFile"     value = "ros${ROS.projectName}wstmp.sh"/>
+    
+    <!-- Following a default properties, which set the Ant build to configure a remote Debug (none
+         isolated).
+         buildMessage - Text displayed to user indicating the remote build setting
+         buildType    - added to the remote catkin_make, after -DCMAKE_BUILD_TYPE
+         catkinMode   - To allow for the use of isolated runs, this allows for configuration
+         remoteDev    - Folder (relative to remote workspace) where the remote build files are
+                        located. Allows for selecting the default location, or isolated files
+                        Will either be:
+                            'devel/lib/'        (for normal debug/release build)
+                            'devel_isolated/'   (for isolated build)
+                            Note '/' at end means doesn't include the root folder
+        localDev      - Folder (relative to local workspace) where the remote build files are 
+                        copied.
+                        Expected to be:
+                            'el'                (for normal debug/release build)
+                            'el_isolated'       (for isolated build)
+      -->
+    <property name = "deployLocation"   value = "${remote.debugloc}"/>
+    <property name = "buildType"        value = "Debug"/>
+    <property name = "buildMessage"     value = "Debug"/>
+    <property name = "catkinMode"       value = "catkin_make -C"/>
+    <property name = "remoteDev"        value = "devel/lib/"/>
+    <property name = "localDev"         value = "el"/>
+    
+    <target name = "Update Logfile">
+        <record name = "${basedir}/remoteDeploy.logile" action = "start"
+              append ="false" loglevel = "info"/>
+        
+        <echo> "Log file started -> Date/Time" </echo>
+    </target>
+    
+    <target name = "Debug (remote)" depends="Update Logfile">
+        <echo message = "Configured for remote - Debug..." />
+        
+        <antcall target = "Remote Deploy">
+            <param name = "deployLocation"  value = "${remote.debugloc}"/>
+        </antcall>
+        
+        <exec executable="mkdir">
+            <arg value = "-p"/>
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/el/debug"/>
+        </exec>
+        
+        <antcall target = "Remote Build">
+            <param name = "deployLocation"  value = "${remote.debugloc}"/>
+            <param name = "buildType"       value = "Debug"/>
+            <param name = "buildMessage"    value = "Debug"/>
+            <param name = "catkinMode"      value = "catkin_make -C"/>
+            <param name = "remoteDev"       value = "devel/lib/"/>
+            <param name = "localDev"        value = "el/debug"/>
+        </antcall>
+    </target>
+
+    <target name = "Release (remote)" depends="Update Logfile">
+        <echo message = "Configured for remote - Release..." />
+        
+        <antcall target = "Remote Deploy">
+            <param name = "deployLocation"  value = "${remote.releaseloc}"/>
+        </antcall>
+        
+        <exec executable="mkdir">
+            <arg value = "-p"/>
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/el/release"/>
+        </exec>
+
+        <antcall target = "Remote Build">
+            <param name = "deployLocation"  value = "${remote.releaseloc}"/>
+            <param name = "buildType"       value = "Release"/>
+            <param name = "buildMessage"    value = "Release"/>
+            <param name = "catkinMode"      value = "catkin_make -C"/>
+            <param name = "remoteDev"       value = "devel/lib/"/>
+            <param name = "localDev"        value = "el/release"/>
+        </antcall>
+    </target>
+    
+    <target name = "Debug (remote isolated)" depends="Update Logfile">
+        <echo message = "Configured for remote - Debug..." />
+        
+        <antcall target = "Remote Deploy">
+            <param name = "deployLocation"  value = "${remote.debugloc}"/>
+        </antcall>
+        
+        <exec executable="mkdir">
+            <arg value = "-p"/>
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/el_isolated/debug"/>
+        </exec>
+        
+        <antcall target = "Remote Build">
+            <param name = "deployLocation"  value = "${remote.debugloc}"/>
+            <param name = "buildType"       value = "Debug"/>
+            <param name = "buildMessage"    value = "Debug (isolated)"/>
+            <param name = "catkinMode"      value = "catkin_make_isolated -C"/>
+            <param name = "remoteDev"       value = "devel_isolated/"/>
+            <param name = "localDev"        value = "el_isolated/debug"/>
+        </antcall>
+    </target>
+
+    <target name = "Release (remote isolated)" depends="Update Logfile">
+        <echo message = "Configured for remote - Release..." />
+        
+        <antcall target = "Remote Deploy">
+            <param name = "deployLocation"  value = "${remote.releaseloc}"/>
+        </antcall>
+        
+        <exec executable="mkdir">
+            <arg value = "-p"/>
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/el_isolated/release"/>
+        </exec>
+        
+        <antcall target = "Remote Build">
+            <param name = "deployLocation"  value = "${remote.releaseloc}"/>
+            <param name = "buildType"       value = "Release"/>
+            <param name = "buildMessage"    value = "Release (isolated)"/>
+            <param name = "catkinMode"      value = "catkin_make_isolated -C"/>
+            <param name = "remoteDev"       value = "devel_isolated/"/>
+            <param name = "localDev"        value = "el_isolated/release"/>
+        </antcall>
+    </target>
+    
+<!-- ========================================================================================== -->
+<!-- The default task - "Remote Deploy" will syncronize the ROS/src folder of the local machine
+   - with that of the remote device.
+   - Note. The local machine will need to have synced it ssh-keygen's with the remote device, so
+   - as to avoid the need to provide a username/password at transfer
+   - The task is broken down into:
+   -   1-> Use command 'rsync' to update remote device with src contents (rsync allows for only 
+   -       delta changed to be transfered.
+   -
+   -   2-> As the 'CMakeLists.txt' file in the src will be specific to the local pc, this needs
+   -       to be updated to be local to the remote device. This is done by
+   -       'catkin_init_workspace', however this cannot be run directly, so a bash file is
+   -       pushed to the remote device, and then run remotely. -->
+<!-- ========================================================================================== -->
+    <target name = "Remote Deploy" depends="Update Logfile">
+        <echo>"Remote Deploy"    </echo>
+        <echo>"=============================================================" </echo>
+        <echo>"1 - Transfering Data syncing &apos;src&apos; with remote device" </echo>
+
+        <exec executable="rsync">
+            <arg value = "-avz"/>
+            <!-- 'a' preserves the date and times, and permissions of the files (same as -rlptgoD)
+                     Descend recursively into all directories   (-r),
+                     copy symlinks as symlinks                  (-l),
+                     preserve file permissions                  (-p),
+                     preserve modification times                (-t),
+                     preserve groups                            (-g),
+                     preserve file ownership                    (-o),
+                     preserve devices as devices                (-D)
+                  
+                  'v' verbose (detail steps being done)
+                      - can change to 'vv' to get extra detail
+                  
+                  'z' compress the data
+              -->
+            <arg value = "--delete"/>
+            <!-- The Roboware tool (which this is based on), has an extra condition for excluding
+                 '\"*.swp\" from the rsync options.
+                 Not sure why this is needed, so have not included for now
+              -->
+
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/src"/>
+            <arg value = "${remote.device}:${deployLocation}/${ROS.projectName}"/>
+        </exec>
+
+        <echo>"2 - Reconnecting remote &apos;CMakeLists.txt&apos; to local files" </echo>
+
+        <exec executable="ssh">
+            <arg value = "${remote.device}"/>
+            <arg value = "rm ${deployLocation}/${ROS.projectName}/src/CMakeLists.txt;"/>
+
+            <!-- The following will generate a bash file in the remote device. For each 'arg value'
+                 an extra space will be introduced, so this has been used strategically to put in
+                 the requried spaces in the file.
+                 Additionally '&quot; introduces ' " ' within the echo file
+              -->
+            <arg value = "echo -e"/>
+            <arg value = "&quot;#!/bin/bash"/>
+            <arg value = "--login\\n\\ncatkin_init_workspace"/>
+            <arg value = "${deployLocation}/${ROS.projectName}/src&quot;"/>
+            <arg value = "> /tmp/${tempBashFile};"/>
+
+            <arg value = "chmod 755 /tmp/${tempBashFile};"/>
+            <arg value = "/tmp/${tempBashFile};"/>
+
+        </exec>
+
+        <echo>"=============================================================" </echo>
+        <echo>"Deploy Finished!"   </echo>
+        
+    </target>
+
+    <target name = "Remote Build" depends="Update Logfile">
+        <echo>"Remote Build (${buildType})"    </echo>
+        <echo>"=============================================================" </echo>
+        <echo>"1 - Update remote bash file, to run catkin in desired mode" </echo>
+        
+        <exec executable="ssh">
+            <arg value = "${remote.device}"/>
+
+            <!-- The following will generate a bash file in the remote device. For each 'arg value'
+                 an extra space will be introduced, so this has been used strategically to put in
+                 the requried spaces in the file.
+                 Additionally '&quot; introduces ' " ' within the echo file
+              -->
+            <arg value = "echo -e"/>
+            <arg value = "&quot;#!/bin/bash"/>
+            <arg value = "--login\\n\\n${catkinMode}"/>
+            <arg value = "${deployLocation}/${ROS.projectName}"/>
+            <arg value = "-DCMAKE_BUILD_TYPE=${buildType}&quot;"/>
+            <arg value = "> /tmp/${tempBashFile};"/>
+
+            <arg value = "chmod 755 /tmp/${tempBashFile};"/>
+            <arg value = "/tmp/${tempBashFile};"/>
+        
+        </exec>
+        
+        <echo>"2 - Creating local copy of remote built files" </echo>
+
+        <exec executable="rsync">
+            <arg value = "-avz"/>
+            <!-- 'a' preserves the date and times, and permissions of the files (same as -rlptgoD)
+                     Descend recursively into all directories   (-r),
+                     copy symlinks as symlinks                  (-l),
+                     preserve file permissions                  (-p),
+                     preserve modification times                (-t),
+                     preserve groups                            (-g),
+                     preserve file ownership                    (-o),
+                     preserve devices as devices                (-D)
+                  
+                  'v' verbose (detail steps being done)
+                      - can change to 'vv' to get extra detail
+                  
+                  'z' compress the data
+              -->
+            <arg value = "--delete"/>
+            <!-- The Roboware tool (which this is based on), has an extra condition for excluding
+                 '\"*.swp\" from the rsync options.
+                 Not sure why this is needed, so have not included for now
+              -->
+
+            <arg value = "${remote.device}:${deployLocation}/${ROS.projectName}/${remoteDev}"/>
+            <arg value = "${local.workspaceRoot}/${ROS.projectName}/${localDev}"/>
+            
+        </exec>
+
+    </target>
+
+</project>

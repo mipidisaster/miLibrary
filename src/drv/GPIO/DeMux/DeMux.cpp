@@ -20,12 +20,20 @@
 
 // Other Libraries
 // --------------
-#if ( defined(zz__MiSTM32Fx__zz) || defined(zz__MiSTM32Lx__zz)  )
-// If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
+#if   (zz__MiEmbedType__zz ==  50)      // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
 // None
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
+#elif (zz__MiEmbedType__zz ==  51)      // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+// None
+
+#elif (zz__MiEmbedType__zz ==  10)      // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) && (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
 //=================================================================================================
 // None
 
@@ -119,32 +127,7 @@ void DeMux::disable(void) {
 }
 DeMux::DevFlt DeMux::updateSelection(uint8_t newselection)
 {
-    uint8_t temp = 0;       // Temporary variable used within this function, for
-                            //  -> Determining maximum size of Demultiplexor selection
-                            //  -> Looping through input selection, to set corresponding switch
-
-    temp = ((1 << _input_size_) - 1);       // Calculate the maximum size, by shifting 0x01 up by
-                                            // number of switches provided. Then subtracting 1
-                                            //      equivalent to (2^x) - 1.
-
-    if (newselection > temp) {              // If the selection is greater than the number of
-                                            // switches can accommodate
-        flt = DevFlt::kIncorrect_Selection; // Indicate fault with selection
-        return (flt);                       // Return fault code
-    }
-
-    // If get to this point, then input selection is within capabilitys of the class setup
-    for (temp = 0; temp != (_input_size_); temp++) {     // Now use temporary variable to loop
-        if (temp != 0) {                        // If not the first pass of loop then
-            newselection >>= 1;                 // binary shift the input selection number by 1
-        }                                       // to the right (make it smaller)
-
-        if (newselection & 1)                       // If lowest bit is "1", then
-            _Mux_A_[temp].setValue(GPIO::kHigh);    // Set corresponding switch "HIGH"
-        else                                        // If lowest bit is "0", then
-            _Mux_A_[temp].setValue(GPIO::kLow);     // Set corresponding switch "LOW"
-
-    }
+    GPIO::setGPIOArray(_Mux_A_, _input_size_, newselection);
 
     flt = DevFlt::kNone;    // If have gotten this far, then update has worked - Updated status
     return(flt);            // Provide positive return

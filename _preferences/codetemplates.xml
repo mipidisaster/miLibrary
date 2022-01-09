@@ -51,16 +51,25 @@ ${includes}
 
 // Other Libraries
 // --------------
-#if   defined(zz__MiSTM32Fx__zz)        // If the target device is an STM32Fxx from cubeMX then
-//==================================================================================================
-// Add includes specific to the STM32Fxx devices
+#if   (zz__MiEmbedType__zz ==  50)      // If the target device is an STM32Fxx from cubeMX then
+//=================================================================================================
+// None
 
-#elif defined(zz__MiRaspbPi__zz)        // If the target device is an Raspberry Pi then
-//==================================================================================================
-// Add includes specific to the Raspberry Pi
+#elif (zz__MiEmbedType__zz ==  51)      // If the target device is an STM32Lxx from cubeMX then
+//=================================================================================================
+// None
+
+#elif (zz__MiEmbedType__zz ==  10)      // If the target device is an Raspberry Pi then
+//=================================================================================================
+// None
+
+#elif (defined(zz__MiEmbedType__zz)) &amp;&amp; (zz__MiEmbedType__zz ==  0)
+//     If using the Linux (No Hardware) version then
+//=================================================================================================
+// None
 
 #else
-//==================================================================================================
+//=================================================================================================
 #error "Unrecognised target device"
 
 #endif
@@ -208,4 +217,14 @@ ${declarations}
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ${namespace_end}
 
-</template></templates>
+</template><template autoinsert="false" context="org.eclipse.core.runtime.text.contenttype_context" deleted="false" description="Template used for a custom ROS Message (Source - http://wiki.ros.org/IDEs#Eclipse)" enabled="true" name="ROS Message template">string Test_msg
+uint8 Test_uint8
+uint16 Test_uint16
+uint32 Test_uint32
+uint64 Test_uint64</template><template autoinsert="false" context="org.eclipse.core.runtime.text.contenttype_context" deleted="false" description="Template used for a custom ROS Service (Source - http://wiki.ros.org/IDEs#Eclipse)" enabled="true" name="ROS Service template">string testMessageIn
+int8 testIn8
+int32 testIn16
+---
+string testMessageOut
+int8 testOut8
+int32 testOut32</template></templates>
