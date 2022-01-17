@@ -125,7 +125,6 @@ add_library(${PROJECT_NAME}
             src/drv/UARTPeriph/UARTPeriph.cpp
             src/drv/SPIPeriph/SPIPeriph.cpp
             
-            src/own/miStepper/miStepperUSART.cpp
             #src/${PROJECT_NAME}/milibrary.cpp
 )
 
