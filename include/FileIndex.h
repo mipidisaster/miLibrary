@@ -64,6 +64,8 @@
                                                                 // Temperature Sensor
 #define FilInd_MAX6675HD    "milibrary/dev/MAX6675/MAX6675.h"   // File for the MAX6675
                                                                 // Temperature Sensor
+#define FilInd_LnxCondHD    "milibrary/dev/LnxCond/LnxCond.h"   // File for the Linux
+                                                                // Status/Condition
 
 /**************************************************************************************************
  * All of the defines below are for use with the Robot Operating System (ROS)
