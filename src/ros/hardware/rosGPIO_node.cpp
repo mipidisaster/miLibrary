@@ -42,7 +42,7 @@
 
 // Other Libraries
 // ---------------
-#include "ros/ros.h"
+#include <ros/ros.h>
 
 // Project Libraries
 // -----------------
@@ -219,11 +219,13 @@ public:
     int configNode(void)
     {
         //=========================================================================================
+        // Input parameters
         if (checkGPIOInputParameters() < 0) {
             return -1;
         }
 
         //=========================================================================================
+        // Duplication check
         ROS_INFO("Checking that there is no overlap of gpio numbers...");
         if(duplicationParamCheck() < 0) {       // If duplication(s) detected
             return -1;                          // exit
@@ -257,6 +259,13 @@ public:
 
         ROS_INFO("GPIO has been setup");
         //=========================================================================================
+        // Publishers
+        
+        //=========================================================================================
+        // Timers
+
+        //=========================================================================================
+        // Clients/Servers
         _set_server_        = _nh_.advertiseService(kGPIO_set_service,
                                                     &rosGPIO::callbackGPIOset,
                                                     this);

@@ -53,8 +53,8 @@
 
 // Other Libraries
 // ---------------
-#include "ros/ros.h"
-#include "ros/callback_queue.h"
+#include <ros/ros.h>
+#include <ros/callback_queue.h>
 
 // Project Libraries
 // -----------------
@@ -237,7 +237,6 @@ public:
         std::thread hardware_spin(&rosUART::hardwareCallbackThread, this);
         ros::spin();
         hardware_spin.join();
-
     }
 
     /*
@@ -253,15 +252,19 @@ public:
     int configNode(void)
     {
         //=========================================================================================
+        // Input parameters
         if (checkUARTInputParameters() < 0) {
             return -1;
         }
 
         //=========================================================================================
+        // Duplication check
         ROS_INFO("Checking that there is no overlap of hardware filenames...");
         if(duplicationParamCheck() < 0) {       // If duplication(s) detected
             return -1;                          // exit
         }
+
+        //=========================================================================================
 
         _hardware_handle_ = new UARTPeriph(_file_location_.c_str(), _baud_rate_,
                                            __null, 0, __null, 0);
@@ -269,17 +272,20 @@ public:
 
         ROS_INFO("UART has been setup");
         //=========================================================================================
+        // Publishers
         _connection_status_publisher_ = _nh_.advertise<milibrary::Transmission>(
                                                 kUART_publish_transmission,
                                                 20);
 
         //=========================================================================================
+        // Timers
         _publisher_timer_ = _nh_.createTimer(ros::Duration(0.5),
                                              &rosUART::callbackConnectionStatuspublish,
                                              this,
                                              false);
 
         //=========================================================================================
+        // Clients/Servers
         _read_server_       = _nh_hardware_.advertiseService(kUART_read_service,
                                                              &rosUART::callbackDataread,
                                                              this);
