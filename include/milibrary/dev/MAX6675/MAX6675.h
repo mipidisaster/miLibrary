@@ -182,10 +182,16 @@ public:     /*******************************************************************
              * ==  PUBLIC   == >>>    POLING FUNCTIONS FOR DATA TRANSFER     <<<
              *   -----------
              *  Visible functions used to setup and transfer packets of data to the selected
-             *  AS5x4x device - Will wait for any hardware registers to be in correct state before
-             *  progressing.
+             *  MAX6675 device - Will wait for any hardware registers to be in correct state
+             *  before progressing.
              *************************************************************************************/
+    void        poleTempRead(uint8_t *data_registers);
     void        poleTempRead(SPIPeriph *Interface);
+    // OVERLOADED function, for the pole reading of the MAX6675 via SPI.
+    // The first version (array inputs) is to allow for the SPI transfer to happen outside of the
+    // class
+    // The second version (with pointer to 'SPIPeriph' class) is for the class to handle the SPI
+    // transfer
 
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>   INTERRUPT FUNCTIONS FOR DATA TRANSFER   <<<

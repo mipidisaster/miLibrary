@@ -142,6 +142,18 @@ MAX6675::DevFlt MAX6675::decodeMAX6675(void) {
     return (flt = DevFlt::kNone);       // Return that the device has provided valid data
 }
 
+void MAX6675::poleTempRead(uint8_t *data_registers) {
+/**************************************************************************************************
+ * Function will be provided with an array of data points (expects only 2), which will be read
+ * into the class.
+ * For the function 'devodeMAX6675' to decode the data and retrieve the temperature
+ *************************************************************************************************/
+    _device_contents_[0] = data_registers[0];
+    _device_contents_[1] = data_registers[1];
+
+    decodeMAX6675();
+}
+
 void MAX6675::poleTempRead(SPIPeriph *Interface) {
 /**************************************************************************************************
  * Function will send a read request to "this" MAX6675 device, overriding the contents of internal
