@@ -69,8 +69,8 @@
 
 // Other Libraries
 // ---------------
-#include "ros/ros.h"
-#include "ros/callback_queue.h"
+#include <ros/ros.h>
+#include <ros/callback_queue.h>
 
 // Project Libraries
 // -----------------
@@ -479,7 +479,6 @@ public:
         std::thread hardware_spin(&rosSPI::hardwareCallbackThread, this);
         ros::spin();
         hardware_spin.join();
-
     }
 
     /*
@@ -495,6 +494,7 @@ public:
     int configNode(void)
     {
         //=========================================================================================
+        // Input parameters
         if (checkSPIInputParameters() < 0) {
             return -1;
         }
@@ -504,10 +504,13 @@ public:
         }
 
         //=========================================================================================
+        // Duplication check
         ROS_INFO("Checking that there is no overlap of hardware filenames...");
         if(duplicationParamCheck() < 0) {       // If duplication(s) detected
             return -1;                          // exit
         }
+
+        //=========================================================================================
 
         _hardware_handle_ = new SPIPeriph(_file_location_.c_str(), _baud_rate_, _mode_,
                                           __null, 0);
@@ -529,7 +532,7 @@ public:
             }
 
             if (_options_demux_h_resetparams_.size() == 1) {
-                _demux_h_reset_ = new GPIO(GPIO::State::kLow,
+                _demux_h_reset_ = new GPIO(GPIO::State::kHigh,
                                            _options_demux_h_resetparams_.at(0),
                                            GPIO::Dir::kOutput) ;
             }
@@ -538,7 +541,7 @@ public:
             }
 
             if (_options_demux_l_resetparams_.size() == 1) {
-                _demux_l_reset_ = new GPIO(GPIO::State::kHigh,
+                _demux_l_reset_ = new GPIO(GPIO::State::kLow,
                                            _options_demux_l_resetparams_.at(0),
                                            GPIO::Dir::kOutput) ;
             }
@@ -546,24 +549,27 @@ public:
                 _demux_l_reset_ = NULL;
             }
 
-            _demux_handle_ = new DeMux(_demux_h_reset_, _demux_l_reset_,
+            _demux_handle_ = new DeMux(_demux_l_reset_, _demux_h_reset_,
                                        _gpio_cs_.data(),
                                        _gpio_cs_.size());
         }
 
         ROS_INFO("SPI has been setup");
         //=========================================================================================
+        // Publishers
         _connection_status_publisher_ = _nh_.advertise<milibrary::Transmission>(
                                                 kSPI_publish_transmission,
                                                 20);
 
         //=========================================================================================
+        // Timers
         _publisher_timer_ = _nh_.createTimer(ros::Duration(0.5),
                                              &rosSPI::callbackConnectionStatuspublish,
                                              this,
                                              false);
 
         //=========================================================================================
+        // Clients/Servers
         _transfer_server_   = _nh_hardware_.advertiseService(kSPI_transfer_service,
                                                              &rosSPI::callbackDatatransfer,
                                                              this);
