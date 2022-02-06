@@ -8,6 +8,7 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  sensor_msgs
   
   message_generation
 )
@@ -43,6 +44,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Transmission.msg
+  ProcessorUtilisation.msg
 )
 
 # Generate services in the 'srv' folder
@@ -124,6 +126,9 @@ add_library(${PROJECT_NAME}
             src/drv/GPIO/DeMux/DeMux.cpp
             src/drv/UARTPeriph/UARTPeriph.cpp
             src/drv/SPIPeriph/SPIPeriph.cpp
+            
+            src/dev/LnxCond/LnxCond.cpp
+            src/dev/MAX6675/MAX6675.cpp
             
             #src/${PROJECT_NAME}/milibrary.cpp
 )
@@ -263,6 +268,58 @@ add_dependencies(spi_node
                  ${catkin_EXPORTED_TARGETS})            # Import messages/service headers from 
                                                         # imported packages
 
+#_________________________________________________________________________________________________
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(lnx_node
+               src/ros/devices/rosLnx_node.cpp
+               src/dev/LnxCond/LnxCond.cpp
+               )
+               
+target_link_libraries(lnx_node milibrary ${catkin_LIBRARIES})
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(lnx_node
+                 ${PROJECT_NAME}_generate_messages_cpp
+                 ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
+                                                        # within this package
+                 ${catkin_EXPORTED_TARGETS})            # Import messages/service headers from 
+                                                        # imported packages
+
+#_________________________________________________________________________________________________
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(max6675_node
+               src/ros/devices/rosMAX6675_node.cpp
+               src/dev/MAX6675/MAX6675.cpp
+               )
+               
+target_link_libraries(max6675_node milibrary ${catkin_LIBRARIES})
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(max6675_node
+                 ${PROJECT_NAME}_generate_messages_cpp
+                 ${${PROJECT_NAME}_EXPORTED_TARGETS}    # Include generated messages/service from 
+                                                        # within this package
+                 ${catkin_EXPORTED_TARGETS})            # Import messages/service headers from 
+                                                        # imported packages
+                                                        
 ########################
 ## Install ->  NODES  ##
 ########################
