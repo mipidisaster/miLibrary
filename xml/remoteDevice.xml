@@ -142,7 +142,7 @@
         <echo>"1 - Transfering Data syncing &apos;src&apos; with remote device" </echo>
 
         <exec executable="rsync">
-            <arg value = "-avz"/>
+            <arg value = "-avzL"/>
             <!-- 'a' preserves the date and times, and permissions of the files (same as -rlptgoD)
                      Descend recursively into all directories   (-r),
                      copy symlinks as symlinks                  (-l),
@@ -156,6 +156,9 @@
                       - can change to 'vv' to get extra detail
                   
                   'z' compress the data
+                  
+                  'L' replace the 'copy symlinks as symlinks' to copy the contents, as it is 
+                      expected that the 'src' will be a symlink
               -->
             <arg value = "--delete"/>
             <!-- The Roboware tool (which this is based on), has an extra condition for excluding
