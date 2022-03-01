@@ -219,7 +219,6 @@ public:     /*******************************************************************
              *  temperature.
              *************************************************************************************/
         DevFlt updateStatus(void);         // Update class parameters to latest conditions
-
 };
 
 #endif /* LNXCOND_H_ */

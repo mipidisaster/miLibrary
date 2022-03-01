@@ -203,7 +203,6 @@ public:     /*******************************************************************
     void        reInitialise(void);
     void        intTempRead(SPIPeriph *Interface);
     void        intCheckCommStatus(void);
-
 };
 
 #endif /* MAX6675_H_ */

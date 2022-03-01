@@ -19,19 +19,19 @@
  * interrupt control capabilities.
  * The changes that this class introduces relative to the "StepperCORE" is:
  *      Public visible function -
- *             V".handleIRQ"        - Function to be placed in the DMA Interrupt, will handle the
- *                                    interrupt in all (stepper) modes - updating the estimated
- *                                    stepper position, etc.
+ *          V".handleIRQ"        - Function to be placed in the DMA Interrupt, will handle the
+ *                                 interrupt in all (stepper) modes - updating the estimated
+ *                                 stepper position, etc.
  *
  *      Protected function(s) -
- *              ".updatePulseDMA"   - Will calculate the 'count' value to be stored within the
- *                                    linked DMA array, so as to get the required step frequency.
- *                                    Will also disabled/re-enabled the DMA to ensure update is
- *                                    captured.
+ *          ".updatePulseDMA"   - Will calculate the 'count' value to be stored within the linked
+ *                                DMA array, so as to get the required step frequency.
+ *                                Will also disabled/re-enabled the DMA to ensure update is 
+ *                                captured.
  *
- *             V".startInterrupt"   - Will configure the DMA, and interrupts for any new movement
- *                                    requests.
- *             V".disableMotor"     - Will Disable the DMA interrupts
+ *          V".startInterrupt"   - Will configure the DMA, and interrupts for any new movement
+ *                                 requests.
+ *          V".disableMotor"     - Will Disable the DMA interrupts
  *
  *  [#] How the TIM class is configured
  *      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
