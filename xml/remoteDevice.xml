@@ -50,7 +50,7 @@
             <param name = "deployLocation"  value = "${remote.debugloc}"/>
             <param name = "buildType"       value = "Debug"/>
             <param name = "buildMessage"    value = "Debug"/>
-            <param name = "catkinMode"      value = "catkin_make -C"/>
+            <param name = "catkinMode"      value = "catkin_make -j2 -C"/>
             <param name = "remoteDev"       value = "devel/lib/"/>
             <param name = "localDev"        value = "el/debug"/>
         </antcall>
@@ -72,7 +72,7 @@
             <param name = "deployLocation"  value = "${remote.releaseloc}"/>
             <param name = "buildType"       value = "Release"/>
             <param name = "buildMessage"    value = "Release"/>
-            <param name = "catkinMode"      value = "catkin_make -C"/>
+            <param name = "catkinMode"      value = "catkin_make -j2 -C"/>
             <param name = "remoteDev"       value = "devel/lib/"/>
             <param name = "localDev"        value = "el/release"/>
         </antcall>
@@ -94,7 +94,7 @@
             <param name = "deployLocation"  value = "${remote.debugloc}"/>
             <param name = "buildType"       value = "Debug"/>
             <param name = "buildMessage"    value = "Debug (isolated)"/>
-            <param name = "catkinMode"      value = "catkin_make_isolated -C"/>
+            <param name = "catkinMode"      value = "catkin_make_isolated -j2 -C"/>
             <param name = "remoteDev"       value = "devel_isolated/"/>
             <param name = "localDev"        value = "el_isolated/debug"/>
         </antcall>
@@ -116,7 +116,7 @@
             <param name = "deployLocation"  value = "${remote.releaseloc}"/>
             <param name = "buildType"       value = "Release"/>
             <param name = "buildMessage"    value = "Release (isolated)"/>
-            <param name = "catkinMode"      value = "catkin_make_isolated -C"/>
+            <param name = "catkinMode"      value = "catkin_make_isolated -j2 -C"/>
             <param name = "remoteDev"       value = "devel_isolated/"/>
             <param name = "localDev"        value = "el_isolated/release"/>
         </antcall>
