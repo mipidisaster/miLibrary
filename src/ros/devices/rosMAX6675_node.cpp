@@ -22,7 +22,7 @@
  *                      [ The SPI address for the MAX6675 device
  *
  *   Publishers:
- *      Temperature
+ *      thermocouple
  *                      [ Provides the external temperature reading read from the MAX6675 device
  *                      [ Uses sensor_msgs/msg/Temperature.msg
  *
@@ -69,14 +69,14 @@
  * Define any private function prototypes
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *************************************************************************************************/
-class rosLnx {
+class rosMAX6675 {
 private:
     std::string         kconfig_sub_area            = "config/";
 
     std::string         knode_loop_rate             = "loop_rate";
     std::string         knode_spi_address           = "address";
 
-    std::string         kMAX6675_publish_temp       = "Temperature";
+    std::string         kMAX6675_publish_temp       = "thermocouple";
 
     // Inputs
     std::string         kSPI_transfer_service       = "transfer_spi";
@@ -129,7 +129,7 @@ public:
  *  @param:  Pointer to the 'NodeHandle', setup for private - ("~")
  *  @retval: rosLnx class
  */
-    rosLnx(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
+    rosMAX6675(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
     _nh_(*normal), _private_nh_(*private_namespace)
     {
         //_nh_hardware_.setCallbackQueue(&_hardware_callback_queue_);
@@ -274,7 +274,7 @@ public:
         return 0;   // If got to this point, no errors were detected
     }
 
-    ~rosLnx() {
+    ~rosMAX6675() {
         ROS_INFO("Shutting down the node, and killing functions");
         delete _hardware_handle_;
     }
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::NodeHandle private_params("~");
 
-    rosLnx  node(&n, &private_params);
+    rosMAX6675  node(&n, &private_params);
 
     ros::waitForShutdown();
 
