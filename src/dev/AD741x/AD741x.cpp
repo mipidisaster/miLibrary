@@ -64,7 +64,7 @@ void AD741x::popGenParam(DevPart DeviceNum, AddrBit ASPin) {
     _address_pointer_    = 0xFF;        // Initialise the Address pointer to 0xFF
                                         // This will be corrected on first transfer to device
 
-    _i2c_address = 0x0000;              // Populate I2C address, with 0. Will be updated
+    _i2c_address_ = 0x0000;             // Populate I2C address, with 0. Will be updated
                                         // correctly, by next function call
     getI2CAddress();    // Determine the I2C address from provided parameters
 
@@ -99,53 +99,53 @@ void AD741x::getI2CAddress(void) {
 /**************************************************************************************************
  * Function will bring in the PartNumber and _address_pin_ provided to the class, and determine what
  * the I2C address is.
- * This is then put into the class "_i2c_address".
+ * This is then put into the class "_i2c_address_".
  *************************************************************************************************/
     if      (_part_number_ == DevPart::kAD7414_0) {     // If Device is AD7414-0
         if       (_address_pin_ == AddrBit::kFloat)     // Address pin is floating
-            _i2c_address    = AD741x_AD7414_0_Float;    // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_0_Float;   // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kGnd)       // Address pin is grounded
-            _i2c_address    = AD741x_AD7414_0_GND;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_0_GND;     // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kVdd)       // Address pin is connected to VDD
-            _i2c_address    = AD741x_AD7414_0_VDD;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_0_VDD;     // Setup the I2C Address
     }
     else if (_part_number_ == DevPart::kAD7414_1) {     // If Device is AD7414-1
         if       (_address_pin_ == AddrBit::kFloat)     // Address pin is floating
-            _i2c_address    = AD741x_AD7414_1_Float;    // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_1_Float;   // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kGnd)       // Address pin is grounded
-            _i2c_address    = AD741x_AD7414_1_GND;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_1_GND;     // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kVdd)       // Address pin is connected to VDD
-            _i2c_address    = AD741x_AD7414_1_VDD;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7414_1_VDD;     // Setup the I2C Address
     }
     else if (_part_number_ == DevPart::kAD7414_2)       // If Device is AD7414-2
-        _i2c_address    = AD741x_AD7414_2;              // Setup the I2C Address
+        _i2c_address_    = AD741x_AD7414_2;             // Setup the I2C Address
 
     else if (_part_number_ == DevPart::kAD7414_3)       // If Device is AD7414-3
-        _i2c_address    = AD741x_AD7414_3;              // Setup the I2C Address
+        _i2c_address_    = AD741x_AD7414_3;             // Setup the I2C Address
 
     else if (_part_number_ == DevPart::kAD7415_0) {     // If Device is AD7415-0
         if       (_address_pin_ == AddrBit::kFloat)     // Address pin is floating
-            _i2c_address    = AD741x_AD7415_0_Float;    // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_0_Float;   // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kGnd)       // Address pin is grounded
-            _i2c_address    = AD741x_AD7415_0_GND;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_0_GND;     // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kVdd)       // Address pin is connected to VDD
-            _i2c_address    = AD741x_AD7415_0_VDD;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_0_VDD;     // Setup the I2C Address
     }
     else if (_part_number_ == DevPart::kAD7415_1) {     // If Device is AD7415-1
         if       (_address_pin_ == AddrBit::kFloat)     // Address pin is floating
-            _i2c_address    = AD741x_AD7415_1_Float;    // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_1_Float;   // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kGnd)       // Address pin is grounded
-            _i2c_address    = AD741x_AD7415_1_GND;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_1_GND;     // Setup the I2C Address
 
         else if  (_address_pin_ == AddrBit::kVdd)       // Address pin is connected to VDD
-            _i2c_address    = AD741x_AD7415_1_VDD;      // Setup the I2C Address
+            _i2c_address_    = AD741x_AD7415_1_VDD;     // Setup the I2C Address
       }
 }
 
@@ -286,8 +286,8 @@ AD741x::DevFlt AD741x::deconstructData(uint8_t *readData, uint16_t size) {
                                                             // updated
             _address_buff_.outputRead(&temp_form);          // Retrieve form for Address Pointer
 
-            _address_pointer_ = temp_form.AddrPoint;       // Copy Address contents to current
-                                                        // Address
+            _address_pointer_ = temp_form.AddrPoint;        // Copy Address contents to current
+                                                            // Address
             if (temp_form.ReadWrite == Form::kWrite) { continue; }
                 // If the form states that the communication was a "Write", then no data to
                 // read back. So ignore this request.
@@ -322,14 +322,14 @@ AD741x::DevFlt AD741x::deconstructData(uint8_t *readData, uint16_t size) {
     return (flt = DevFlt::kNone);      // Return no fault
 }
 
-AD741x::DevFlt AD741x::poleAvailability(I2CPeriph *hal_I2C) {
+AD741x::DevFlt AD741x::poleAvailability(I2CPeriph *Interface) {
 /**************************************************************************************************
  * Function will check to see if the device is available via the I2C link.
  *************************************************************************************************/
     uint8_t i = 0;              // Variable used to loop through the number of available checks
 
     while (i != 10) {           // Only attempt to check device availability 10 times
-        if (hal_I2C->poleDeviceRdy(_i2c_address) != I2CPeriph::DevFlt::kNone) {
+        if (Interface->poleDeviceRdy(_i2c_address_) != I2CPeriph::DevFlt::kNone) {
             // Check to see if device is available. If device is not available then
             i++;                            // Go for another attempt
         }
@@ -342,7 +342,7 @@ AD741x::DevFlt AD741x::poleAvailability(I2CPeriph *hal_I2C) {
     return(flt = DevFlt::kFault);           // Return fault state
 }
 
-AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
+AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *Interface) {
 /**************************************************************************************************
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Configuration Register, and then copy contents into Class.
@@ -358,8 +358,8 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
             // Request Address Pointer update
 
         // Then transmit the updated request via I2C
-        if ( hal_I2C->poleMasterTransmit(
-                _i2c_address, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
+        if ( Interface->poleMasterTransmit(
+                _i2c_address_, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
             return (flt = DevFlt::kFault);
     }
     // Ensure the Read of this register is captured.
@@ -370,14 +370,14 @@ AD741x::DevFlt AD741x::poleConfigRead(I2CPeriph *hal_I2C) {
     // check for any read backs
 
     // Then commence a read of the Temperature Registers
-    if ( hal_I2C->poleMasterReceive(_i2c_address, &rData[0], 1) != I2CPeriph::DevFlt::kNone )
+    if ( Interface->poleMasterReceive(_i2c_address_, &rData[0], 1) != I2CPeriph::DevFlt::kNone )
         return (flt = DevFlt::kFault);
 
     return (deconstructData(&rData[0], 1));       // Decode data, and return any faults
-                                                        // generated
+                                                  // generated
 }
 
-AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *hal_I2C,
+AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *Interface,
                         PwrState Mode, FiltState Filt, OneShot Conv) {
 /**************************************************************************************************
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
@@ -390,14 +390,14 @@ AD741x::DevFlt AD741x::poleConfigWrite(I2CPeriph *hal_I2C,
         // Request a write of the Configuration register
 
     // Then transmit the updated request via I2C
-    if ( hal_I2C->poleMasterTransmit(
-            _i2c_address, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
+    if ( Interface->poleMasterTransmit(
+            _i2c_address_, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
         return (flt = DevFlt::kFault);
 
     return(flt = DevFlt::kNone);   // Indicate no failures if none detected
 }
 
-AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
+AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *Interface) {
 /**************************************************************************************************
  * Function will do a direct transmit and receive from device via I2C link (poling mode). Reading
  * the contents of the Temperature Register, and then calculate the actual reading.
@@ -413,8 +413,8 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
             // Request Address Pointer update
 
         // Then transmit the updated request via I2C
-        if ( hal_I2C->poleMasterTransmit(
-                _i2c_address, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
+        if ( Interface->poleMasterTransmit(
+                _i2c_address_, &rData[0], packet_size) != I2CPeriph::DevFlt::kNone )
             return (flt = DevFlt::kFault);
     }
     // Ensure the Read of this register is captured.
@@ -425,11 +425,11 @@ AD741x::DevFlt AD741x::poleTempRead(I2CPeriph *hal_I2C) {
     // check for any read backs
 
     // Then commence a read of the Temperature Registers
-    if ( hal_I2C->poleMasterReceive(_i2c_address, &rData[0], 2) != I2CPeriph::DevFlt::kNone )
+    if ( Interface->poleMasterReceive(_i2c_address_, &rData[0], 2) != I2CPeriph::DevFlt::kNone )
         return (flt = DevFlt::kFault);
 
     return (deconstructData(&rData[0], 2));       // Decode data, and return any faults
-                                                        // generated
+                                                  // generated
 }
 
 void AD741x::reInitialise(void) {
@@ -443,7 +443,7 @@ void AD741x::reInitialise(void) {
     flt           = DevFlt::kInitialised;   // Set fault to initialised
 }
 
-void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
+void AD741x::intConfigRead(I2CPeriph *Interface, uint8_t *rBuff, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request for the contents of the Configuration Register
  *
@@ -460,7 +460,7 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
          */
         temp_size = updateAddressPointer(&wBuff[wrte_cmp_target], AD741x_ConfigReg);
 
-        hal_I2C->intMasterReq(_i2c_address,
+        Interface->intMasterReq(_i2c_address_,
                               temp_size,
                               &wBuff[wrte_cmp_target],
                               I2CPeriph::CommMode::kAutoEnd, I2CPeriph::Request::kStart_Write,
@@ -475,7 +475,7 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
     // Ensure it is captured within the queue, and set to READ. Such that the decode will
     // check for any read backs
 
-    hal_I2C->intMasterReq(_i2c_address,
+    Interface->intMasterReq(_i2c_address_,
                           1,
                           &rBuff[read_cmp_target],
                           I2CPeriph::CommMode::kAutoEnd, I2CPeriph::Request::kStart_Read,
@@ -484,8 +484,8 @@ void AD741x::intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
     read_cmp_target   += 1;     // Put expected size of read back into read complete target
 }
 
-void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
-                            PwrState Mode, FiltState Filt, OneShot Conv, uint8_t *wBuff) {
+void AD741x::intConfigWrite(I2CPeriph *Interface, uint8_t *wBuff,
+                            PwrState Mode, FiltState Filt, OneShot Conv) {
 /**************************************************************************************************
  * Interrupt based request for updating the contents of the Configuration Register
  *
@@ -496,7 +496,7 @@ void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
 
     temp_size = updateConfigReg(&wBuff[wrte_cmp_target], Mode, Filt, Conv);
 
-    hal_I2C->intMasterReq(_i2c_address,
+    Interface->intMasterReq(_i2c_address_,
                           temp_size,
                           &wBuff[wrte_cmp_target],
                           I2CPeriph::CommMode::kAutoEnd, I2CPeriph::Request::kStart_Write,
@@ -505,7 +505,7 @@ void AD741x::intConfigWrite(I2CPeriph *hal_I2C,
     wrte_cmp_target   += temp_size; // Copy expected size to write complete target
 }
 
-void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
+void AD741x::intTempRead(I2CPeriph *Interface, uint8_t *rBuff, uint8_t *wBuff) {
 /**************************************************************************************************
  * Interrupt based request of temperature read of the AD741x device.
  *
@@ -522,7 +522,7 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
          */
         temp_size = updateAddressPointer(&wBuff[wrte_cmp_target], AD741x_TemperatureReg);
 
-        hal_I2C->intMasterReq(_i2c_address,
+        Interface->intMasterReq(_i2c_address_,
                               temp_size,
                               &wBuff[wrte_cmp_target],
                               I2CPeriph::CommMode::kAutoEnd, I2CPeriph::Request::kStart_Write,
@@ -537,7 +537,7 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
     // Ensure it is captured within the queue, and set to READ. Such that the decode will
     // check for any read backs
 
-    hal_I2C->intMasterReq(_i2c_address,
+    Interface->intMasterReq(_i2c_address_,
                           2,
                           &rBuff[read_cmp_target],
                           I2CPeriph::CommMode::kAutoEnd, I2CPeriph::Request::kStart_Read,
@@ -546,12 +546,38 @@ void AD741x::intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff) {
     read_cmp_target   += 2;     // Put expected size of read back into read complete target
 }
 
-void AD741x::intCheckCommStatus(uint8_t *rBuff, uint16_t size) {
+uint8_t AD741x::intCheckCommStatus(uint8_t *rBuff) {
 /**************************************************************************************************
  * Function needs to be called periodically, as this is used to check status of the interrupt
  * based communication, and then deconstruct the data if there is any available.
+ *
+ * Will return "1" if all the requested data has been read/written, and that this has been 
+ * deconstructed into the class
  *************************************************************************************************/
-    deconstructData(rBuff, size);         // Deconstruct data
+    if ( (read_cmp_target == read_cmp_flag) && (wrte_cmp_target == wrte_cmp_flg) ) {
+        deconstructData(rBuff, read_cmp_target);    // Deconstruct data
+        return (1);
+    }
+    
+    return (0);
+}
+
+void AD741x::clearCommunicationCount(void) {
+/**************************************************************************************************
+ * Function will reset the write and read interrupt fault flags and target/ counts.
+ *************************************************************************************************/
+    wrte_cmp_target = 0;        // Clear the communication write target count
+    read_cmp_target = 0;        // Clear the communication  read target count
+
+    wrte_cmp_flg    = 0;        // Clear the communication write flag (actual count)
+    read_cmp_flag   = 0;        // Clear the communication  read flag (actual count)
+}
+
+uint16_t AD741x::readI2CAddress(void) {
+/**************************************************************************************************
+ * Basic function to return the calculated I2C address of the target device
+ *************************************************************************************************/
+    return (_i2c_address_);
 }
 
 AD741x::~AD741x()

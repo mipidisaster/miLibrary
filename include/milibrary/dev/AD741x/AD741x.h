@@ -35,8 +35,12 @@
  *          ".intTempRead"          - Request a read of the contents of device's Temperature
  *                                    Register
  *
+ *          ".clearCommunicationCount"
+ *                                  - Clear the internal flags within class for interrupt 
+ *                                    communication management
  *          ".intCheckCommStatus"   - Function to be used periodically, after confirming that the
  *                                    interrupt I2C routine has completed communication
+ *          ".getI2CAddress"        - Return the target I2C address
  *
  *      Fundamental functions used within this class, which are protected, so not visible outside
  *      the class:
@@ -143,25 +147,25 @@
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Defines for the device AD7414
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define AD741x_AD7414_0_Float    0x0048             // I2C Address for device AD7414-0 AS = Float
-#define AD741x_AD7414_0_GND      0x0049             // I2C Address for device AD7414-0 AS = GND
-#define AD741x_AD7414_0_VDD      0x004A             // I2C Address for device AD7414-0 AS = VDD
+#define AD741x_AD7414_0_Float   0x0048              // I2C Address for device AD7414-0 AS = Float
+#define AD741x_AD7414_0_GND     0x0049              // I2C Address for device AD7414-0 AS = GND
+#define AD741x_AD7414_0_VDD     0x004A              // I2C Address for device AD7414-0 AS = VDD
 
-#define AD741x_AD7414_1_Float    0x004C             // I2C Address for device AD7414-1 AS = Float
-#define AD741x_AD7414_1_GND      0x004D             // I2C Address for device AD7414-1 AS = GND
-#define AD741x_AD7414_1_VDD      0x004E             // I2C Address for device AD7414-1 AS = VDD
-#define AD741x_AD7414_2          0x004B             // I2C Address for device AD7414-2 AS = N/A
-#define AD741x_AD7414_3          0x004F             // I2C Address for device AD7414-3 AS = N/A
+#define AD741x_AD7414_1_Float   0x004C              // I2C Address for device AD7414-1 AS = Float
+#define AD741x_AD7414_1_GND     0x004D              // I2C Address for device AD7414-1 AS = GND
+#define AD741x_AD7414_1_VDD     0x004E              // I2C Address for device AD7414-1 AS = VDD
+#define AD741x_AD7414_2         0x004B              // I2C Address for device AD7414-2 AS = N/A
+#define AD741x_AD7414_3         0x004F              // I2C Address for device AD7414-3 AS = N/A
 
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 // Defines for the device AD7415
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define AD741x_AD7415_0_Float    0x0048             // I2C Address for device AD7415-0 AS = Float
-#define AD741x_AD7415_0_GND      0x0049             // I2C Address for device AD7415-0 AS = GND
-#define AD741x_AD7415_0_VDD      0x004A             // I2C Address for device AD7415-0 AS = VDD
-#define AD741x_AD7415_1_Float    0x004C             // I2C Address for device AD7415-1 AS = Float
-#define AD741x_AD7415_1_GND      0x004D             // I2C Address for device AD7415-1 AS = GND
-#define AD741x_AD7415_1_VDD      0x004E             // I2C Address for device AD7415-1 AS = VDD
+#define AD741x_AD7415_0_Float   0x0048              // I2C Address for device AD7415-0 AS = Float
+#define AD741x_AD7415_0_GND     0x0049              // I2C Address for device AD7415-0 AS = GND
+#define AD741x_AD7415_0_VDD     0x004A              // I2C Address for device AD7415-0 AS = VDD
+#define AD741x_AD7415_1_Float   0x004C              // I2C Address for device AD7415-1 AS = Float
+#define AD741x_AD7415_1_GND     0x004D              // I2C Address for device AD7415-1 AS = GND
+#define AD741x_AD7415_1_VDD     0x004E              // I2C Address for device AD7415-1 AS = VDD
 
 // \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
@@ -228,14 +232,14 @@ protected:
     PwrState    _mode_;             // Mode of the device
     FiltState   _filter_mode_;      // Mode of the device filter
 
-    uint16_t    _i2c_address;       // I2C Address of the device
+    uint16_t    _i2c_address_;      // I2C Address of the device
     uint8_t     _address_pointer_;  // Stores the current state of the Address Pointer
 
 public:
-    DevFlt      flt;            // Fault status of the device
+    DevFlt      flt;                // Fault status of the device
 
-    float       temp;           // Read temperature from device (degC)
-    int16_t     temp_reg;       // Read temperature register
+    float       temp;               // Read temperature from device (degC)
+    int16_t     temp_reg;           // Read temperature register
 
     // Parameters used for interrupt based I2C communication
     volatile I2CPeriph::DevFlt  i2c_wrte_flt;   // Fault status of the I2C write communication
@@ -308,13 +312,13 @@ public:     /*******************************************************************
              *  AD741x device - Will wait for any hardware registers to be in correct state before
              *  progressing.
              *************************************************************************************/
-    DevFlt poleAvailability(I2CPeriph *hal_I2C);            // Check to see if device is available
-    DevFlt poleConfigRead(I2CPeriph *hal_I2C);              // Read Configuration of Device
-    DevFlt poleConfigWrite(I2CPeriph *hal_I2C,
+    DevFlt poleAvailability(I2CPeriph *Interface);          // Check to see if device is available
+    DevFlt poleConfigRead(I2CPeriph *Interface);            // Read Configuration of Device
+    DevFlt poleConfigWrite(I2CPeriph *Interface,
                                       PwrState Mode, FiltState Filt, OneShot Conv);
         // Update the contents of the Configuration register as per input conditions
 
-    DevFlt poleTempRead(I2CPeriph *hal_I2C);                // Read the contents of the
+    DevFlt poleTempRead(I2CPeriph *Interface);              // Read the contents of the
                                                             // temperature register
 
 public:     /**************************************************************************************
@@ -326,18 +330,21 @@ public:     /*******************************************************************
              *************************************************************************************/
     void reInitialise(void);                                // Initialise the internal Address
                                                             // Pointer, etc.
-    void intConfigRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff);
+    void intConfigRead(I2CPeriph *Interface, uint8_t *rBuff, uint8_t *wBuff);
         // Request read of Configuration Register
 
-    void intConfigWrite(I2CPeriph *hal_I2C,
-                        PwrState Mode, FiltState Filt, OneShot Conv, uint8_t *wBuff);
+    void intConfigWrite(I2CPeriph *Interface, uint8_t *wBuff,
+                        PwrState Mode, FiltState Filt, OneShot Conv);
         // Request write to update contents of the Configuration Register
 
-    void intTempRead(I2CPeriph *hal_I2C, uint8_t *rBuff, uint8_t *wBuff);
+    void intTempRead(I2CPeriph *Interface, uint8_t *rBuff, uint8_t *wBuff);
         // Request temperature read
 
-    void intCheckCommStatus(uint8_t *rBuff, uint16_t size);
+    uint8_t intCheckCommStatus(uint8_t *rBuff);
     // Will take the input parameters and decode the specified number of entries
+    void clearCommunicationCount(void);
+    
+    uint16_t readI2CAddress(void);
 };
 
 #endif /* AD741X_H_ */
