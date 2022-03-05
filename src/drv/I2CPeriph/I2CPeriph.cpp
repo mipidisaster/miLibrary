@@ -1366,6 +1366,23 @@ void I2CPeriph:: handleEventIRQ(void) {
  * ones are enabled. If both a status event has occured, and the interrupt is enabled, then this
  * function will take action.
  * Events covered by this function:
+ *      I2C data has not been acknowledged (NACK)
+ *          - If a NACK is detected during the communication with the external device. Then the
+ *            current Request Form is binned. A fault is provided to the requested source
+ *            location, and the return complete indication is setup to show how many bytes had
+ *            been transmitted prior to NACK.
+ *            Source functional will then need to determine what to do in this situation.
+ *
+ *      Receive Buffer full (not empty)
+ *          - Similar to the Transmit Buffer Empty interrupt, this interrupt will be used to read
+ *            from the hardware the current read value. This will then be passed to the requested
+ *            data location (as per Request form).
+ *
+ *      Transmit Buffer Empty
+ *          - Used to pull out more data from the current Request form, and put onto the Transmit
+ *            hardware buffer.
+ *            Note - Writing to the hardware will clear this status bit.
+ *
  *      Transmit Complete Flag
  *          - This functionality is not supported, however this status should be used if the
  *            "Auto" communication has not been selected. Such that when the current pack of 255
@@ -1374,37 +1391,43 @@ void I2CPeriph:: handleEventIRQ(void) {
  *            For communicating packets of data > 255bytes.
  *            Note - Will be cleared by hardware, when either a START or STOP has been triggered.
  *
- *      Transmit Buffer Empty
- *          - Used to pull out more data from the current Request form, and put onto the Transmit
- *            hardware buffer.
- *            Note - Writing to the hardware will clear this status bit.
- *
- *      Receive Buffer full (not empty)
- *          - Similar to the Transmit Buffer Empty interrupt, this interrupt will be used to read
- *            from the hardware the current read value. This will then be passed to the requested
- *            data location (as per Request form).
- *
  *      I2C Stop has been set
  *          - If a STOP has been detected, then current Request form has been completed.
  *            Will then indicate how much data has been transmitted, and look to see if there is
  *            another other requests. If none, then communication interrupts are disabled.
  *
- *      I2C data has not been acknowledged (NACK)
- *          - If a NACK is detected during the communication with the external device. Then the
- *            current Request Form is binned. A fault is provided to the requested source
- *            location, and the return complete indication is setup to show how many bytes had
- *            been transmitted prior to NACK.
- *            Source functional will then need to determine what to do in this situation.
- *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {
-        // If Transmit Complete triggered
-        // Not really supported yet!
+    uint8_t temp_DR = 0;
+
+    if ( (busNACKChk() & busNACKITChk()) == 0x01) { // If I2C NACK received
+        //clearStop();                                // Clear the STOP status
+        //clearNACK();                                // Clear the NACK status
+        *(_cur_form_.Flt) = DevFlt::kNACK;          // Set requested fault flag
+
+        // Flush the contents of the Transmit buffer
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        //__HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_TXE);
+
+        //intReqFormCmplt();          // Complete the current request form
+        //startInterrupt();           // Check if any new requests remain
     }
 
-    uint8_t temp_DR = 0;
-    if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
+    else if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
+        // If Receive Buffer full triggered
+        temp_DR  = readDR();
+        // Retrieve data from the hardware
+
+        // Only when the class global count is not zero. Put the read data into the requested data
+        // location as per I2C Request Form
+        if (_cur_count_ != 0) {
+            putFormReadData( &(_cur_form_) , temp_DR );
+
+            _cur_count_--;      // Decrement the class global current count
+        }
+    }
+
+    else if ( (transmitEmptyChk() & transmitEmptyITChk()) == 0x01) {
         // If Transmit Buffer Empty triggered
         // Only update the transmit hardware buffer, if the class global count is not zero
         if (_cur_count_ == 0)   // If count is equal to zero
@@ -1421,35 +1444,14 @@ void I2CPeriph:: handleEventIRQ(void) {
         writeDR(temp_DR);
     }
 
-    if ( (receiveToReadChk() & receiveToReadITChk()) == 0x01) {
-        // If Receive Buffer full triggered
-        temp_DR  = readDR();
-        // Retrieve data from the hardware
-
-        // Only when the class global count is not zero. Put the read data into the requested data
-        // location as per I2C Request Form
-        if (_cur_count_ != 0) {
-            putFormReadData( &(_cur_form_) , temp_DR );
-
-            _cur_count_--;      // Decrement the class global current count
-        }
+    else if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {
+        // If Transmit Complete triggered
+        // Not really supported yet!
     }
 
     if ( (busStopChk() & busStopITChk()) == 0x01) { // If I2C Stop triggered
         clearStop();                                // Clear the STOP status
         clearNACK();                                // Clear the NACK status
-
-        // Flush the contents of the Transmit buffer
-        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          __HAL_I2C_CLEAR_FLAG(_i2c_handle_, I2C_FLAG_TXE);
-
-        intReqFormCmplt();          // Complete the current request form
-        startInterrupt();           // Check if any new requests remain
-    }
-
-    if ( (busNACKChk() & busNACKITChk()) == 0x01) { // If I2C NACK received
-        clearNACK();                                // Clear the NACK status
-        *(_cur_form_.Flt) = DevFlt::kNACK;          // Set requested fault flag
 
         // Flush the contents of the Transmit buffer
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
