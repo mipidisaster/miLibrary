@@ -66,6 +66,9 @@
                                                                 // Temperature Sensor
 #define FilInd_LnxCondHD    "milibrary/dev/LnxCond/LnxCond.h"   // File for the Linux
                                                                 // Status/Condition
+#define FilInd_BME280_HD    "milibrary/dev/BME280/BME280.h"     // File for the BME280 sensor
+#define FilInd_BME280def    "milibrary/dev/BME280/BME280_defs.h"// Definitions
+#define FilInd_BMEI2C_HD    "milibrary/dev/BME280/BME280I2C.h"  // >> I2C interface for BME280
 
 /**************************************************************************************************
  * All of the defines below are for use with the Robot Operating System (ROS)
