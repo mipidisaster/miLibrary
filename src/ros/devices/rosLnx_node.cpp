@@ -19,12 +19,10 @@
  *                      [ - Note, if none is provided will default to '4Hz'
  *
  *   Publishers:
- *      CPUTemp
- *                      [ Provides the temperature reading of the processor with embedded linux
- *
- *      CPULoad
+ *      processorState
  *                      [ Provides the processor load of the embedded linux device, providing the
- *                      [ overal percentage load as well as individual cores
+ *                      [ overal percentage load as well as individual cores, as well as the
+ *                      [ temperature of the core.
  *                      [ Uses milibrary/msg/ProcessorUtilisation.msg
  *
  *   Subscribers:
@@ -48,8 +46,6 @@
 // ---------------
 #include <ros/ros.h>
 #include <ros/callback_queue.h>
-
-#include <std_msgs/Float32.h>
 
 // Project Libraries
 // -----------------
@@ -76,8 +72,7 @@ private:
 
     std::string         knode_loop_rate             = "loop_rate";
 
-    std::string         kLnxCond_publish_temp       = "CPUTemp";
-    std::string         kLnxCond_publish_cores      = "CPULoad";
+    std::string         kLnxCond_publish_cores      = "processorState";
 
 private:
     LnxCond                 *_hardware_handle_  = NULL;
@@ -101,12 +96,10 @@ private:
 
     // MESSAGES
     ////////////////////////
-    std_msgs::Float32               _cpu_temperature_message_;
     milibrary::ProcessorUtilisation _cpu_utilisation_message_;
 
     // PUBLISHERS
     ////////////////////////
-    ros::Publisher                  _cpu_temperature_publisher_;
     ros::Publisher                  _cpu_utilisation_publisher_;
 
     // SUBSCRIBERS
@@ -165,18 +158,21 @@ public:
 
         ros::Rate loop_rate(_loop_rate_parameter_);
 
-        _cpu_temperature_message_.data = -999;
+        _cpu_utilisation_message_.header.seq    = 0;
+        _cpu_utilisation_message_.temperature   = -999;
+        _cpu_utilisation_message_.fault         = (uint8_t) LnxCond::DevFlt::kInitialised;
+
         _cpu_cores_.insert( _cpu_cores_.begin(), LNX_NUM_CORES, -1.00f  );
 
         while (ros::ok()) {
             if (_hardware_handle_->updateStatus() != LnxCond::DevFlt::kNone) {
-                _cpu_temperature_message_.data      = -999;
-                _cpu_utilisation_message_.overall   = -1;
-                _cpu_utilisation_message_.cores     = _cpu_cores_;
+                _cpu_utilisation_message_.temperature   = -999;
+                _cpu_utilisation_message_.overall       = -1;
+                _cpu_utilisation_message_.cores         = _cpu_cores_;
             }
             else {
-                _cpu_temperature_message_.data      = _hardware_handle_->temperature;
-                _cpu_utilisation_message_.overall   = (_hardware_handle_->cpu_load[0] * 100);
+                _cpu_utilisation_message_.temperature   = _hardware_handle_->temperature;
+                _cpu_utilisation_message_.overall       = (_hardware_handle_->cpu_load[0] * 100);
 
                 for (int i = 0; i != _cpu_cores_.size(); i ++) {
                     _cpu_cores_[i] = (_hardware_handle_->cpu_load[i + 1] * 100);
@@ -185,12 +181,15 @@ public:
 
             }
 
-            _cpu_temperature_publisher_.publish(_cpu_temperature_message_);
+            _cpu_utilisation_message_.fault             = (uint8_t) _hardware_handle_->flt;
+            _cpu_utilisation_message_.header.stamp      = ros::Time::now();
+
             _cpu_utilisation_publisher_.publish(_cpu_utilisation_message_);
 
 
             ros::spinOnce();
             loop_rate.sleep();
+            _cpu_utilisation_message_.header.seq++;
         }
     }
 
@@ -222,10 +221,6 @@ public:
         ROS_INFO("LnxCond has been setup");
         //=========================================================================================
         // Publishers
-        _cpu_temperature_publisher_   = _nh_.advertise<std_msgs::Float32>(
-                                                kLnxCond_publish_temp,
-                                                5);
-
         _cpu_utilisation_publisher_   = _nh_.advertise<milibrary::ProcessorUtilisation>(
                                                 kLnxCond_publish_cores,
                                                 5);
