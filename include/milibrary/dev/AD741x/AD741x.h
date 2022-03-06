@@ -238,7 +238,7 @@ protected:
 public:
     DevFlt      flt;                // Fault status of the device
 
-    float       temp;               // Read temperature from device (degC)
+    float       temperature;        // Read temperature from device (degC)
     int16_t     temp_reg;           // Read temperature register
 
     // Parameters used for interrupt based I2C communication

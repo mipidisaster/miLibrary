@@ -78,7 +78,7 @@ void AD741x::popGenParam(DevPart DeviceNum, AddrBit ASPin) {
     read_cmp_flag     = 0x00;                     // Initialise the communication complete flag
     read_cmp_target   = 0x00;                     // Initialise the target communication count
 
-    temp          = -999;               // Default to "-999"
+    temperature   = -999;               // Default to "-999"
     temp_reg      = 0;                  // Default to "0"
 }
 
@@ -264,7 +264,7 @@ void AD741x::decodeTempReg(uint8_t *pData) {
     if ((raw_data & AD741x_SignBit) == AD741x_SignBit)  // If sign bit is set, then convert to
         temp_reg -= 512;                                // two's complement equivalent
 
-    temp = ((float)temp_reg) / 4;               // Take value and divide by 4, to get degC
+    temperature = ((float)temp_reg) / 4;                // Take value and divide by 4, to get degC
 }
 
 AD741x::DevFlt AD741x::deconstructData(uint8_t *readData, uint16_t size) {
