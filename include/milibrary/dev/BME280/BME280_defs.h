@@ -1,7 +1,7 @@
 /**************************************************************************************************
  * @file        BME280_defs.h
  * @author      Thomas
- * @brief       Header file for the BMR280 series of temperature sensors (Definitions only)
+ * @brief       Header file for the BME280 series of temperature sensors (Definitions only)
  **************************************************************************************************
  @ attention
 
