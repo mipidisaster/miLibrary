@@ -162,7 +162,8 @@ public:
         // Push data to the SPI service
         _spi_transfer_client_.call(msg);
 
-        _hardware_handle_->poleTempRead(msg.response.read_data.data());
+        if ( msg.response.read_data.size() >= 2 )
+            _hardware_handle_->poleTempRead(msg.response.read_data.data());
     }
 
     /*
@@ -209,7 +210,7 @@ public:
     }
 
     /*
-     *  @brief:  Setups the LnxCond for the node, as per the expected input/configuration
+     *  @brief:  Setups the MAX6675 for the node, as per the expected input/configuration
      *           parameters from within the rosparam space.
      *           If there are any issues with the supplied values; which cannot be managed
      *           internally. Will return an error (value of -1), to be checked at the 'main' level
