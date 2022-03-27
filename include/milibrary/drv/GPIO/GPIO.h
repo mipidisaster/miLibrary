@@ -145,6 +145,8 @@ public:     /*******************************************************************
         // 'gpioarray' is the LSB.
         // If the input 'value' is bigger than what can be displayed with the input array, function
         // will only set the bits within limits.
+        static uint32_t getGPIOArray(GPIO *gpioarray, uint32_t number_gpios);
+        // Similar to the previous function, but will retrieve the GPIO state(s).
 
         // Input controls
         virtual State getValue();

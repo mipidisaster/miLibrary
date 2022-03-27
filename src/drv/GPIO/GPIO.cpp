@@ -166,7 +166,7 @@ GPIO::State GPIO::getValue() {
  * OUTPUT it will return an error
  *************************************************************************************************/
     if (_pin_direction_ != Dir::kInput)     // Check direction of pin, if not equal to INPUT
-        return State::kLow;                 // return LOW state
+        return _pin_value_;                 // return LOW state
 
 #if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
@@ -181,7 +181,13 @@ GPIO::State GPIO::getValue() {
 
 #else       // Construction of class for 'Default' or RaspberryPi is the same
 //=================================================================================================
-    return State::kLow;
+#if  (zz__MiEmbedType__zz == 10)        // If configured for RaspberryPi, then use wiringPi
+    if ( digitalRead((int) _pin_number_) == HIGH )  // If the state of the GPIO is HIGH
+        return State::kHigh;                        // return HIGH
+
+#endif
+
+    return State::kLow;             // Default to returning LOW, if get to this point
 
 #endif
 }
@@ -203,7 +209,7 @@ void GPIO::setGPIOArray(GPIO *gpioarray, uint32_t number_gpios, uint32_t value) 
     value &= temp;
 
     // If get to this point, then input selection is within capabilitys of the class setup
-    for (temp = 0; temp != (number_gpios); temp++) {    // Now use temporary variable to loop
+    for (temp = 0; temp != number_gpios; temp++) {  // Now use temporary variable to loop
         if (temp != 0) {                        // If not the first pass of loop then
             value >>= 1;                        // binary shift the input selection number by 1
         }                                       // to the right (make it smaller)
@@ -213,6 +219,26 @@ void GPIO::setGPIOArray(GPIO *gpioarray, uint32_t number_gpios, uint32_t value) 
         else                                        // If lowest bit is "0", then
             gpioarray[temp].setValue(GPIO::kLow);   // Set corresponding switch "LOW"
     }
+}
+
+uint32_t GPIO::getGPIOArray(GPIO *gpioarray, uint32_t number_gpios) {
+/**************************************************************************************************
+ * STATIC function used to get the state of multiple gpio's in an array at the same time
+ * First entry within array 'gpioarray' is the LSB
+ *************************************************************************************************/
+    uint32_t value = 0;
+    uint32_t temp = 0;      // Temporary variable used within this function, for
+                            //  -> Determining maximum size of gpioarray selection
+                            //  -> Looping through input selection, to set corresponding switch
+
+    // If get to this point, then input selection is within capabilitys of the class setup
+    for (temp = 0; temp != number_gpios; temp++) {      // Now use temporary variable to loop
+        if (gpioarray[temp].getValue() == GPIO::kHigh) {// If the GPIO is set
+            value |= (1 << temp);                       // capture in the output
+        }
+    }
+
+    return value;
 }
 
 GPIO::~GPIO() {
