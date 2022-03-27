@@ -18,8 +18,16 @@
  *                      [ Both of these parameters are expected to be lists of gpios pin numbers,
  *                      [ left most entry is the LSB
  *
+ *                      /loop_rate
+ *                      [ Floating data value, specifying the rate that the GPIO input state is
+ *                      [ interrogated.
+ *                      [ - Note, if none is provided will default to '10Hz'
+ *                      [ - Note, Will only be published if there is a GPIO input parameter
+ *
  *   Publishers:
- *      None
+ *      get_gpio        [ Will return the state of the GPIO input array
+ *                      [ Uses std_msgs/UInt64.msg
+ *                      [ - Note, Will only be published if there is a GPIO input parameter
  *
  *   Subscribers:
  *      None
@@ -43,10 +51,12 @@
 // Other Libraries
 // ---------------
 #include <ros/ros.h>
+#include <ros/callback_queue.h>
 
 // Project Libraries
 // -----------------
 #include "milibrary/GPIOctrl.h"
+#include "std_msgs/UInt64.h"
 
 #include "FileIndex.h"
 // ~~~~~~~~~~~~~~~~~~~
@@ -70,7 +80,11 @@ private:
     std::string         kinput_gpio_param           = "input/";
     std::string         koutput_gpio_param          = "output/";
 
+    std::string         knode_loop_rate             = "loop_rate";
+
     std::string         kGPIO_set_service           = "set_gpio";
+
+    std::string         kGPIO_publish_input_state   = "get_gpio";
 
 private:
     std::vector<GPIO>   _output_array_;
@@ -81,21 +95,27 @@ private:
  *   -----------
  *  The follow are objects used for interfacing with the Robot Operating System.
  *************************************************************************************************/
+    ros::NodeHandle         _nh_hardware_;
+    ros::CallbackQueue      _hardware_callback_queue_;
+
     // PARAMETERS
     ////////////////////////
     // _input_gpio_params_ and _output_gpio_params_ from miROSnode
+    double                          _loop_rate_parameter_;
 
     // MESSAGES
     ////////////////////////
 
     // PUBLISHERS
     ////////////////////////
+    ros::Publisher          _gpio_input_publisher_;
 
     // SUBSCRIBERS
     ////////////////////////
 
     // TIMERS
     ////////////////////////
+    ros::Timer              _gpio_output_check_timer_;
 
     // SERVICES
     ////////////////////////
@@ -115,6 +135,8 @@ public:
     rosGPIO(ros::NodeHandle* normal, ros::NodeHandle* private_namespace):
     miROSnode(normal, private_namespace)
     {
+        _nh_hardware_.setCallbackQueue(&_hardware_callback_queue_);
+
         if (configNode() < 0) {
             ROS_ERROR("Error detected during GPIO construction, exiting node...");
             return;
@@ -203,7 +225,11 @@ public:
     void nodeLoop(void) {
         ROS_INFO("GPIO node ready for use");
 
-        ros::spin();
+        // Make use of custom hardware callback queue
+        ros::SingleThreadedSpinner spinner;
+        spinner.spin(&_hardware_callback_queue_);
+
+        //ros::spin();
     }
 
     /*
@@ -223,6 +249,10 @@ public:
         if (checkGPIOInputParameters() < 0) {
             return -1;
         }
+
+        _private_nh_.param<double>(kconfig_sub_area + knode_loop_rate,
+                                   _loop_rate_parameter_,
+                                   10);
 
         //=========================================================================================
         // Duplication check
@@ -260,16 +290,29 @@ public:
         ROS_INFO("GPIO has been setup");
         //=========================================================================================
         // Publishers
-        
+        if (_input_gpio_params_.size() != 0) {
+        _gpio_input_publisher_  = _nh_.advertise<std_msgs::UInt64>(
+                                                             kGPIO_publish_input_state,
+                                                             20);
+        }
         //=========================================================================================
         // Timers
+        if (_input_gpio_params_.size() != 0) {
+        _gpio_output_check_timer_ = _nh_hardware_.createTimer(
+                                                        ros::Duration(1/_loop_rate_parameter_),
+                                                        &rosGPIO::callbackGPIOget,
+                                                        this,
+                                                        false);
+
+        }
 
         //=========================================================================================
         // Clients/Servers
-        _set_server_        = _nh_.advertiseService(kGPIO_set_service,
-                                                    &rosGPIO::callbackGPIOset,
-                                                    this);
-
+        if (_output_gpio_params_.size() != 0) {
+        _set_server_        = _nh_hardware_.advertiseService(kGPIO_set_service,
+                                                             &rosGPIO::callbackGPIOset,
+                                                             this);
+        }
         //=========================================================================================
 
         ROS_INFO("GPIO Server constructed");
@@ -290,6 +333,18 @@ public:
     }
 
     /*
+     *  @brief:  Basic function, will take the return the value that is configured within the
+     *           GPIOs of the node
+     *           Essentially a wrapper for the GPIO function - 'setGPIOArray'
+     *
+     *  @retval: unsigned 32bit value
+     */
+    uint32_t getGPIOvalue()
+    {
+        return GPIO::getGPIOArray(_input_array_.data(), _input_array_.size());
+    }
+
+    /*
      *  @brief:  Callback function to be used as part of the service of this node. Will receive
      *           in the GPIOctrl message, to set the GPIOs constructed in this class to the desired
      *           value
@@ -301,6 +356,20 @@ public:
     bool callbackGPIOset(milibrary::GPIOctrl::Request &req, milibrary::GPIOctrl::Response &res) {
         setGPIOvalue(req.value);
         return true;
+    }
+
+    /*
+     *  @brief:  Callback function to be used to get the states of the input GPIOs.
+     *           Rate of transmission is based upon the timer function which calls this
+     *
+     *  @param:  ROS Timer event
+     *  @retval: None
+     */
+    void callbackGPIOget(const ros::TimerEvent& event) {
+        std_msgs::UInt64 msg;
+
+        msg.data = getGPIOvalue();
+        _gpio_input_publisher_.publish(msg);
     }
 
     ~rosGPIO() {
@@ -321,6 +390,8 @@ int main(int argc, char **argv)
 
     rosGPIO  node(&n, &private_params);
 
+    ros::shutdown();            // If get to this point of the main() function. Then should be
+                                // shutdowning the node - due to error
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
