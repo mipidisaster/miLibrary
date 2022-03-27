@@ -14,7 +14,7 @@
  * This node is called "max6675_node"
  *   Configuration parameters:
  *      ~/config        /loop_rate
- *                      [ Floating data value, specifying the rate that the Linux device is
+ *                      [ Floating data value, specifying the rate that the MAX6675 device is
  *                      [ interrogated.
  *                      [ - Note, if none is provided will default to '4Hz'
  *
@@ -292,6 +292,8 @@ int main(int argc, char **argv)
 
     rosMAX6675  node(&n, &private_params);
 
+    ros::shutdown();            // If get to this point of the main() function. Then should be
+                                // shutdowning the node - due to error
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()

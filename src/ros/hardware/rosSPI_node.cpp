@@ -726,6 +726,8 @@ int main(int argc, char **argv)
 
     rosSPI  node(&n, &private_params);
 
+    ros::shutdown();            // If get to this point of the main() function. Then should be
+                                // shutdowning the node - due to error
     ros::waitForShutdown();
 
     // On node shutdown, don't think it reaches this part of main()
