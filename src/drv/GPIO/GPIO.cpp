@@ -166,7 +166,7 @@ GPIO::State GPIO::getValue() {
  * OUTPUT it will return an error
  *************************************************************************************************/
     if (_pin_direction_ != Dir::kInput)     // Check direction of pin, if not equal to INPUT
-        return _pin_value_;                 // return LOW state
+        return State::kLow;                 // return LOW state
 
 #if   ( (zz__MiEmbedType__zz == 50) || (zz__MiEmbedType__zz == 51)  )
 // If the target device is either STM32Fxx or STM32Lxx from cubeMX then ...
