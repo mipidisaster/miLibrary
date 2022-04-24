@@ -22,11 +22,11 @@
 // --------------
 #if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL UART library
+#include "stm32f1xx_hal.h"              // Include the HAL I2C library
 
 #elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL UART library
+#include "stm32l4xx_hal.h"              // Include the HAL I2C library
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -97,7 +97,7 @@ I2CPeriph::I2CPeriph(I2C_HandleTypeDef *I2C_Handle, Form *FormArray, uint16_t Fo
 //=================================================================================================
 I2CPeriph::I2CPeriph(const char *deviceloc, uint16_t FormSize) {
 /**************************************************************************************************
- * Create a SPIPeriph class specific for RaspberryPi, to simplify the RaspberryPi version (and as
+ * Create a I2CPeriph class specific for RaspberryPi, to simplify the RaspberryPi version (and as
  * size is less of a constraint) function will create arrays for the internal Form buffers.
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
@@ -126,8 +126,8 @@ I2CPeriph::I2CPeriph(const char *deviceloc, uint16_t FormSize) {
 
 I2CPeriph::I2CPeriph(const char *deviceloc, Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
- * Create a SPIPeriph class specific for RaspberryPi
- *  This version requires pointers to the Write/Read UART Form system and sizes
+ * Create a I2CPeriph class specific for RaspberryPi
+ *  This version requires pointers to the Write/Read I2C Form system and sizes
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
     popGenParam();              // Populate generic class parameters
@@ -1435,7 +1435,7 @@ void I2CPeriph:: handleEventIRQ(void) {
 
         else {
             temp_DR  = getFormWriteData( &(_cur_form_) );
-            // Retrieve next data point from the Request SPI Form, and put onto hardware queue
+            // Retrieve next data point from the Request I2C Form, and put onto hardware queue
 
             _cur_count_--;      // Decrement the class global current count
         }
@@ -1469,7 +1469,7 @@ void I2CPeriph:: handleEventIRQ(void) {
  *  As setting up a real interrupt for Raspberry Pi involves hacking the kernel, which I am not
  *  doing, the route I have taken is to use threads - pthreads.
  *  What this involves is creating a separate stream (thread) which will just check the size of the
- *  UART peripheral buffer or if data has been requested to be sent (via pseudo interrupt
+ *  I2C peripheral buffer or if data has been requested to be sent (via pseudo interrupt
  *  register). Then the main thread can use the Read/Transmit functions as normal.
  *
  *  So setting up the pthread:
@@ -1498,7 +1498,7 @@ void I2CPeriph:: handleEventIRQ(void) {
  *  return 0;
  * }
  *
- * Similar to the STM32 a pointer to the UARTPeriph will need to be made global to allow this
+ * Similar to the STM32 a pointer to the I2CPeriph will need to be made global to allow this
  * new thread to all the "IRQHandler"
  *************************************************************************************************/
     if ( (transmitComptChk() & transmitComptITChk()) == 0x01) {

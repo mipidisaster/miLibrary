@@ -126,11 +126,11 @@
 // --------------
 #if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL UART library
+#include "stm32f1xx_hal.h"              // Include the HAL I2C library
 
 #elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL UART library
+#include "stm32l4xx_hal.h"              // Include the HAL I2C library
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -172,8 +172,8 @@ class I2CPeriph {
      * RaspberryPi.
      */
 
-    static const uint8_t    kSPI_bits_per_word                  = 8;
-    static const int        kSPI_delay                          = 0;
+    static const uint8_t    kI2C_bits_per_word                  = 8;
+    static const int        kI2C_delay                          = 0;
 
 #endif
 
@@ -277,7 +277,7 @@ public:
 //=================================================================================================
     private:
         int         _i2c_handle_;               // Stores the device to communicate too
-        const char  *_device_loc_;              // Store location file for UART device
+        const char  *_device_loc_;              // Store location file for I2C device
         uint8_t     _pseudo_interrupt_;         // Pseudo interrupt register
 
     void errorMessage(const char *message, ...);
