@@ -22,11 +22,11 @@
 // --------------
 #if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL UART library
+#include "stm32f1xx_hal.h"              // Include the HAL SPI library
 
 #elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL UART library
+#include "stm32l4xx_hal.h"              // Include the HAL SPI library
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -113,7 +113,7 @@ SPIPeriph::SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
                                             Form *FormArray, uint16_t FormSize) {
 /**************************************************************************************************
  * Create a SPIPeriph class specific for RaspberryPi
- *  This version requires pointers to the Write/Read UART Form system and sizes
+ *  This version requires pointers to the Write/Read SPI Form system and sizes
  * Receives the desired channel, speed and Mode
  *************************************************************************************************/
     popGenParam();              // Populate generic class parameters

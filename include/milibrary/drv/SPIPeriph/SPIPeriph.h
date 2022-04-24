@@ -116,11 +116,11 @@
 // --------------
 #if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL UART library
+#include "stm32f1xx_hal.h"              // Include the HAL SPI library
 
 #elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL UART library
+#include "stm32l4xx_hal.h"              // Include the HAL SPI library
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
@@ -294,7 +294,7 @@ public:
     public:
         SPIPeriph(const char *deviceloc, int speed, SPIMode Mode,
                                          Form *FormArray, uint16_t FormSize);
-        // Setup the UART class, by providing the folder location of serial interface, and baudrate
+        // Setup the SPI class, by providing the folder location of serial interface, and baudrate
         // as well the "GenBuffer" needing to be provided to the function, to be fully defined
         // outside of class
 
