@@ -22,11 +22,11 @@
 // --------------
 #if   (zz__MiEmbedType__zz == 50)       // If the target device is an STM32Fxx from cubeMX then
 //=================================================================================================
-#include "stm32f1xx_hal.h"              // Include the HAL UART library
+#include "stm32f1xx_hal.h"              // Include the HAL DMA library
 
 #elif (zz__MiEmbedType__zz == 51)       // If the target device is an STM32Lxx from cubeMX then
 //=================================================================================================
-#include "stm32l4xx_hal.h"              // Include the HAL UART library
+#include "stm32l4xx_hal.h"              // Include the HAL DMA library
 
 #elif (zz__MiEmbedType__zz == 10)       // If the target device is an Raspberry Pi then
 //=================================================================================================
