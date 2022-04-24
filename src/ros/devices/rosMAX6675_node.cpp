@@ -71,6 +71,7 @@
  *************************************************************************************************/
 class rosMAX6675 {
 private:
+    // Constant(s) used within the class.
     std::string         kconfig_sub_area            = "config/";
 
     std::string         knode_loop_rate             = "loop_rate";
@@ -173,10 +174,10 @@ public:
      *  @param:  void
      *  @retval: void
      */
-    void hardwareCallbackThread(void) {
-        ros::SingleThreadedSpinner spinner;
-        spinner.spin(&_hardware_callback_queue_);
-    }
+    //void hardwareCallbackThread(void) {
+    //    ros::SingleThreadedSpinner spinner;
+    //    spinner.spin(&_hardware_callback_queue_);
+    //}
 
     /*
      *  @brief:  Function to encapsulate the looping of this node.
@@ -232,6 +233,7 @@ public:
                                    0.0);
         //=========================================================================================
         // Duplication check
+        // Not needed for this node
 
         //=========================================================================================
 
@@ -239,13 +241,14 @@ public:
 
         ROS_INFO("MAX6675 has been setup");
         //=========================================================================================
-        // Publishers
+        // Publishers/Subscribers
         _max6675_temperature_publisher_ = _nh_.advertise<sensor_msgs::Temperature>(
                                                 kMAX6675_publish_temp,
                                                 5);
 
         //=========================================================================================
         // Timers
+        // None
 
         //=========================================================================================
         // Clients/Servers

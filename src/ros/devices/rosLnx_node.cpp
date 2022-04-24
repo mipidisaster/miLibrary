@@ -68,6 +68,7 @@
  *************************************************************************************************/
 class rosLnx {
 private:
+    // Constant(s) used within the class.
     std::string         kconfig_sub_area            = "config/";
 
     std::string         knode_loop_rate             = "loop_rate";
@@ -142,10 +143,10 @@ public:
      *  @param:  void
      *  @retval: void
      */
-    void hardwareCallbackThread(void) {
-        ros::SingleThreadedSpinner spinner;
-        spinner.spin(&_hardware_callback_queue_);
-    }
+    //void hardwareCallbackThread(void) {
+    //    ros::SingleThreadedSpinner spinner;
+    //    spinner.spin(&_hardware_callback_queue_);
+    //}
 
     /*
      *  @brief:  Function to encapsulate the looping of this node.
@@ -213,6 +214,7 @@ public:
 
         //=========================================================================================
         // Duplication check
+        // Not needed for this node
 
         //=========================================================================================
 
@@ -220,13 +222,14 @@ public:
 
         ROS_INFO("LnxCond has been setup");
         //=========================================================================================
-        // Publishers
+        // Publishers/Subscribers
         _cpu_utilisation_publisher_   = _nh_.advertise<milibrary::ProcessorUtilisation>(
                                                 kLnxCond_publish_cores,
                                                 5);
 
         //=========================================================================================
         // Timers
+        // None
 
         //=========================================================================================
         // Clients/Servers
