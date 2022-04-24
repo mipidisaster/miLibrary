@@ -25,7 +25,8 @@
  *                      [ - Note, Will only be published if there is a GPIO input parameter
  *
  *   Publishers:
- *      get_gpio        [ Will return the state of the GPIO input array
+ *      get_gpio
+ *                      [ Will return the state of the GPIO input array
  *                      [ Uses std_msgs/UInt64.msg
  *                      [ - Note, Will only be published if there is a GPIO input parameter
  *
@@ -33,7 +34,8 @@
  *      None
  *
  *   Services:
- *      set_gpio        [ Request-> Value for the GPIO output to be set too
+ *      set_gpio
+ *                      [ Request-> Value for the GPIO output to be set too
  *                      [ Result -> Nothing
  *                      [ Uses milibrary/srv/GPIOctrl.srv
  *
@@ -217,6 +219,18 @@ public:
     }
 
     /*
+     *  @brief:  Separate function, to handle the hardware service callback queue.
+     *           Intended to be used within a dedicated thread.
+     *
+     *  @param:  void
+     *  @retval: void
+     */
+    //void hardwareCallbackThread(void) {
+    //    ros::SingleThreadedSpinner spinner;
+    //    spinner.spin(&_hardware_callback_queue_);
+    //}
+
+    /*
      *  @brief:  Function to encapsulate the looping of this node.
      *
      *  @param:  void
@@ -289,7 +303,7 @@ public:
 
         ROS_INFO("GPIO has been setup");
         //=========================================================================================
-        // Publishers
+        // Publishers/Subscribers
         if (_input_gpio_params_.size() != 0) {
         _gpio_input_publisher_  = _nh_.advertise<std_msgs::UInt64>(
                                                              kGPIO_publish_input_state,
