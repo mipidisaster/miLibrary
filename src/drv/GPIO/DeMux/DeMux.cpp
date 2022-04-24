@@ -125,9 +125,18 @@ void DeMux::disable(void) {
     }
     status = DevState::kDisable;               // Update status to "Disabled"
 }
-DeMux::DevFlt DeMux::updateSelection(uint8_t newselection)
-{
-    GPIO::setGPIOArray(_Mux_A_, _input_size_, newselection);
+
+DeMux::DevFlt DeMux::updateSelection(uint8_t newselection) {
+/**************************************************************************************************
+ * DeMux wrapper around the GPIO::setGPIOArray function.
+ * Includes memory of the selection that has been made, so as to introduce a speed improvement if
+ * the same request is made multiple times
+ *************************************************************************************************/
+    if (selection != newselection) {
+        GPIO::setGPIOArray(_Mux_A_, _input_size_, newselection);
+
+        selection = newselection;
+    }
 
     flt = DevFlt::kNone;    // If have gotten this far, then update has worked - Updated status
     return(flt);            // Provide positive return
