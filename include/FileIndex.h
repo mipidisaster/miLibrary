@@ -37,6 +37,7 @@
                                                                     // code
 #define FilInd_SPIPe__HD    "milibrary/drv/SPIPeriph/SPIPeriph.h"   // File for the SPI driver code
 #define FilInd_I2CPe__HD    "milibrary/drv/I2CPeriph/I2CPeriph.h"   // File for the I2C driver code
+#define FilInd_CANPe__HD    "milibrary/drv/CANPeriph/CANPeriph.h"   // File for the CAN driver code
 
 
 #define FilInd_DMAPe__HD    "milibrary/drv/DMAPeriph/DMAPeriph.h"   // File for the DMA driver code
