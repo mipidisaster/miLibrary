@@ -30,12 +30,14 @@
  *      None
  *
  *   Services:
- *      read_uart       [ Request-> Number of bytes to be read from hardware
+ *      read_uart
+ *                      [ Request-> Number of bytes to be read from hardware
  *                      [ Result -> Array (size as per requested) of data from hardware
  *                      [           Also captures the fault state of device (uint8_t)
  *                      [ Uses milibrary/srv/BUSctrl.srv
  *
- *      write_uart      [ Request-> Array of data to be sent
+ *      write_uart
+ *                      [ Request-> Array of data to be sent
  *                      [ Result -> Fault status of hardware during write (uint8_t)
  *                      [ Uses milibrary/srv/BUSctrl.srv
  *
@@ -88,10 +90,10 @@ private:
     std::string         kUART_publish_transmission  = "connection_status";
 
 private:
-    UARTPeriph              *_hardware_handle_  = NULL;
-    int                     _baud_rate_         = 0;
+    UARTPeriph              *_hardware_handle_      = NULL;
+    int                     _baud_rate_             = 0;
 
-    int                     _address_options_   = 0;
+    int                     _address_options_       = 0;
 
     std::vector<uint64_t>   _write_byte_count_;
     std::vector<float>      _write_byte_rate_;
@@ -268,11 +270,11 @@ public:
 
         _hardware_handle_ = new UARTPeriph(_file_location_.c_str(), _baud_rate_,
                                            __null, 0, __null, 0);
-        _address_options_   = 1;        // Only one device expected at the end of this device
+        _address_options_   = 1;        // Only one device expected at the end of this bus
 
         ROS_INFO("UART has been setup");
         //=========================================================================================
-        // Publishers
+        // Publishers/Subscribers
         _connection_status_publisher_ = _nh_.advertise<milibrary::Transmission>(
                                                 kUART_publish_transmission,
                                                 20);
