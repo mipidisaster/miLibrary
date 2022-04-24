@@ -50,7 +50,8 @@
  *      None
  *
  *   Services:
- *      transfer_spi    [ Request-> Number of bytes to be transfered to selected device (address)
+ *      transfer_spi
+ *                      [ Request-> Number of bytes to be transfered to selected device (address)
  *                      [ Result -> Array (equal to size of bytes written) of data from hardware
  *                      [           Also captures the fault state of device (uint8_t)
  *                      [ Uses milibrary/srv/BUSctrl.srv
@@ -556,7 +557,7 @@ public:
 
         ROS_INFO("SPI has been setup");
         //=========================================================================================
-        // Publishers
+        // Publishers/Subscribers
         _connection_status_publisher_ = _nh_.advertise<milibrary::Transmission>(
                                                 kSPI_publish_transmission,
                                                 20);
