@@ -101,7 +101,7 @@ CANPeriph::CANPeriph() {
 
 #endif
 
-CANPeriph::DevFlt CANPeriph:: getFaultStatus(uint8_t is_read, uint8_t fifo) {
+CANPeriph::DevFlt CANPeriph:: getFaultStatus(uint8_t is_read, uint8_t FIFO) {
 /**************************************************************************************************
  * Reads the state of the hardware register storing the fault status.
  * Updates the following internal parameters:
@@ -109,8 +109,8 @@ CANPeriph::DevFlt CANPeriph:: getFaultStatus(uint8_t is_read, uint8_t fifo) {
  *
  * Returns the determined fault state of the bus, and will store this in the respective fault
  * status;
- *      is_read = 0 (i.e. write), fifo will be for the tx_flt flag
- *      is_read = 1 (i.e. read),  fifo will be for the rx_flt flag
+ *      is_read = 0 (i.e. write), FIFO will be for the tx_flt flag
+ *      is_read = 1 (i.e. read),  FIFO will be for the rx_flt flag
  *************************************************************************************************/
     uint32_t error_register = _can_handle_->Instance->ESR;
 
@@ -121,42 +121,42 @@ CANPeriph::DevFlt CANPeriph:: getFaultStatus(uint8_t is_read, uint8_t fifo) {
     DevFlt last_error_count = (DevFlt) ( (error_register & 0x00000070) >> 4);
 
     if (is_read != CANPERIPH_TX) {
-        rx_flt[fifo] = last_error_count;
+        rx_flt[FIFO] = last_error_count;
     }
     else {
-        tx_flt[fifo] = last_error_count;
+        tx_flt[FIFO] = last_error_count;
     }
 
     return (last_error_count);
 }
 
-uint8_t CANPeriph::receiveOverRunChk(uint8_t RxFifo) {
+uint8_t CANPeriph::receiveOverRunChk(uint8_t RxFIFO) {
 /**************************************************************************************************
  * Check to see if the Receive Overrun bit has been set or not.
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_FLAG_FOV0;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_FLAG_FOV0;
     else
-        rx_fifo_interrupt_register = CAN_FLAG_FOV1;
+        rx_FIFO_interrupt_register = CAN_FLAG_FOV1;
 
-    if ( (__HAL_CAN_GET_FLAG(_can_handle_, rx_fifo_interrupt_register)   != 0 ) )
+    if ( (__HAL_CAN_GET_FLAG(_can_handle_, rx_FIFO_interrupt_register)   != 0 ) )
         return (1);
     else
         return (0);
 }
 
-uint8_t CANPeriph::receiveFullChk(uint8_t RxFifo) {
+uint8_t CANPeriph::receiveFullChk(uint8_t RxFIFO) {
 /**************************************************************************************************
  * Check to see if the Receive Full bit has been set or not.
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_FLAG_FF0;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_FLAG_FF0;
     else
-        rx_fifo_interrupt_register = CAN_FLAG_FF1;
+        rx_FIFO_interrupt_register = CAN_FLAG_FF1;
 
-    if ( (__HAL_CAN_GET_FLAG(_can_handle_, rx_fifo_interrupt_register)   != 0 ) )
+    if ( (__HAL_CAN_GET_FLAG(_can_handle_, rx_FIFO_interrupt_register)   != 0 ) )
         return (1);
     else
         return (0);
@@ -181,52 +181,52 @@ uint8_t CANPeriph::transmitEmptyChk(void) {
     return ( transmit_state );
 }
 
-uint8_t CANPeriph::receivePendingITChk(uint8_t RxFifo) {
+uint8_t CANPeriph::receivePendingITChk(uint8_t RxFIFO) {
 /**************************************************************************************************
- * Check to see if the new message reception interrupt is enabled; where RxFifo is the Fifo for
+ * Check to see if the new message reception interrupt is enabled; where RxFIFO is the FIFO for
  * which the interrupt is checked for.
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_MSG_PENDING;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_MSG_PENDING;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_MSG_PENDING;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_MSG_PENDING;
 
-    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_fifo_interrupt_register) != 0 )
+    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_FIFO_interrupt_register) != 0 )
         return (1);
     else
         return (0);
 }
 
-uint8_t CANPeriph::receiveOverRunITChk(uint8_t RxFifo) {
+uint8_t CANPeriph::receiveOverRunITChk(uint8_t RxFIFO) {
 /**************************************************************************************************
- * Check to see if the Rx Overrun condition interrupt is enabled; where RxFifo is the Fifo for
+ * Check to see if the Rx Overrun condition interrupt is enabled; where RxFIFO is the FIFO for
  * which the interrupt is checked for.
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_OVERRUN;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_OVERRUN;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_OVERRUN;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_OVERRUN;
 
-    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_fifo_interrupt_register) != 0 )
+    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_FIFO_interrupt_register) != 0 )
         return (1);
     else
         return (0);
 }
 
-uint8_t CANPeriph::receiveFullITChk   (uint8_t RxFifo) {
+uint8_t CANPeriph::receiveFullITChk   (uint8_t RxFIFO) {
 /**************************************************************************************************
- * Check to see if the Rx full condition interrupt is enabled; where RxFifo is the Fifo for which
+ * Check to see if the Rx full condition interrupt is enabled; where RxFIFO is the FIFO for which
  * the interrupt is checked for.
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_FULL;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_FULL;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_FULL;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_FULL;
 
-    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_fifo_interrupt_register) != 0 )
+    if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, rx_FIFO_interrupt_register) != 0 )
         return (1);
     else
         return (0);
@@ -234,7 +234,7 @@ uint8_t CANPeriph::receiveFullITChk   (uint8_t RxFifo) {
 
 uint8_t CANPeriph::transmitEmptyITChk(void) {
 /**************************************************************************************************
- * Check to see if the Tx Fifo empty is enabled; where RxFifo is the Fifo for which
+ * Check to see if the Tx FIFO empty is enabled; where RxFIFO is the FIFO for which
  * the interrupt is checked for.
  *************************************************************************************************/
     if (__HAL_CAN_GET_IT_SOURCE(_can_handle_, CAN_IT_TX_MAILBOX_EMPTY) != 0 )
@@ -243,7 +243,7 @@ uint8_t CANPeriph::transmitEmptyITChk(void) {
         return (0);
 }
 
-void CANPeriph::configFilter(uint8_t filter_bank, FiltMode mode, FiltScale scale, uint8_t RxFifo,
+void CANPeriph::configFilter(uint8_t filter_bank, FiltMode mode, FiltScale scale, uint8_t RxFIFO,
                              FiltEnb filter_enable, uint32_t fr1, uint32_t fr2) {
 /**************************************************************************************************
  * Populate CAN filter as per inputs
@@ -275,10 +275,10 @@ void CANPeriph::configFilter(uint8_t filter_bank, FiltMode mode, FiltScale scale
         SET_BIT  (_can_handle_->Instance->FM1R, filternbrbitpos);   // Configure for Identifier
     }                                                               // List Mode
 
-    if (RxFifo == 0) {                  // RxFifo 0 has been selected
+    if (RxFIFO == 0) {                  // RxFIFO 0 has been selected
         CLEAR_BIT(_can_handle_->Instance->FFA1R, filternbrbitpos);
     }
-    else {                              // RxFifo 1 has been selected
+    else {                              // RxFIFO 1 has been selected
         SET_BIT  (_can_handle_->Instance->FFA1R, filternbrbitpos);
     }
 
@@ -289,16 +289,16 @@ void CANPeriph::configFilter(uint8_t filter_bank, FiltMode mode, FiltScale scale
     CLEAR_BIT(_can_handle_->Instance->FMR, CAN_FMR_FINIT);
 }
 
-void CANPeriph::config32bitFilter(uint8_t filter_bank, FiltMode mode, uint8_t RxFifo,
+void CANPeriph::config32bitFilter(uint8_t filter_bank, FiltMode mode, uint8_t RxFIFO,
                                   FiltEnb filter_enable,
                                   uint32_t id, uint32_t mask) {
 /**************************************************************************************************
  * Construct a 32bit filter
  *************************************************************************************************/
-    configFilter(filter_bank, mode, FiltScale::k32bit, RxFifo, filter_enable, id, mask);
+    configFilter(filter_bank, mode, FiltScale::k32bit, RxFIFO, filter_enable, id, mask);
 }
 
-void CANPeriph::config16bitFilter(uint8_t filter_bank, FiltMode mode, uint8_t RxFifo,
+void CANPeriph::config16bitFilter(uint8_t filter_bank, FiltMode mode, uint8_t RxFIFO,
                                   FiltEnb filter_enable,
                                   uint16_t mask_id_high,  uint16_t id_high,
                                   uint16_t mask_id_low,   uint16_t id_low) {
@@ -315,7 +315,7 @@ void CANPeriph::config16bitFilter(uint8_t filter_bank, FiltMode mode, uint8_t Rx
     fr2 = ( (uint32_t) ((mask_id_low ) << 16U) |
             (uint32_t) id_low );
 
-    configFilter(filter_bank, mode, FiltScale::k16bit, RxFifo, filter_enable, fr1, fr2);
+    configFilter(filter_bank, mode, FiltScale::k16bit, RxFIFO, filter_enable, fr1, fr2);
 }
 
 uint16_t CANPeriph::filterID16bit(uint32_t identifier) {
@@ -379,7 +379,7 @@ uint32_t CANPeriph::filterID32bit(uint32_t identifier) {
     else {
         identifier &= 0x7FF;
 
-        return_entry |= (uint32_t) (identifier << 18 + 3);
+        return_entry |= (uint32_t) (identifier << (18 + 3));
     }
 
     return (return_entry);
@@ -441,6 +441,7 @@ void CANPeriph::fillTransmitMailBox(Form can_message, uint8_t mailbox_number) {
 uint8_t CANPeriph::getFreeTxMailbox(void) {
 /**************************************************************************************************
  * Retrieve the next free Mailbox
+ *  Note, Output will saturate at 2, and override if the Tx FIFO is fully populated
  *************************************************************************************************/
     return ( (_can_handle_->Instance->TSR & CAN_TSR_CODE) >> CAN_TSR_CODE_Pos );
 }
@@ -467,23 +468,23 @@ uint8_t CANPeriph::getTxRequestComplete(uint8_t mailbox_number) {
 /**************************************************************************************************
  * Check to see if the Mailbox communication has been completed
  *************************************************************************************************/
-    uint32_t tx_fifo_interrupt_register = 0;
+    uint32_t tx_FIFO_interrupt_register = 0;
 
     switch (mailbox_number) {
         case 1:
-            tx_fifo_interrupt_register = CAN_FLAG_RQCP1;
+            tx_FIFO_interrupt_register = CAN_FLAG_RQCP1;
             break;
 
         case 2:
-            tx_fifo_interrupt_register = CAN_FLAG_RQCP2;
+            tx_FIFO_interrupt_register = CAN_FLAG_RQCP2;
             break;
 
         default:
-            tx_fifo_interrupt_register = CAN_FLAG_RQCP0;
+            tx_FIFO_interrupt_register = CAN_FLAG_RQCP0;
             break;
     }
 
-    if ( (__HAL_CAN_GET_FLAG(_can_handle_, tx_fifo_interrupt_register)   != 0 ) )
+    if ( (__HAL_CAN_GET_FLAG(_can_handle_, tx_FIFO_interrupt_register)   != 0 ) )
         return (1);
     else
         return (0);
@@ -522,6 +523,90 @@ void CANPeriph::abortTxMailbox(uint8_t mailbox_bitpack_number) {
       /* Add cancellation request for Tx Mailbox 2 */
       SET_BIT(_can_handle_->Instance->TSR, CAN_TSR_ABRQ2);
     }
+}
+
+CANPeriph::Form  CANPeriph::getRxFIFOMessage(uint8_t RxFIFO) {
+/**************************************************************************************************
+ * Retrieve the contents of the RxFIFO input
+ *************************************************************************************************/
+    Form        temp = { 0 };
+
+    if ( (CAN_RI0R_IDE & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RIR ) == CAN_ID_STD) {
+        temp.Identifier =
+            (CAN_RI0R_STID & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RIR)
+                >> CAN_TI0R_STID_Pos;
+    }
+    else {
+        temp.Identifier =
+            ((CAN_RI0R_EXID | CAN_RI0R_STID) & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RIR)
+                >> CAN_RI0R_EXID_Pos;
+    }
+
+    if ( (CAN_RI0R_RTR & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RIR) == CAN_RI0R_RTR ) {
+        temp.type = RemTrans::kRemoteFrame;
+    }
+    else {
+        temp.type = RemTrans::kDataFrame;
+    }
+
+    temp.size = (uint8_t) (
+        (CAN_RDT0R_DLC & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDTR) >> CAN_RDT0R_DLC_Pos
+    );
+
+    temp.data[0] = (uint8_t)((CAN_RDL0R_DATA0 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDLR)
+                >> CAN_RDL0R_DATA0_Pos);
+    temp.data[1] = (uint8_t)((CAN_RDL0R_DATA1 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDLR)
+                >> CAN_RDL0R_DATA1_Pos);
+    temp.data[2] = (uint8_t)((CAN_RDL0R_DATA2 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDLR)
+                >> CAN_RDL0R_DATA2_Pos);
+    temp.data[3] = (uint8_t)((CAN_RDL0R_DATA3 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDLR)
+                >> CAN_RDL0R_DATA3_Pos);
+    temp.data[4] = (uint8_t)((CAN_RDH0R_DATA4 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDHR)
+                >> CAN_RDH0R_DATA4_Pos);
+    temp.data[5] = (uint8_t)((CAN_RDH0R_DATA5 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDHR)
+                >> CAN_RDH0R_DATA5_Pos);
+    temp.data[6] = (uint8_t)((CAN_RDH0R_DATA6 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDHR)
+                >> CAN_RDH0R_DATA6_Pos);
+    temp.data[7] = (uint8_t)((CAN_RDH0R_DATA7 & _can_handle_->Instance->sFIFOMailBox[RxFIFO].RDHR)
+                >> CAN_RDH0R_DATA7_Pos);
+
+    return (temp);
+}
+
+void CANPeriph::releaseRxFIFOMessage(uint8_t RxFIFO) {
+/**************************************************************************************************
+ * Release the specified FIFO Receive input
+ *************************************************************************************************/
+    if (RxFIFO == CAN_RX_FIFO0) /* Rx element is assigned to Rx FIFO 0 */
+    {
+      /* Release RX FIFO 0 */
+      SET_BIT(_can_handle_->Instance->RF0R, CAN_RF0R_RFOM0);
+    }
+    else /* Rx element is assigned to Rx FIFO 1 */
+    {
+      /* Release RX FIFO 1 */
+      SET_BIT(_can_handle_->Instance->RF1R, CAN_RF1R_RFOM1);
+    }
+}
+
+uint8_t CANPeriph::getRxFIFOFillLevel(uint8_t RxFIFO) {
+/**************************************************************************************************
+ * Will return the number of messages stored in the selected Rx FIFO ('RxFIFO').
+ * Expected to return a value of either 0 to 3; 0 is FIFO empty
+ *************************************************************************************************/
+    uint8_t filllevel = 0;
+
+    if (RxFIFO == CAN_RX_FIFO0)
+    {
+      filllevel = (uint8_t) (_can_handle_->Instance->RF0R & CAN_RF0R_FMP0);
+    }
+    else /* RxFIFO == CAN_RX_FIFO1 */
+    {
+      filllevel = (uint8_t) (_can_handle_->Instance->RF1R & CAN_RF1R_FMP1);
+    }
+
+    /* Return Rx FIFO fill level */
+    return filllevel;
 }
 
 CANPeriph::DevFlt CANPeriph::poleAddTxDataMessage(uint32_t identifier, uint8_t *wData,
@@ -617,170 +702,87 @@ CANPeriph::DevFlt CANPeriph::poleAddTxRemoteMessage(uint32_t identifier, uint8_t
     return ( getFaultStatus(CANPERIPH_TX, transmitmailbox) );   // Return the current fault status
 }
 
-CANPeriph::Form  CANPeriph::getRxFifoMessage(uint8_t RxFifo) {
-/**************************************************************************************************
- * Retrieve the contents of the RxFIFO input
- *************************************************************************************************/
-    Form        temp = { 0 };
-
-    if ( (CAN_RI0R_IDE & _can_handle_->Instance->sFIFOMailBox[RxFifo].RIR ) == CAN_ID_STD) {
-        temp.Identifier =
-            (CAN_RI0R_STID & _can_handle_->Instance->sFIFOMailBox[RxFifo].RIR)
-                >> CAN_TI0R_STID_Pos;
-    }
-    else {
-        temp.Identifier =
-            ((CAN_RI0R_EXID | CAN_RI0R_STID) & _can_handle_->Instance->sFIFOMailBox[RxFifo].RIR)
-                >> CAN_RI0R_EXID_Pos;
-    }
-
-    if ( (CAN_RI0R_RTR & _can_handle_->Instance->sFIFOMailBox[RxFifo].RIR) == CAN_RI0R_RTR ) {
-        temp.type = RemTrans::kRemoteFrame;
-    }
-    else {
-        temp.type = RemTrans::kDataFrame;
-    }
-
-    temp.size = (uint8_t) (
-        (CAN_RDT0R_DLC & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDTR) >> CAN_RDT0R_DLC_Pos
-    );
-
-    temp.data[0] = (uint8_t)((CAN_RDL0R_DATA0 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDLR)
-                >> CAN_RDL0R_DATA0_Pos);
-    temp.data[1] = (uint8_t)((CAN_RDL0R_DATA1 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDLR)
-                >> CAN_RDL0R_DATA1_Pos);
-    temp.data[2] = (uint8_t)((CAN_RDL0R_DATA2 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDLR)
-                >> CAN_RDL0R_DATA2_Pos);
-    temp.data[3] = (uint8_t)((CAN_RDL0R_DATA3 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDLR)
-                >> CAN_RDL0R_DATA3_Pos);
-    temp.data[4] = (uint8_t)((CAN_RDH0R_DATA4 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDHR)
-                >> CAN_RDH0R_DATA4_Pos);
-    temp.data[5] = (uint8_t)((CAN_RDH0R_DATA5 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDHR)
-                >> CAN_RDH0R_DATA5_Pos);
-    temp.data[6] = (uint8_t)((CAN_RDH0R_DATA6 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDHR)
-                >> CAN_RDH0R_DATA6_Pos);
-    temp.data[7] = (uint8_t)((CAN_RDH0R_DATA7 & _can_handle_->Instance->sFIFOMailBox[RxFifo].RDHR)
-                >> CAN_RDH0R_DATA7_Pos);
-
-    return (temp);
-}
-
-void CANPeriph::releaseRxFifoMessage(uint8_t RxFifo) {
-/**************************************************************************************************
- * Release the specified FIFO Receive input
- *************************************************************************************************/
-    if (RxFifo == CAN_RX_FIFO0) /* Rx element is assigned to Rx FIFO 0 */
-    {
-      /* Release RX FIFO 0 */
-      SET_BIT(_can_handle_->Instance->RF0R, CAN_RF0R_RFOM0);
-    }
-    else /* Rx element is assigned to Rx FIFO 1 */
-    {
-      /* Release RX FIFO 1 */
-      SET_BIT(_can_handle_->Instance->RF1R, CAN_RF1R_RFOM1);
-    }
-}
-
-uint32_t CANPeriph::getRxFifoFillLevel(uint8_t RxFifo) {
-/**************************************************************************************************
- * Determine which of the RxFIFO buffers are populated,
- *************************************************************************************************/
-    uint8_t filllevel = 0;
-
-    if (RxFifo == CAN_RX_FIFO0)
-    {
-      filllevel = (uint8_t) (_can_handle_->Instance->RF0R & CAN_RF0R_FMP0);
-    }
-    else /* RxFifo == CAN_RX_FIFO1 */
-    {
-      filllevel = (uint8_t) (_can_handle_->Instance->RF1R & CAN_RF1R_FMP1);
-    }
-
-    /* Return Rx FIFO fill level */
-    return filllevel;
-}
-
 CANPeriph::Form CANPeriph::poleReadRxDataMessage(void) {
 /**************************************************************************************************
  * Wait until there is any CAN message received (after filter) and provide as function output
  *************************************************************************************************/
     uint8_t     messagereceived = 0;
-    uint8_t     fifo_location   = 0;
+    uint8_t     FIFO_location   = 0;
 
     while (messagereceived == 0) {
-        for (fifo_location = 0; fifo_location != 2; fifo_location++) {
-            messagereceived = getRxFifoFillLevel(  fifo_location  );
+        for (FIFO_location = 0; FIFO_location != 2; FIFO_location++) {
+            messagereceived = getRxFIFOFillLevel(  FIFO_location  );
 
             if (messagereceived != 0) {  break;  }
         }
     }
 
-    Form read_data = getRxFifoMessage( fifo_location );
-    releaseRxFifoMessage( fifo_location );
-    getFaultStatus(CANPERIPH_RX, fifo_location);
+    Form read_data = getRxFIFOMessage( FIFO_location );
+    releaseRxFIFOMessage( FIFO_location );
+    getFaultStatus(CANPERIPH_RX, FIFO_location);
 
     return ( read_data );        // Return the current fault status
 }
 
-void CANPeriph::configRxPendingIT(uint8_t RxFifo, InterState intr) {
+void CANPeriph::configRxPendingIT(uint8_t RxFIFO, InterState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
- * This will enable/disable the Rx Reception of a new message interrupt; where RxFifo is the
- * Fifo for which the interrupt is enabled for
+ * This will enable/disable the Rx Reception of a new message interrupt; where RxFIFO is the
+ * FIFO for which the interrupt is enabled for
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_MSG_PENDING;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_MSG_PENDING;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_MSG_PENDING;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_MSG_PENDING;
 
 
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
     else {                                                  // If request is to disable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
 }
 
-void CANPeriph::configRxOverRunIT(uint8_t RxFifo, InterState intr) {
+void CANPeriph::configRxOverRunIT(uint8_t RxFIFO, InterState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
- * This will enable/disable the Rx Overrun condition interrupt; where RxFifo is the
- * Fifo for which the interrupt is enabled for
+ * This will enable/disable the Rx Overrun condition interrupt; where RxFIFO is the
+ * FIFO for which the interrupt is enabled for
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_OVERRUN;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_OVERRUN;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_OVERRUN;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_OVERRUN;
 
 
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
     else {                                                  // If request is to disable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
 }
 
-void CANPeriph::configRxFullIT   (uint8_t RxFifo, InterState intr) {
+void CANPeriph::configRxFullIT   (uint8_t RxFIFO, InterState intr) {
 /**************************************************************************************************
  * INTERRUPTS:
- * This will enable/disable the Rx full condition interrupt; where RxFifo is the
- * Fifo for which the interrupt is enabled for
+ * This will enable/disable the Rx full condition interrupt; where RxFIFO is the
+ * FIFO for which the interrupt is enabled for
  *************************************************************************************************/
-    uint32_t rx_fifo_interrupt_register = 0;
-    if (RxFifo == 0)
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO0_FULL;
+    uint32_t rx_FIFO_interrupt_register = 0;
+    if (RxFIFO == 0)
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO0_FULL;
     else
-        rx_fifo_interrupt_register = CAN_IT_RX_FIFO1_FULL;
+        rx_FIFO_interrupt_register = CAN_IT_RX_FIFO1_FULL;
 
     if (intr == InterState::kIT_Enable) {                   // If request is to enable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
     else {                                                  // If request is to disable
-        __HAL_CAN_ENABLE_IT(_can_handle_, rx_fifo_interrupt_register);
+        __HAL_CAN_ENABLE_IT(_can_handle_, rx_FIFO_interrupt_register);
     }
 }
 
@@ -829,6 +831,20 @@ void CANPeriph::intAddTxDataMessage(uint32_t identifier, uint8_t *wData, uint8_t
     startInterrupt();
 }
 
+_GenBufState CANPeriph::intGetRxMessage(CANPeriph::Form *read_message) {
+/**************************************************************************************************
+ * Check to see if there is any new messages in the class read buffer.
+ * If there is, then update pointer contents to this - and return "kGenBuffer_New_Data"
+ *          isn't, then return "kGenBuffer_Empty"
+ *************************************************************************************************/
+    if (_form_read_q_.state() != kGenBuffer_Empty) {
+        _form_read_q_.outputRead(read_message);
+        return ( kGenBuffer_New_Data );
+    }
+
+    return ( kGenBuffer_Empty );
+}
+
 void CANPeriph::startInterrupt(void) {
 /**************************************************************************************************
  * Function will be called to start off a new CAN communication if there is something in the
@@ -866,7 +882,7 @@ void CANPeriph::startInterrupt(uint8_t mailbox_number) {
     }
 }
 
-void CANPeriph::handleRxFIFOIRQ(uint8_t RxFifo) {
+void CANPeriph::handleRxFIFOIRQ(uint8_t RxFIFO) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the CAN events within the CAN class.
@@ -881,28 +897,36 @@ void CANPeriph::handleRxFIFOIRQ(uint8_t RxFifo) {
  * ones are enabled. If both a status event has occurred, and the interrupt is enabled, then this
  * function will take action.
  * Events covered by this function:
-
+ *      Receive Overrun
+ *          - If this occurs, then this will be recorded in a temporary variable within this
+ *            function
+ *
+ *      Receive Pending or Receive Full
+ *          - If there is any data within the 'RxFIFO' (either full, or 1) then the contents of
+ *            the FIFO will be moved into the class internal buffer.
+ *            The RxFIFO will then be released.
+ *            The fault flag for the rx_flt will be updated for the 'RxFIFO'
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
     DevFlt receive_fault = DevFlt::kNone;
     // If an Overrun event has been detected then
-    if ( (receiveOverRunChk(RxFifo) & receiveOverRunITChk(RxFifo)) ) {
-        // Capture a OVERRUN fault
+    if ( (receiveOverRunChk(RxFIFO) & receiveOverRunITChk(RxFIFO)) ) {
+        // Capture an OVERRUN fault
         receive_fault = DevFlt::kOverRun;
     }
 
     // If there is anything in the receive buffer than, read it all and put into the class extended
     // buffer
-    if (  (receiveFullChk(RxFifo)           & receiveFullITChk(RxFifo)) ||
-         ((getRxFifoFillLevel(RxFifo) != 0) & receivePendingITChk(RxFifo)) ) {
-        uint8_t fill_level = getRxFifoFillLevel(RxFifo);
+    if (  (receiveFullChk(RxFIFO)           & receiveFullITChk(RxFIFO)) ||
+         ((getRxFIFOFillLevel(RxFIFO) != 0) & receivePendingITChk(RxFIFO)) ) {
+        uint8_t fill_level = getRxFIFOFillLevel(RxFIFO);
 
         while (fill_level != 0) {
             // Add the data to the internal buffer
-            _form_read_q_.inputWrite( getRxFifoMessage( RxFifo ) );
-            getFaultStatus(CANPERIPH_RX, RxFifo);   // Get the status of the CAN BUS
-            releaseRxFifoMessage(RxFifo);           // Ensure to release, so as to make the next
+            _form_read_q_.inputWrite( getRxFIFOMessage( RxFIFO ) );
+            getFaultStatus(CANPERIPH_RX, RxFIFO);   // Get the status of the CAN BUS
+            releaseRxFIFOMessage(RxFIFO);           // Ensure to release, so as to make the next
                                                     // data point available
             fill_level--;
         }
@@ -910,7 +934,7 @@ void CANPeriph::handleRxFIFOIRQ(uint8_t RxFifo) {
         // If there was a fault at the start of the interrupt, then force onto the class fault
         // state
         if (receive_fault != DevFlt::kNone)
-            rx_flt[RxFifo] = receive_fault;
+            rx_flt[RxFIFO] = receive_fault;
     }
 }
 
@@ -929,7 +953,13 @@ void CANPeriph::handleTxFIFOIRQ(void) {
  * ones are enabled. If both a status event has occured, and the interrupt is enabled, then this
  * function will take action.
  * Events covered by this function:
-
+ *      Transmit Mailbox empty/Transmission completed
+ *          - Will determine which of the Tx Mailboxes has been completed, and is now available
+ *            for populating with new data.
+ *            Will clear the 'RQCP' flag; so as to clear the interrupt.
+ *            Capture the status of the fault register and store in the tx_flt array
+ *            Check to see if there are any other CAN requests within the class internal buffer,
+ *            if so - populate into the now free Mailbox
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
@@ -966,7 +996,7 @@ void CANPeriph::handleTxFIFOIRQ(void) {
     }
 }
 
-void CANPeriph:: handleErrorIRQ(void) {
+//void CANPeriph:: handleErrorIRQ(void) {
 /**************************************************************************************************
  * INTERRUPTS:
  * Interrupt Service Routine for the CAN errors within the CAN class.
@@ -981,15 +1011,13 @@ void CANPeriph:: handleErrorIRQ(void) {
  * ones are enabled. If both a status event has occurred, and the interrupt is enabled, then this
  * function will take action.
  * Events covered by this function:
- *      Bus Error
+
  *
  *      No other interrupts are currently supported.
  *************************************************************************************************/
-    /*if ( (busErroChk() & busErrorITChk()) == 0x01) {// If Bus Error triggered
-        clearBusEr();                               // Clear the Bus Error
-        *(_cur_form_.Flt)    = DevFlt::kBus_Error;  // Set requested fault flag
-    }*/
-}
+    // Not supported currently.
+    // The transmit and receive interrupts already read the fault registers
+//}
 
 CANPeriph::~CANPeriph()
 {
