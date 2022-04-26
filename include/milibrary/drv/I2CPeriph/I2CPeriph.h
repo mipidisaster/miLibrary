@@ -53,7 +53,7 @@
  *      Following functions are protected so will only work for classes which inherit from this
  *      one, and are not visible external to this class. They contain the lower level handling
  *      of hardware, which the functions above rely upon to function (this is where a majority of
- *      the differences between the supported embedded devices will lie:
+ *      the differences between the supported embedded devices will lie):
  *          ".readDR"               - Will take data straight from hardware
  *          ".writeDR"              - Will put data straight onto the hardware
  *          ".requestTransfer"      - Configures the hardware for a I2C transfer (sets up Address,
