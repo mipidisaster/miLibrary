@@ -11,8 +11,98 @@
 /**************************************************************************************************
  * How to use
  * ----------
- * 
- * 
+ * Class supports only the STM32 embedded devices, the initialisation of which is common across
+ * the series of devices.
+ * The basic used of the class is the same for all target devices
+ *      Call Class SPIPeriph to initialise the class
+ *          For STM32F devices, provide the address of the CAN handler - from cubeMX
+ *          For STM32L devices, provide the address of the CAN handler - from cubeMX
+ *
+ *      CAN Filter configuration functions:
+ *          ".config32bitFilter"
+ *          ".config16bitFilter"
+ *          ".filterID16bit"
+ *          ".filterID32bit"
+ *          ".filterMASK16bit"
+ *          ".filterMASK32bit"
+ *
+ *          ".abortTxMailbox"       - Can be used to abort the specific Tx Mailbox *
+ *
+ *      Depending upon how the programmer wants to use the CAN device, will change which functions
+ *      are utilised.
+ *      For functions to write/read to the selected device (polling mode):
+ *          ".poleAddTxDataMessage" - Transmit the CAN Data Frame, waiting for states to be ready
+ *                                    for communication
+ *          ".poleAddTxRemoteMessage" Same as the above, but transmis a Remote Frame
+ *          ".poleReadRxDataMessage"- Wait for CAN frame to be received (note input CAN frame needs
+ *                                    to pass through the filter(s))
+ *
+ *      If interrupts are to be used, then will first need to be configured within the NVIC (which
+ *      is not part of this class), then the following can be used:
+ *          ".configTransmtIT"      - Enable/Disable Transmit Empty Interrupt
+ *          ".configRxPendingIT"    - Enable/Disable Received CAN Frame pending Interrupt
+ *          ".configRxFullIT"       - Enable/Disable Receive FIFO full Interrupt
+ *          ".configRxOverRunIT"    - Enable/Disable Receive FIFO overun Interrupt
+ *
+ *          ".intAddTxDataMessage"  - Put a request for interrupt based communication of the CAN
+ *                                    Data Frame (utilises the CAN form system, see below).
+ *
+ *          ".intGetRxMessage"      - Check to see if receive interrupt(s) have stored any CAN
+ *                                    frames in the FORM buffer.
+ *                                    Will return '_GenBufState' enumerate
+ *
+ *          ".startInterrupt"       - OVERLOADED function for checking if there are any new
+ *                                    transmit requests which can be put onto the hardware
+ *          ".handleRxFIFOIRQ"      - Functions to be placed within the relevant Interrupt Vector
+ *                                    call, so as to handle the CAN interrupt
+ *          ".handleTxFIFOIRQ"      - Functions to be placed within the relevant Interrupt Vector
+ *                                    call, so as to handle the CAN interrupt
+ *
+ *      Following functions are protected so will only work for classes which inherit from this
+ *      one, and are not visible external to this class. They contain the lower level handling
+ *      of hardware, which the functions above rely upon to function (this is where a majority of
+ *      the differences between the supported embedded devices will lie):
+ *          ".getRxFIFOFillLevel"   - Get the populated level for the RxFIFO/TxMailboxes
+ *          ".getTxMailboxesFreeLevel" (as above)
+ *
+ *          ".getFaultStatus"       - Read the fault register(s)
+ *          ".getTxRequestComplete" - Check to see if TxMailbox has been transmitted
+ *          ".getFreeTxMailbox"     - Get the next free TxMailbox
+ *          ".releaseRxFIFOMessage" - Release the selected RxFIFO, so can receive new messages
+ *          ".requestTxMailboxTransmission" - Request that selected TxMailbox be transmitted
+ *
+ *          ".fillTransmitMailBox"  - Supporting function to populate the hardware with the CAN
+ *                                    Form contents
+ *          ".getRxFIFOMessage"     - Supporting function to return the contents of the hardware
+ *                                    in the Form structure
+ *          ".configFilter"         - Supporting function to populate the hardware with the filter
+ *                                    setup
+ *
+ *          ".receiveOverRunChk"    - Check to see if the receive overrun has occurred
+ *          ".receiveFullChk"       - Check to see if the receive FIFO is full
+ *          ".transmitEmptyChk"     - Check to see if which transmit FIFOs are empty
+  *         ".transmitEmptyITChk"   - Indicates if the interrupt for Transmit empty is empty has
+ *                                    been enabled
+ *          ".receivePendingITChk"  - Indicates if the interrupt for Receive Pending has been
+ *                                    enabled
+ *          ".receiveOverRunITChk"  - Indicates if the interrupt for Receive overrun has been
+ *                                    enabled
+ *          ".receiveFullITChk"     - Indicates if the interrupt for Receive buffer full has been
+ *                                    enabled
+ *
+ *  [#] CAN Request Form System
+ *      ~~~~~~~~~~~~~~~~~~~~~~~
+ *      Whilst utilising minimised CPU loaded communication, the CAN Device will utilise a CAN
+ *      Request Form system, so as to ensure that each of the multiple source functions wanting to
+ *      communicate with CAN Bus, is done correctly and effectively.
+ *      Each of the source functions will call either the pole/intAddTxDataMessage, this will then
+ *      put the request into the class internal Form Buffer. This will then be checked along with
+ *      the hardware to ensure that a free Tx Mailbox is available.
+ *      If the external source request is looking for a specific CAN Frame, then when the function
+ *      poleReadRxDataMessage/intGetRxMessage are called, the ID will need to be checked and passed
+ *      to the respective function.
+ *
+ *      There is no other functionality within this class
  *************************************************************************************************/
 #ifndef CANPeriph_H_
 #define CANPeriph_H_
@@ -211,16 +301,17 @@ protected:  /*******************************************************************
 
     // CAN Event status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~
+    uint8_t transmitEmptyChk(void);                 // Check state of Transmit empty (1 = empty)
     uint8_t receiveOverRunChk(uint8_t RxFIFO);      // Check state of Rx Overrun (1 = Overrun)
     uint8_t receiveFullChk   (uint8_t RxFIFO);      // Check state of Rx full    (1 = Full)
-    uint8_t transmitEmptyChk(void);                 // Check state of Transmit empty (1 = empty)
 
     // CAN Interrupt status checks
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    uint8_t receivePendingITChk(uint8_t RxFIFO);    // Check to see if interrupt is enabled
-    uint8_t receiveOverRunITChk(uint8_t RxFIFO);    //     (1 = enabled)
+    uint8_t transmitEmptyITChk(void);               // Check to see if interrupt is enabled
+    uint8_t receivePendingITChk(uint8_t RxFIFO);    //     (1 = enabled)
     uint8_t receiveFullITChk   (uint8_t RxFIFO);    //
-    uint8_t transmitEmptyITChk(void);               //
+    uint8_t receiveOverRunITChk(uint8_t RxFIFO);    //
+
 
 public:     /**************************************************************************************
              * ==  PUBLIC   == >>>   CONFIGURATE FUNCTIONS FOR THE HARDWARE  <<<
@@ -287,10 +378,10 @@ public:     /*******************************************************************
              *  Visible functions used to transfer data via UART - in Interrupt mode, so allows
              *  other functions to run, whilst hardware "does its thing!"
              *************************************************************************************/
+    void configTransmtIT  (InterState intr);                    // Configure the Transmit Empty
     void configRxPendingIT(uint8_t RxFIFO, InterState intr);    // Configure the Pending Receive
     void configRxOverRunIT(uint8_t RxFIFO, InterState intr);    // Configure the Receive Overrun
     void configRxFullIT   (uint8_t RxFIFO, InterState intr);    // Configure the Receive Full
-    void configTransmtIT  (InterState intr);                    // Configure the Transmit Empty
 
     void intAddTxDataMessage(uint32_t identifier, uint8_t *wData, uint8_t size);
     _GenBufState intGetRxMessage(Form *read_message);
